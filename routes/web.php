@@ -47,9 +47,11 @@ Route::middleware('web')->group(function () {
     Route::get('releases/create', [ReleaseController::class, 'create'])->name('releases.create');
     Route::post('releases', [ReleaseController::class, 'store'])->name('releases.store');
     Route::get('releases/{release}', [ReleaseController::class, 'view'])->name('releases.view');
-
+    Route::put('releases/{release}', [ReleaseController::class, 'update'])->name('releases.update');
     Route::post('releases/{release}/status/{status}', [ReleaseController::class, 'updateStatus'])
         ->where('status', 'released-through-pass|released|canceled|returned|unreleased')
         ->name('releases.status');
+
+    Route::get('reports/liquidation', [\App\Http\Controllers\ReportController::class, 'liquidation'])->name('reports.liquidation');
     });
 });

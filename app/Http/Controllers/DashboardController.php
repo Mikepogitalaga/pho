@@ -14,8 +14,17 @@ class DashboardController extends Controller
     {
         $totalItems = Item::count();
         $totalSuppliers = Supplier::count();
-        $totalReceivedThisMonth = Receiving::whereBetween('date_received', [now()->startOfMonth(), now()->endOfMonth()])->count();
-        $totalReleasedThisMonth = Release::whereBetween('date_released', [now()->startOfMonth(), now()->endOfMonth()])->count();
+        $totalReceivedThisMonth = ReceivingItem::whereHas('receiving', function ($q) {
+            $q->whereBetween('date_received', [now()->startOfMonth(), now()->endOfMonth()]);
+        })->sum('quantity_received');
+        $totalReleasedThisMonth = \App\Models\ReleaseItem::whereHas('release', function ($q) {
+            $q->where('status', 'Released')
+              ->whereBetween('date_released', [now()->startOfMonth(), now()->endOfMonth()]);
+        })->sum('quantity_released');
+        $totalUnreleasedReleases = Release::where('status', 'Unreleased')->count();
+        $totalUnreleasedQuantity = \App\Models\ReleaseItem::whereHas('release', function ($q) {
+            $q->where('status', 'Unreleased');
+        })->sum('quantity_released');
         // Low Stock: treat items as low if they are <= reorder_level;
         // if reorder_level is null/0, fall back to fixed threshold 20.
         $lowStockItems = Item::query()
@@ -76,6 +85,8 @@ class DashboardController extends Controller
             'totalSuppliers',
             'totalReceivedThisMonth',
             'totalReleasedThisMonth',
+            'totalUnreleasedReleases',
+            'totalUnreleasedQuantity',
             'lowStockItems',
             'recentReceived',
             'recentReleased',

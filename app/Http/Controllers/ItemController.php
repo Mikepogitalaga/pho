@@ -74,9 +74,31 @@ class ItemController extends Controller
 
     public function show(Item $item)
     {
-        $item->load('nextExpiryItem');
+        $item->load('nextExpiryItem', 'releaseItems');
 
-        return view('items.show', compact('item'));
+        $totalReleased = $item->releaseItems()->sum('quantity_released');
+        $totalReceived = $item->receivingItems()->sum('quantity_received');
+        $deductionPercentage = $totalReceived > 0 ? round(($totalReleased / $totalReceived) * 100) : 0;
+
+        $deductionHistory = [];
+
+        foreach ($item->releaseItems as $releaseItem) {
+            $release = $releaseItem->release;
+            $deductionHistory[] = [
+                'date' => $release->date_released,
+                'type' => 'Release',
+                'reference' => $release->ptr_itr_ris_no ?? $release->release_number,
+                'quantity' => $releaseItem->quantity_released,
+                'facility' => $release->facility_name,
+                'status' => $release->status,
+            ];
+        }
+
+        usort($deductionHistory, function ($a, $b) {
+            return $b['date']->timestamp - $a['date']->timestamp;
+        });
+
+        return view('items.show', compact('item', 'totalReleased', 'deductionPercentage', 'deductionHistory'));
     }
 
     public function export(Request $request)

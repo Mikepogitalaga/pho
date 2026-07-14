@@ -63,7 +63,6 @@ class ReleaseController extends Controller
     {
         $query = Release::query()->latest('date_released');
 
-        // Optional UI filters (preserve existing behavior when not provided)
         $search = trim((string) $request->input('search', ''));
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
@@ -71,8 +70,24 @@ class ReleaseController extends Controller
                     ->orWhere('pas_number', 'like', '%' . $search . '%')
                     ->orWhere('pho_code', 'like', '%' . $search . '%')
                     ->orWhere('facility_name', 'like', '%' . $search . '%')
+                    ->orWhere('ptr_itr_ris_no', 'like', '%' . $search . '%')
                     ->orWhere('status', 'like', '%' . $search . '%');
             });
+        }
+
+        $facility = trim((string) $request->input('facility', ''));
+        if ($facility !== '') {
+            $query->where('facility_name', 'like', '%' . $facility . '%');
+        }
+
+        $phoCode = trim((string) $request->input('pho_code', ''));
+        if ($phoCode !== '') {
+            $query->where('pho_code', 'like', '%' . $phoCode . '%');
+        }
+
+        $pasNumber = trim((string) $request->input('pas_number', ''));
+        if ($pasNumber !== '') {
+            $query->where('pas_number', 'like', '%' . $pasNumber . '%');
         }
 
         $status = $request->input('status');
@@ -100,6 +115,37 @@ class ReleaseController extends Controller
         $release->load('items');
 
         return view('releases.view', compact('release'));
+    }
+
+    public function update(Request $request, Release $release)
+    {
+        $request->validate([
+            'pas_number' => 'nullable|string|max:255',
+            'health_program_coordinator' => 'nullable|string|max:255',
+            'ptr_itr_ris_no' => 'nullable|string|max:255',
+            'pho_code' => 'nullable|string|max:255',
+            'source_docs_ptr_po_no' => 'nullable|string|max:255',
+            'facility_name' => 'nullable|string|max:255',
+            'received_by' => 'nullable|string|max:255',
+            'date_released' => 'required|date',
+            'status' => 'required|string|in:Unreleased,Released,Released through pass,Canceled,Returned',
+            'notes' => 'nullable|string',
+        ]);
+
+        $release->update($request->only([
+            'pas_number',
+            'health_program_coordinator',
+            'ptr_itr_ris_no',
+            'pho_code',
+            'source_docs_ptr_po_no',
+            'facility_name',
+            'received_by',
+            'date_released',
+            'status',
+            'notes',
+        ]));
+
+        return redirect()->route('releases.view', $release)->with('success', 'Release details updated successfully.');
     }
 
     public function create()

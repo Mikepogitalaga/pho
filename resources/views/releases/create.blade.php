@@ -86,7 +86,7 @@
                                 <div class="form-grid-3">
                                     <div class="form-group">
                                         <label>Item Description</label>
-                                        <input type="text" class="item-description-input" list="item-options" name="items[{{ $index }}][item_description]" value="{{ $oldItem['item_description'] ?? '' }}" autocomplete="off">
+                                        <input type="text" class="item-description-input" name="items[{{ $index }}][item_description]" value="{{ $oldItem['item_description'] ?? '' }}" autocomplete="off">
                                     </div>
                                     <div class="form-group">
                                         <label>Quantity</label>
@@ -138,7 +138,7 @@
                         <div class="form-grid-3">
                             <div class="form-group">
                                 <label>Item Description</label>
-                                <input type="text" class="item-description-input" list="item-options" name="items[0][item_description]" value="" autocomplete="off">
+                                <input type="text" class="item-description-input" name="items[0][item_description]" value="" autocomplete="off">
                             </div>
                             <div class="form-group">
                                 <label>Quantity</label>
@@ -176,6 +176,14 @@
                     const togglePtrButton = document.getElementById('toggle-ptr-button');
                     const ptrSection = document.getElementById('ptr-section');
                     const itemTemplate = document.getElementById('release-item-template');
+                    const itemOptions = document.getElementById('item-options');
+
+                    // Build items data from datalist
+                    const itemsData = Array.from(itemOptions.querySelectorAll('option')).map(option => ({
+                        id: option.dataset.itemId,
+                        name: option.value,
+                        nameLower: option.value.toLowerCase()
+                    }));
 
                     function updateIndexes() {
                         Array.from(releaseItems.querySelectorAll('.release-item-row')).forEach((row, index) => {
@@ -196,6 +204,72 @@
                         });
                     }
 
+                    function createAutocompleteDropdown(descriptionInput) {
+                        let dropdown = descriptionInput.nextElementSibling;
+                        if (dropdown && dropdown.classList.contains('autocomplete-dropdown')) {
+                            dropdown.remove();
+                        }
+
+                        dropdown = document.createElement('div');
+                        dropdown.className = 'autocomplete-dropdown';
+                        dropdown.style.cssText = `
+                            position: absolute;
+                            background: white;
+                            border: 1px solid #ddd;
+                            border-top: none;
+                            max-height: 200px;
+                            overflow-y: auto;
+                            width: 100%;
+                            z-index: 1000;
+                            display: none;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        `;
+                        descriptionInput.parentElement.style.position = 'relative';
+                        descriptionInput.parentElement.appendChild(dropdown);
+                        return dropdown;
+                    }
+
+                    function showAutocompleteOptions(descriptionInput, dropdown, searchText) {
+                        dropdown.innerHTML = '';
+                        if (!searchText.trim()) {
+                            dropdown.style.display = 'none';
+                            return;
+                        }
+
+                        const searchLower = searchText.toLowerCase();
+                        const filtered = itemsData.filter(item => item.nameLower.includes(searchLower));
+
+                        if (filtered.length === 0) {
+                            dropdown.style.display = 'none';
+                            return;
+                        }
+
+                        filtered.forEach(item => {
+                            const option = document.createElement('div');
+                            option.className = 'autocomplete-option';
+                            option.style.cssText = `
+                                padding: 10px 12px;
+                                cursor: pointer;
+                                border-bottom: 1px solid #f0f0f0;
+                            `;
+                            option.textContent = item.name;
+                            option.addEventListener('mouseover', () => {
+                                option.style.backgroundColor = '#f5f5f5';
+                            });
+                            option.addEventListener('mouseout', () => {
+                                option.style.backgroundColor = 'transparent';
+                            });
+                            option.addEventListener('click', () => {
+                                descriptionInput.value = item.name;
+                                dropdown.style.display = 'none';
+                                descriptionInput.dispatchEvent(new Event('change', { bubbles: true }));
+                            });
+                            dropdown.appendChild(option);
+                        });
+
+                        dropdown.style.display = 'block';
+                    }
+
                     function bindRowEvents(row) {
                         const body = row.querySelector('.item-row-body');
                         const toggleButton = row.querySelector('.item-toggle-button');
@@ -206,15 +280,14 @@
                         const unitCostInput = row.querySelector('.item-unit-cost-input');
 
                         if (descriptionInput && itemIdSelect) {
+                            const dropdown = createAutocompleteDropdown(descriptionInput);
+
                             const syncItemSelection = () => {
-                                const typedText = descriptionInput.value.trim().toLowerCase();
-                                const match = Array.from(document.querySelectorAll('#item-options option')).find((option) => {
-                                    return option.value.toLowerCase().includes(typedText);
-                                });
+                                const typedText = descriptionInput.value.trim();
+                                const match = itemsData.find(item => item.nameLower === typedText.toLowerCase());
 
-                                if (match && match.dataset.itemId) {
-                                    itemIdSelect.value = match.dataset.itemId;
-
+                                if (match) {
+                                    itemIdSelect.value = match.id;
                                     const selectedOption = itemIdSelect.options[itemIdSelect.selectedIndex];
                                     if (selectedOption) {
                                         if (uomInput) {
@@ -227,8 +300,23 @@
                                 }
                             };
 
-                            descriptionInput.addEventListener('input', syncItemSelection);
+                            descriptionInput.addEventListener('input', (e) => {
+                                showAutocompleteOptions(descriptionInput, dropdown, e.target.value);
+                            });
+
                             descriptionInput.addEventListener('change', syncItemSelection);
+
+                            descriptionInput.addEventListener('blur', () => {
+                                setTimeout(() => {
+                                    dropdown.style.display = 'none';
+                                }, 200);
+                            });
+
+                            descriptionInput.addEventListener('focus', () => {
+                                if (descriptionInput.value.trim()) {
+                                    showAutocompleteOptions(descriptionInput, dropdown, descriptionInput.value);
+                                }
+                            });
                         }
 
                         toggleButton.addEventListener('click', () => {

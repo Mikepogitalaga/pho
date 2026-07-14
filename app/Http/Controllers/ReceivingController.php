@@ -32,7 +32,6 @@ class ReceivingController extends Controller
         $request->validate([
             'supplier_id' => 'required|exists:suppliers,id',
             'po_number' => 'nullable|string|max:255',
-            'source_document_number' => 'nullable|string|max:255',
             'ics_ptr_ris' => 'nullable|string|max:255',
             'document_date' => 'nullable|date',
             'date_received' => 'required|date',
@@ -52,10 +51,12 @@ class ReceivingController extends Controller
         ]);
 
         DB::transaction(function () use ($request) {
+            $documentNumber = $request->input('po_number') ?? $request->input('source_document_number');
+
             $receiving = Receiving::create([
                 'receiving_number' => 'REC-' . strtoupper(Str::random(8)),
-                'po_number' => $request->input('po_number'),
-                'source_document_number' => $request->input('source_document_number'),
+                'po_number' => $documentNumber,
+                'source_document_number' => $documentNumber,
                 'ics_ptr_ris' => $request->input('ics_ptr_ris'),
                 'document_date' => $request->input('document_date'),
                 'supplier_id' => $request->input('supplier_id'),

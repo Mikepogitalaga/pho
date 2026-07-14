@@ -89,6 +89,17 @@
             <p class="kpi-card-foot">{{ now()->format('F Y') }}</p>
         </article>
 
+        <article class="kpi-card kpi-card--red">
+            <div class="kpi-card-header">
+                <span class="kpi-card-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </span>
+                <span class="kpi-card-label">Unreleased</span>
+            </div>
+            <p class="kpi-card-value">{{ number_format($totalUnreleasedReleases) }}</p>
+            <p class="kpi-card-foot">{{ number_format($totalUnreleasedQuantity) }} units pending</p>
+        </article>
+
         <article class="kpi-card kpi-card--amber {{ $lowStockItems->count() > 0 ? 'kpi-card--alert' : '' }}">
             <div class="kpi-card-header">
                 <span class="kpi-card-icon" aria-hidden="true">

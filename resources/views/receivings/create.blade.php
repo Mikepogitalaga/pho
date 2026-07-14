@@ -16,7 +16,7 @@
 
             <div class="form-grid-2">
                 <div class="form-group">
-                    <label>Purchase Order No.</label>
+                    <label>Purchase Order / Source Document No.</label>
                     <input name="po_number" value="{{ old('po_number') }}" />
                 </div>
                 <div class="form-group">
@@ -30,11 +30,7 @@
                 </div>
             </div>
 
-            <div class="form-grid-3">
-                <div class="form-group">
-                    <label>Source Document No.</label>
-                    <input name="source_document_number" value="{{ old('source_document_number') }}" />
-                </div>
+            <div class="form-grid-2">
                 <div class="form-group">
                     <label>ICS / PTR / RIS</label>
                     <input name="ics_ptr_ris" value="{{ old('ics_ptr_ris') }}" />

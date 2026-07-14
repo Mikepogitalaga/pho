@@ -96,6 +96,11 @@ class Item extends Model
         };
     }
 
+    public function getDisplayUnitAttribute()
+    {
+        return $this->unit ?: $this->receivingItems()->latest('created_at')->value('uom');
+    }
+
     public function getStatusAttribute()
     {
         if ($this->quantity_on_hand <= 0) {
