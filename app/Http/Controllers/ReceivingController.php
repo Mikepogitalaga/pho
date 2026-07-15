@@ -48,6 +48,13 @@ class ReceivingController extends Controller
         return view('receivings.index', compact('receivings'));
     }
 
+    public function view(Receiving $receiving)
+    {
+        $receiving->load('items');
+
+        return view('receivings.view', compact('receiving'));
+    }
+
     public function create()
     {
         $suppliers = Supplier::orderBy('company_name')->get();

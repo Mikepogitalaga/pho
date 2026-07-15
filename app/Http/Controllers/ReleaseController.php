@@ -126,7 +126,7 @@ class ReleaseController extends Controller
             'pho_code' => 'nullable|string|max:255',
             'source_docs_ptr_po_no' => 'nullable|string|max:255',
             'facility_name' => 'nullable|string|max:255',
-            'received_by' => 'nullable|string|max:255',
+            'received_by' => 'required|string|max:255',
             'date_released' => 'required|date',
             'status' => 'required|string|in:Unreleased,Released,Released through pass,Canceled,Returned',
             'notes' => 'nullable|string',

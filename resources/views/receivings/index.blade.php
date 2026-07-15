@@ -71,6 +71,7 @@
                         <th>Date Received</th>
                         <th>Received By</th>
                         <th>Location</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -82,10 +83,13 @@
                             <td>{{ $receiving->date_received->format('M d, Y') }}</td>
                             <td>{{ $receiving->received_by }}</td>
                             <td>{{ $receiving->location }}</td>
+                            <td>
+                                <a href="{{ route('receivings.view', $receiving) }}" class="table-link" aria-label="View receiving">View</a>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" style="padding: 1.25rem;">
+                            <td colspan="7" style="padding: 1.25rem;">
                                 <div class="empty-state">
                                     <strong>No receiving records found.</strong>
                                     <div style="margin-top: 0.35rem;">Create a new receiving slip to start tracking incoming stock.</div>

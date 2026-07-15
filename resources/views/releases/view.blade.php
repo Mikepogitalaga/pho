@@ -25,8 +25,11 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Date Released</label>
-                    <input type="date" name="date_released" value="{{ old('date_released', isset($release->date_released) ? $release->date_released->toDateString() : '') }}" />
+                    <label>Date Released <span style="color: var(--danger);">*</span></label>
+                    <input type="date" name="date_released" value="{{ old('date_released', isset($release->date_released) ? $release->date_released->toDateString() : '') }}" required />
+                    @error('date_released')
+                        <span style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">{{ $message }}</span>
+                    @enderror
                 </div>
 
                 <div class="form-group">
@@ -41,8 +44,11 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Received By</label>
-                    <input type="text" name="received_by" value="{{ old('received_by', $release->received_by ?? '') }}" placeholder="Enter receiver name" />
+                    <label>Received By <span style="color: var(--danger);">*</span></label>
+                    <input type="text" name="received_by" value="{{ old('received_by', $release->received_by ?? '') }}" placeholder="Enter receiver name" required />
+                    @error('received_by')
+                        <span style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">{{ $message }}</span>
+                    @enderror
                 </div>
 
                 <div class="form-group">
@@ -155,4 +161,3 @@
         </div>
     </section>
 @endsection
-

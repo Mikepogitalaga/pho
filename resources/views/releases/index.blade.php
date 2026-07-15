@@ -90,7 +90,19 @@
                             <td>{{ $release->pho_code }}</td>
                             <td>{{ $release->facility_name }}</td>
                             <td>{{ $release->date_released->format('M d, Y') }}</td>
-                            <td>{{ $release->status }}</td>
+                            <td>
+                                @php
+                                    $statusClass = match($release->status) {
+                                        'Released' => 'badge-success',
+                                        'Released through pass' => 'badge-info',
+                                        'Unreleased' => 'badge-warning',
+                                        'Canceled' => 'badge-danger',
+                                        'Returned' => 'badge-secondary',
+                                        default => 'badge-secondary',
+                                    };
+                                @endphp
+                                <span class="status-pill {{ $statusClass }}">{{ $release->status }}</span>
+                            </td>
                             <td>
                                 <a href="{{ route('releases.view', $release) }}" class="table-link" aria-label="View release">View</a>
                             </td>
