@@ -56,7 +56,7 @@
                 <div id="release-items" class="stack">
                     <datalist id="item-options">
                         @foreach($items as $item)
-                            <option value="{{ $item->name }}" data-item-id="{{ $item->id }}"></option>
+                            <option value="{{ $item->name }}" data-item-id="{{ $item->id }}" data-category="{{ $item->category }}"></option>
                         @endforeach
                     </datalist>
 
@@ -90,7 +90,7 @@
                                     </div>
                                     <div class="form-group">
                                         <label>Quantity</label>
-                                        <input type="number" name="items[{{ $index }}][quantity_released]" value="{{ $oldItem['quantity_released'] ?? '' }}" min="0">
+                                        <input type="number" class="item-quantity-input" name="items[{{ $index }}][quantity_released]" value="{{ $oldItem['quantity_released'] ?? '' }}" min="0" placeholder="Available: 0">
                                     </div>
                                     <div class="form-group">
                                         <label>UOM</label>
@@ -106,9 +106,6 @@
                                         <label>Product Code</label>
                                         <select class="item-id-select" name="items[{{ $index }}][item_id]">
                                             <option value="">Select product</option>
-                                            @foreach($items as $item)
-                                                <option value="{{ $item->id }}" data-uom="{{ $item->unit }}" data-unit-cost="{{ $item->unit_cost ?? '' }}" @selected(($oldItem['item_id'] ?? '') == $item->id)>{{ $item->item_code }} - {{ $item->name }}</option>
-                                            @endforeach
                                         </select>
                                     </div>
                                     <div></div>
@@ -142,7 +139,7 @@
                             </div>
                             <div class="form-group">
                                 <label>Quantity</label>
-                                <input type="number" name="items[0][quantity_released]" value="" min="0">
+                                <input type="number" class="item-quantity-input" name="items[0][quantity_released]" value="" min="0" placeholder="Available: 0">
                             </div>
                             <div class="form-group">
                                 <label>UOM</label>
@@ -158,9 +155,6 @@
                                 <label>Product Code</label>
                                 <select class="item-id-select" name="items[0][item_id]">
                                     <option value="">Select product</option>
-                                    @foreach($items as $item)
-                                        <option value="{{ $item->id }}">{{ $item->item_code }} - {{ $item->name }}</option>
-                                    @endforeach
                                 </select>
                             </div>
                             <div></div>
@@ -170,19 +164,19 @@
             </template>
 
             <script>
+                const allItemsData = {!! json_encode($items->map(fn($i) => ['id' => $i->id, 'code' => $i->item_code, 'name' => $i->name, 'uom' => $i->unit, 'cost' => $i->unit_cost, 'qty' => $i->quantity_on_hand, 'category' => $i->category])->toArray()) !!};
+
                 document.addEventListener('DOMContentLoaded', function () {
                     const releaseItems = document.getElementById('release-items');
                     const addItemButton = document.getElementById('add-item-button');
-                    const togglePtrButton = document.getElementById('toggle-ptr-button');
-                    const ptrSection = document.getElementById('ptr-section');
                     const itemTemplate = document.getElementById('release-item-template');
                     const itemOptions = document.getElementById('item-options');
 
-                    // Build items data from datalist
                     const itemsData = Array.from(itemOptions.querySelectorAll('option')).map(option => ({
                         id: option.dataset.itemId,
                         name: option.value,
-                        nameLower: option.value.toLowerCase()
+                        nameLower: option.value.toLowerCase(),
+                        category: option.dataset.category
                     }));
 
                     function updateIndexes() {
@@ -205,8 +199,8 @@
                     }
 
                     function createAutocompleteDropdown(descriptionInput) {
-                        let dropdown = descriptionInput.nextElementSibling;
-                        if (dropdown && dropdown.classList.contains('autocomplete-dropdown')) {
+                        let dropdown = descriptionInput.parentElement.querySelector('.autocomplete-dropdown');
+                        if (dropdown) {
                             dropdown.remove();
                         }
 
@@ -216,20 +210,22 @@
                             position: absolute;
                             background: white;
                             border: 1px solid #ddd;
-                            border-top: none;
                             max-height: 200px;
                             overflow-y: auto;
                             width: 100%;
                             z-index: 1000;
                             display: none;
                             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                            top: 100%;
+                            left: 0;
+                            margin-top: 4px;
                         `;
                         descriptionInput.parentElement.style.position = 'relative';
                         descriptionInput.parentElement.appendChild(dropdown);
                         return dropdown;
                     }
 
-                    function showAutocompleteOptions(descriptionInput, dropdown, searchText) {
+                    function showAutocompleteOptions(descriptionInput, dropdown, searchText, syncCallback) {
                         dropdown.innerHTML = '';
                         if (!searchText.trim()) {
                             dropdown.style.display = 'none';
@@ -262,12 +258,27 @@
                             option.addEventListener('click', () => {
                                 descriptionInput.value = item.name;
                                 dropdown.style.display = 'none';
-                                descriptionInput.dispatchEvent(new Event('change', { bubbles: true }));
+                                syncCallback();
                             });
                             dropdown.appendChild(option);
                         });
 
                         dropdown.style.display = 'block';
+                    }
+
+                    function populateProductSelect(select, itemName) {
+                        select.innerHTML = '<option value="">Select product</option>';
+                        const filtered = allItemsData.filter(item => item.name.toLowerCase() === itemName.toLowerCase());
+                        console.log('Filtering by name:', itemName, 'Found:', filtered.length, 'items');
+                        filtered.forEach(item => {
+                            const option = document.createElement('option');
+                            option.value = item.id;
+                            option.textContent = item.code + ' - ' + item.name;
+                            option.dataset.uom = item.uom;
+                            option.dataset.unitCost = item.cost;
+                            option.dataset.quantity = item.qty;
+                            select.appendChild(option);
+                        });
                     }
 
                     function bindRowEvents(row) {
@@ -278,6 +289,7 @@
                         const itemIdSelect = row.querySelector('.item-id-select');
                         const uomInput = row.querySelector('.item-uom-input');
                         const unitCostInput = row.querySelector('.item-unit-cost-input');
+                        const quantityInput = row.querySelector('.item-quantity-input');
 
                         if (descriptionInput && itemIdSelect) {
                             const dropdown = createAutocompleteDropdown(descriptionInput);
@@ -287,21 +299,20 @@
                                 const match = itemsData.find(item => item.nameLower === typedText.toLowerCase());
 
                                 if (match) {
+                                    console.log('Matched item:', match.name);
+                                    populateProductSelect(itemIdSelect, match.name);
                                     itemIdSelect.value = match.id;
                                     const selectedOption = itemIdSelect.options[itemIdSelect.selectedIndex];
-                                    if (selectedOption) {
-                                        if (uomInput) {
-                                            uomInput.value = selectedOption.dataset.uom || '';
-                                        }
-                                        if (unitCostInput) {
-                                            unitCostInput.value = selectedOption.dataset.unitCost || '';
-                                        }
+                                    if (selectedOption && selectedOption.value) {
+                                        if (uomInput) uomInput.value = selectedOption.dataset.uom || '';
+                                        if (unitCostInput) unitCostInput.value = selectedOption.dataset.unitCost || '';
+                                        if (quantityInput) quantityInput.placeholder = 'Available: ' + (selectedOption.dataset.quantity || 0);
                                     }
                                 }
                             };
 
                             descriptionInput.addEventListener('input', (e) => {
-                                showAutocompleteOptions(descriptionInput, dropdown, e.target.value);
+                                showAutocompleteOptions(descriptionInput, dropdown, e.target.value, syncItemSelection);
                             });
 
                             descriptionInput.addEventListener('change', syncItemSelection);
@@ -314,7 +325,18 @@
 
                             descriptionInput.addEventListener('focus', () => {
                                 if (descriptionInput.value.trim()) {
-                                    showAutocompleteOptions(descriptionInput, dropdown, descriptionInput.value);
+                                    showAutocompleteOptions(descriptionInput, dropdown, descriptionInput.value, syncItemSelection);
+                                }
+                            });
+                        }
+
+                        if (itemIdSelect) {
+                            itemIdSelect.addEventListener('change', () => {
+                                const selectedOption = itemIdSelect.options[itemIdSelect.selectedIndex];
+                                if (selectedOption && selectedOption.value) {
+                                    if (uomInput) uomInput.value = selectedOption.dataset.uom || '';
+                                    if (unitCostInput) unitCostInput.value = selectedOption.dataset.unitCost || '';
+                                    if (quantityInput) quantityInput.placeholder = 'Available: ' + (selectedOption.dataset.quantity || 0);
                                 }
                             });
                         }
@@ -341,19 +363,18 @@
                     Array.from(releaseItems.querySelectorAll('.release-item-row')).forEach(bindRowEvents);
                     updateIndexes();
 
-                    addItemButton.addEventListener('click', addItemRow);
-
-                    if (togglePtrButton) {
-                        togglePtrButton.addEventListener('click', function () {
-                            if (ptrSection.style.display === 'none' || ptrSection.style.display === '') {
-                                ptrSection.style.display = 'block';
-                                togglePtrButton.textContent = 'Hide PTR/ITR/RIS No.';
-                            } else {
-                                ptrSection.style.display = 'none';
-                                togglePtrButton.textContent = 'Add PTR/ITR/RIS No.';
+                    Array.from(releaseItems.querySelectorAll('.release-item-row')).forEach(row => {
+                        const descriptionInput = row.querySelector('.item-description-input');
+                        const itemIdSelect = row.querySelector('.item-id-select');
+                        if (descriptionInput && descriptionInput.value.trim()) {
+                            const match = itemsData.find(item => item.nameLower === descriptionInput.value.trim().toLowerCase());
+                            if (match) {
+                                populateProductSelect(itemIdSelect, match.name);
                             }
-                        });
-                    }
+                        }
+                    });
+
+                    addItemButton.addEventListener('click', addItemRow);
                 });
             </script>
 
@@ -364,4 +385,3 @@
         </form>
     </section>
 @endsection
-

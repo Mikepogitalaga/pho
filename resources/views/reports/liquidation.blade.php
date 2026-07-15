@@ -16,16 +16,26 @@
         <div class="section-header compact" style="padding: 0 0 0.9rem; margin-bottom: 0.9rem;">
             <div>
                 <h2 class="section-card-title" style="margin: 0;">Filters</h2>
-                <p class="page-description" style="margin-top: 0.25rem;">Filter liquidation records by date range and facility.</p>
+                <p class="page-description" style="margin-top: 0.25rem;">Filter liquidation records by PTR number, facility, dates, item, and category.</p>
             </div>
             <div class="table-actions">
-                @if(request()->hasAny(['start_date','end_date','facility']))
+                @if(request()->hasAny(['ptr_number','facility','start_date','end_date','item_description','category']))
                     <a href="{{ route('reports.liquidation') }}" class="btn btn-secondary">Clear All</a>
                 @endif
             </div>
         </div>
 
         <form id="liquidationFilterForm" method="GET" class="search-panel" style="margin-top: 0;">
+            <div>
+                <label for="ptrNumber" class="sr-only">PTR Number</label>
+                <input id="ptrNumber" type="text" name="ptr_number" value="{{ request('ptr_number') }}" placeholder="Filter by PTR Number" class="search-input" />
+            </div>
+
+            <div>
+                <label for="facilityFilter" class="sr-only">Facility / End-user</label>
+                <input id="facilityFilter" type="text" name="facility" value="{{ request('facility') }}" placeholder="Filter by facility" class="search-input" />
+            </div>
+
             <div>
                 <label for="startDate" class="sr-only">Start Date</label>
                 <input id="startDate" type="date" name="start_date" value="{{ request('start_date') }}" placeholder="Start Date" class="search-input" />
@@ -37,8 +47,13 @@
             </div>
 
             <div>
-                <label for="facilityFilter" class="sr-only">Filter by facility</label>
-                <input id="facilityFilter" type="text" name="facility" value="{{ request('facility') }}" placeholder="Filter by facility" class="search-input" />
+                <label for="itemDescription" class="sr-only">Item Description</label>
+                <input id="itemDescription" type="text" name="item_description" value="{{ request('item_description') }}" placeholder="Filter by item" class="search-input" />
+            </div>
+
+            <div>
+                <label for="categoryFilter" class="sr-only">Category</label>
+                <input id="categoryFilter" type="text" name="category" value="{{ request('category') }}" placeholder="Filter by category" class="search-input" />
             </div>
 
             <div class="table-actions">
@@ -97,7 +112,7 @@
         </div>
     </section>
 
-    <section class="card" style="padding: 0.75rem;">
+    <section class="card" style="padding: 0.75rem;" id="resultsTable">
         <div class="table-container">
             <table>
                 <thead>
@@ -106,6 +121,7 @@
                         <th>Facility / End-user</th>
                         <th>Date Released</th>
                         <th>Item Description</th>
+                        <th>Category</th>
                         <th style="text-align: center;">Quantity</th>
                         <th style="text-align: center;">UOM</th>
                         <th style="text-align: right;">Unit Cost</th>
@@ -122,6 +138,7 @@
                                         <td>{{ $release->facility_name }}</td>
                                         <td>{{ $release->date_released->format('M d, Y') }}</td>
                                         <td>{{ $item->item_description }}</td>
+                                        <td>{{ $item->item?->category ?? '—' }}</td>
                                         <td style="text-align: center;">{{ $item->quantity_released }}</td>
                                         <td style="text-align: center;">{{ $item->uom }}</td>
                                         <td style="text-align: right;">₱ {{ isset($item->unit_cost) ? number_format($item->unit_cost, 2) : '—' }}</td>
@@ -135,7 +152,7 @@
                     @endif
                     @if($releases->count() === 0 || $releases->sum(function($r) { return $r->items->count(); }) === 0)
                         <tr>
-                            <td colspan="8" style="padding: 1.25rem;">
+                            <td colspan="9" style="padding: 1.25rem;">
                                 <div class="empty-state">
                                     <strong>No liquidation records found.</strong>
                                     <div style="margin-top: 0.35rem;">No released items match your filter criteria. Try adjusting your filters or create new releases.</div>
@@ -151,4 +168,13 @@
     <div class="pagination-wrapper">
         {{ $releases->links() }}
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const hasFilters = {{ request()->hasAny(['ptr_number','facility','start_date','end_date','item_description','category']) ? 'true' : 'false' }};
+            if (hasFilters) {
+                document.getElementById('resultsTable').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    </script>
 @endsection
