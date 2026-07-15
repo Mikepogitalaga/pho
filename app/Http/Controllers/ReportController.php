@@ -11,14 +11,30 @@ class ReportController extends Controller
     public function liquidation(Request $request)
     {
         $query = Release::query()
-            ->with('items')
-            ->where('status', 'Released')
-            ->orWhere('status', 'Released through pass')
+            ->with('items.item')
+            ->where(function ($q) {
+                $q->where('status', 'Released')
+                  ->orWhere('status', 'Released through pass');
+            })
             ->latest('date_released');
 
+        $ptrNumber = $request->input('ptr_number');
+        $facility = $request->input('facility');
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
-        $facility = $request->input('facility');
+        $itemDescription = $request->input('item_description');
+        $category = $request->input('category');
+
+        if ($ptrNumber) {
+            $query->where(function ($q) use ($ptrNumber) {
+                $q->where('ptr_itr_ris_no', 'like', '%' . $ptrNumber . '%')
+                  ->orWhere('release_number', 'like', '%' . $ptrNumber . '%');
+            });
+        }
+
+        if ($facility) {
+            $query->where('facility_name', 'like', '%' . $facility . '%');
+        }
 
         if ($startDate) {
             $query->whereDate('date_released', '>=', $startDate);
@@ -28,8 +44,16 @@ class ReportController extends Controller
             $query->whereDate('date_released', '<=', $endDate);
         }
 
-        if ($facility) {
-            $query->where('facility_name', 'like', '%' . $facility . '%');
+        if ($itemDescription) {
+            $query->whereHas('items', function ($q) use ($itemDescription) {
+                $q->where('item_description', 'like', '%' . $itemDescription . '%');
+            });
+        }
+
+        if ($category) {
+            $query->whereHas('items.item', function ($q) use ($category) {
+                $q->where('category', 'like', '%' . $category . '%');
+            });
         }
 
         $releases = $query->paginate(15);

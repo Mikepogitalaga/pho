@@ -12,9 +12,38 @@ use Illuminate\Support\Facades\DB;
 
 class ReceivingController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $receivings = Receiving::with('supplier')->latest('date_received')->paginate(15);
+        $query = Receiving::with('supplier')->latest('date_received');
+
+        $search = trim((string) $request->input('search', ''));
+        if ($search !== '') {
+            $query->where('receiving_number', 'like', '%' . $search . '%');
+        }
+
+        $supplier = trim((string) $request->input('supplier', ''));
+        if ($supplier !== '') {
+            $query->whereHas('supplier', function ($q) use ($supplier) {
+                $q->where('company_name', 'like', '%' . $supplier . '%');
+            });
+        }
+
+        $poNumber = trim((string) $request->input('po_number', ''));
+        if ($poNumber !== '') {
+            $query->where('po_number', 'like', '%' . $poNumber . '%');
+        }
+
+        $startDate = $request->input('start_date');
+        if ($startDate) {
+            $query->whereDate('date_received', '>=', $startDate);
+        }
+
+        $endDate = $request->input('end_date');
+        if ($endDate) {
+            $query->whereDate('date_received', '<=', $endDate);
+        }
+
+        $receivings = $query->paginate(15);
 
         return view('receivings.index', compact('receivings'));
     }

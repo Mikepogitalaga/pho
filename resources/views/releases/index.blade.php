@@ -68,7 +68,7 @@
     </section>
 
 
-    <section class="card" style="padding: 0.75rem;">
+    <section class="card" style="padding: 0.75rem;" id="releasesTable">
         <div class="table-container">
             <table>
                 <thead>
@@ -114,5 +114,13 @@
     <div class="pagination-wrapper">
         {{ $releases->links() }}
     </div>
-@endsection
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const hasFilters = {{ request()->hasAny(['search','status','facility','pho_code','pas_number']) ? 'true' : 'false' }};
+            if (hasFilters) {
+                document.getElementById('releasesTable').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    </script>
+@endsection

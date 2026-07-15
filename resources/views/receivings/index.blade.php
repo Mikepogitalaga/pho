@@ -15,7 +15,52 @@
         </div>
     </div>
 
-    <section class="card" style="padding: 0.75rem;">
+    <section class="card" style="padding: 0.75rem; margin-bottom: var(--space-4);" aria-label="Receiving filters">
+        <div class="section-header" style="padding: 0; background: transparent; border-bottom: none;">
+            <div>
+                <h2 class="section-card-title" style="margin: 0;">Filters</h2>
+                <p class="page-description" style="margin-top: 0.25rem;">Search and filter receiving records by various criteria.</p>
+            </div>
+            <div class="table-actions">
+                @if(request()->hasAny(['search','supplier','po_number','start_date','end_date']))
+                    <a href="{{ route('receivings.index') }}" class="btn btn-secondary" style="min-height: 44px;">Clear All</a>
+                @endif
+            </div>
+        </div>
+
+        <form id="receivingsFilterForm" method="GET" class="search-panel" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: var(--space-4);">
+            <div>
+                <label for="receivingSearch" class="sr-only">Search receivings</label>
+                <input id="receivingSearch" type="text" name="search" value="{{ request('search') }}" placeholder="Search by Receiving No." class="search-input" />
+            </div>
+
+            <div>
+                <label for="supplierFilter" class="sr-only">Filter by supplier</label>
+                <input id="supplierFilter" type="text" name="supplier" value="{{ request('supplier') }}" placeholder="Filter by supplier" class="search-input" />
+            </div>
+
+            <div>
+                <label for="poNumberFilter" class="sr-only">Filter by PO No.</label>
+                <input id="poNumberFilter" type="text" name="po_number" value="{{ request('po_number') }}" placeholder="Filter by PO No." class="search-input" />
+            </div>
+
+            <div>
+                <label for="startDate" class="sr-only">Start Date</label>
+                <input id="startDate" type="date" name="start_date" value="{{ request('start_date') }}" placeholder="Start Date" class="search-input" />
+            </div>
+
+            <div>
+                <label for="endDate" class="sr-only">End Date</label>
+                <input id="endDate" type="date" name="end_date" value="{{ request('end_date') }}" placeholder="End Date" class="search-input" />
+            </div>
+
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit" class="btn btn-primary" style="min-height: 44px; flex: 1;">Apply Filters</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="card" style="padding: 0.75rem;" id="receivingsTable">
         <div class="table-container">
             <table>
                 <thead>
@@ -56,5 +101,13 @@
     <div class="pagination-wrapper">
         {{ $receivings->links() }}
     </div>
-@endsection
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const hasFilters = {{ request()->hasAny(['search','supplier','po_number','start_date','end_date']) ? 'true' : 'false' }};
+            if (hasFilters) {
+                document.getElementById('receivingsTable').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    </script>
+@endsection
