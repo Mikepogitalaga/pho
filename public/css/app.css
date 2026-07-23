@@ -655,7 +655,7 @@ html[data-theme='dark'] .app-topbar {
 
 .dashboard-kpi-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1rem;
 }
 
@@ -671,6 +671,10 @@ html[data-theme='dark'] .app-topbar {
 .kpi-card--indigo { background: linear-gradient(135deg, rgba(79, 70, 229, 0.16), rgba(255,255,255,0.02)); }
 .kpi-card--green { background: linear-gradient(135deg, rgba(22, 163, 74, 0.16), rgba(255,255,255,0.02)); }
 .kpi-card--violet { background: linear-gradient(135deg, rgba(139, 92, 246, 0.16), rgba(255,255,255,0.02)); }
+.kpi-card--teal { background: linear-gradient(135deg, rgba(8, 145, 178, 0.16), rgba(255,255,255,0.02)); }
+.kpi-card--amber { background: linear-gradient(135deg, rgba(217, 119, 6, 0.16), rgba(255,255,255,0.02)); }
+.kpi-card--red { background: linear-gradient(135deg, rgba(220, 38, 38, 0.16), rgba(255,255,255,0.02)); }
+.kpi-card--primary { background: linear-gradient(135deg, rgba(37, 99, 235, 0.16), rgba(255,255,255,0.02)); }
 .kpi-card--alert { background: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(255,255,255,0.02)); }
 
 .kpi-card-header {
@@ -727,6 +731,53 @@ html[data-theme='dark'] .app-topbar {
     position: relative;
     width: 100%;
     height: 260px;
+}
+
+.chart-container--tall {
+    height: 300px;
+}
+
+.dashboard-chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.dashboard-tables-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.dashboard-tables-grid .section-card {
+    padding: 0.75rem;
+    min-width: 0;
+}
+
+.dashboard-tables-grid .activity-item {
+    padding: 0.4rem 0.1rem;
+    gap: 0.5rem;
+}
+
+.dashboard-tables-grid .activity-title {
+    font-size: 0.82rem;
+}
+
+.dashboard-tables-grid .activity-meta {
+    font-size: 0.75rem;
+}
+
+.dashboard-tables-grid .section-header.compact {
+    padding: 0 0 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.dashboard-tables-grid .section-card-title {
+    font-size: 0.85rem;
+}
+
+.dashboard-tables-grid .page-description {
+    font-size: 0.78rem;
 }
 
 .chart-legend {
@@ -1093,11 +1144,19 @@ tbody tr:hover {
 
 @media (max-width: 1200px) {
     .dashboard-kpi-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
     .dashboard-content-grid {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .dashboard-chart-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .dashboard-tables-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
@@ -1200,7 +1259,9 @@ tbody tr:hover {
     }
 
     .dashboard-analytics-row,
-    .dashboard-content-grid {
+    .dashboard-content-grid,
+    .dashboard-chart-grid,
+    .dashboard-tables-grid {
         grid-template-columns: 1fr;
     }
 }
@@ -1252,7 +1313,9 @@ tbody tr:hover {
     .form-grid-4,
     .grid-cols-2,
     .dashboard-kpi-grid,
-    .dashboard-quick-actions {
+    .dashboard-quick-actions,
+    .dashboard-chart-grid,
+    .dashboard-tables-grid {
         grid-template-columns: 1fr;
     }
 
