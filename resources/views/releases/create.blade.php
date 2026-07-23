@@ -115,7 +115,10 @@
                                 <div class="form-grid-3">
                                     <div class="form-group">
                                         <label>Item Description</label>
-                                        <input type="text" class="item-description-input" name="items[{{ $index }}][item_description]" value="{{ $oldItem['item_description'] ?? '' }}" autocomplete="off">
+                                        <div style="position:relative; display:flex; align-items:center;">
+                                            <input type="text" class="item-description-input" name="items[{{ $index }}][item_description]" value="{{ $oldItem['item_description'] ?? '' }}" autocomplete="off" style="width:100%; padding-right:2rem;">
+                                            <button type="button" class="item-description-clear" title="Clear" style="position:absolute; right:0.5rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
+                                        </div>
                                     </div>
                                     <div class="form-group">
                                         <label>Quantity</label>
@@ -164,7 +167,10 @@
                         <div class="form-grid-3">
                             <div class="form-group">
                                 <label>Item Description</label>
-                                <input type="text" class="item-description-input" name="items[0][item_description]" value="" autocomplete="off">
+                                <div style="position:relative; display:flex; align-items:center;">
+                                    <input type="text" class="item-description-input" name="items[0][item_description]" value="" autocomplete="off" style="width:100%; padding-right:2rem;">
+                                    <button type="button" class="item-description-clear" title="Clear" style="position:absolute; right:0.5rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>Quantity</label>
@@ -273,13 +279,11 @@
 
                     function showAutocompleteOptions(descriptionInput, dropdown, searchText, syncCallback) {
                         dropdown.innerHTML = '';
-                        if (!searchText.trim()) {
-                            dropdown.style.display = 'none';
-                            return;
-                        }
 
-                        const searchLower = searchText.toLowerCase();
-                        const filtered = itemsData.filter(item => item.nameLower.includes(searchLower));
+                        const searchLower = searchText.toLowerCase().trim();
+                        const filtered = searchLower
+                            ? itemsData.filter(item => item.nameLower.includes(searchLower))
+                            : itemsData;
 
                         if (filtered.length === 0) {
                             dropdown.style.display = 'none';
@@ -373,16 +377,28 @@
                             descriptionInput.addEventListener('change', syncItemSelection);
 
                             descriptionInput.addEventListener('blur', () => {
-                                setTimeout(() => {
-                                    dropdown.style.display = 'none';
-                                }, 200);
+                                setTimeout(() => { dropdown.style.display = 'none'; }, 200);
                             });
 
+                            // Single click / focus: always show all options
                             descriptionInput.addEventListener('focus', () => {
-                                if (descriptionInput.value.trim()) {
-                                    showAutocompleteOptions(descriptionInput, dropdown, descriptionInput.value, syncItemSelection);
-                                }
+                                showAutocompleteOptions(descriptionInput, dropdown, descriptionInput.value, syncItemSelection);
                             });
+
+                            // Clear button
+                            const clearBtn = row.querySelector('.item-description-clear');
+                            if (clearBtn) {
+                                clearBtn.addEventListener('mousedown', (e) => e.preventDefault()); // prevent blur before click
+                                clearBtn.addEventListener('click', () => {
+                                    descriptionInput.value = '';
+                                    itemIdSelect.innerHTML = '<option value="">Select product</option>';
+                                    if (uomInput) uomInput.value = '';
+                                    if (unitCostInput) unitCostInput.value = '';
+                                    if (quantityInput) quantityInput.placeholder = 'Available: 0';
+                                    dropdown.style.display = 'none';
+                                    descriptionInput.focus();
+                                });
+                            }
                         }
 
                         if (itemIdSelect) {

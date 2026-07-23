@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Item;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ItemController extends Controller
 {
@@ -67,38 +69,115 @@ class ItemController extends Controller
             ->orderBy('category')
             ->pluck('category');
 
-        $items = $query->with('nextExpiryItem')->orderBy('name')->paginate(15)->withQueryString();
+        $groupedItems = $query->with('nextExpiryItem', 'receivingItems.receiving.supplier')->orderBy('name')->get()
+            ->groupBy('name')
+            ->map(function ($items) {
+                $item = $items->first();
+                $item->quantity_on_hand = $items->sum('quantity_on_hand');
+                $item->record_count = $items->count();
 
-        return view('items.index', compact('items', 'search', 'status', 'category', 'categories'));
+                $item->supplier_types = $items->flatMap(fn ($i) => $i->receivingItems)
+                    ->map(fn ($ri) => $ri->receiving?->supplier?->supplier_type)
+                    ->filter()
+                    ->unique()
+                    ->sort()
+                    ->values()
+                    ->implode(', ');
+
+                return $item;
+            })
+            ->values();
+
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $items = new LengthAwarePaginator(
+            $groupedItems->forPage($currentPage, 15)->values(),
+            $groupedItems->count(),
+            15,
+            $currentPage,
+            ['path' => LengthAwarePaginator::resolveCurrentPath()]
+        );
+        $items->withQueryString();
+
+        $supplierStats = DB::table('receivings')
+            ->join('suppliers', 'receivings.supplier_id', '=', 'suppliers.id')
+            ->join('receiving_items', 'receivings.id', '=', 'receiving_items.receiving_id')
+            ->join('items', 'receiving_items.item_id', '=', 'items.id')
+            ->whereIn('suppliers.supplier_type', ['DOH', 'GSO'])
+            ->select(
+                'suppliers.supplier_type',
+                DB::raw('COUNT(DISTINCT items.name) as item_count'),
+                DB::raw('SUM(receiving_items.quantity_received) as units_received')
+            )
+            ->groupBy('suppliers.supplier_type')
+            ->get()
+            ->keyBy('supplier_type');
+
+        foreach (['DOH', 'GSO'] as $supplierType) {
+            $supplierStats->put($supplierType, $supplierStats->get($supplierType, (object) [
+                'item_count' => 0,
+                'units_received' => 0,
+            ]));
+        }
+
+        return view('items.index', compact('items', 'search', 'status', 'category', 'categories', 'supplierStats'));
     }
 
     public function show(Item $item)
     {
-        $item->load('nextExpiryItem', 'releaseItems');
+        $items = Item::where('name', $item->name)
+            ->with('nextExpiryItem', 'receivingItems.receiving.supplier', 'releaseItems.release')
+            ->orderBy('location')
+            ->orderBy('item_code')
+            ->get();
 
-        $totalReleased = $item->releaseItems()->sum('quantity_released');
-        $totalReceived = $item->receivingItems()->sum('quantity_received');
+        $totalReleased = $items->sum(fn ($groupedItem) => $groupedItem->releaseItems->sum('quantity_released'));
+        $totalReceived = $items->sum(fn ($groupedItem) => $groupedItem->receivingItems->sum('quantity_received'));
+        $totalStock = $items->sum('quantity_on_hand');
         $deductionPercentage = $totalReceived > 0 ? round(($totalReleased / $totalReceived) * 100) : 0;
+
+        $statsRows = DB::table('receivings')
+            ->join('suppliers', 'receivings.supplier_id', '=', 'suppliers.id')
+            ->join('receiving_items', 'receivings.id', '=', 'receiving_items.receiving_id')
+            ->join('items', 'receiving_items.item_id', '=', 'items.id')
+            ->where('items.name', $item->name)
+            ->whereIn('suppliers.supplier_type', ['DOH', 'GSO'])
+            ->select(
+                'suppliers.supplier_type',
+                DB::raw('SUM(receiving_items.quantity_received) as units_received')
+            )
+            ->groupBy('suppliers.supplier_type')
+            ->get()
+            ->keyBy('supplier_type');
+
+        $supplierStats = collect(['DOH', 'GSO'])->mapWithKeys(fn ($type) => [
+            $type => (object) [
+                'item_count' => $statsRows->has($type) ? 1 : 0,
+                'units_received' => $statsRows->get($type)?->units_received ?? 0,
+            ]
+        ]);
 
         $deductionHistory = [];
 
-        foreach ($item->releaseItems as $releaseItem) {
+        foreach ($items as $groupedItem) {
+            foreach ($groupedItem->releaseItems as $releaseItem) {
             $release = $releaseItem->release;
             $deductionHistory[] = [
                 'date' => $release->date_released,
                 'type' => 'Release',
+                'item_code' => $groupedItem->item_code,
                 'reference' => $release->ptr_itr_ris_no ?? $release->release_number,
                 'quantity' => $releaseItem->quantity_released,
                 'facility' => $release->facility_name,
                 'status' => $release->status,
             ];
+            }
         }
 
         usort($deductionHistory, function ($a, $b) {
             return $b['date']->timestamp - $a['date']->timestamp;
         });
 
-        return view('items.show', compact('item', 'totalReleased', 'deductionPercentage', 'deductionHistory'));
+        return view('items.show', compact('item', 'items', 'totalStock', 'totalReleased', 'deductionPercentage', 'deductionHistory', 'supplierStats'));
     }
 
     public function export(Request $request)

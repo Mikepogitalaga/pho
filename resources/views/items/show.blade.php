@@ -5,6 +5,85 @@
 @section('pageSubheading', 'View inventory item information. Stock is updated through Receivings and Releases only.')
 
 @section('content')
+    {{-- All Inventory Records + Supplier KPIs at top --}}
+    <div style="display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap; margin-bottom: 1.5rem;">
+        <div class="section-card" style="flex: 1; min-width: 280px; padding: 1.5rem;">
+            <h2 class="section-card-title" style="margin: 0 0 0.35rem; font-size: 1.1rem;">All Inventory Records</h2>
+            <p class="page-description" style="margin: 0 0 1rem; font-size: 1.5rem; font-weight: 700; color: var(--text);">{{ $items->count() }} <span style="font-size: 0.9rem; font-weight: 400; color: var(--text-muted);">record(s) for this item description.</span></p>
+            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                <label for="productCodeInput" style="font-weight: 600; font-size: 0.875rem;">Product Code:</label>
+                <div style="position: relative;">
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <input
+                            id="productCodeInput"
+                            type="text"
+                            class="search-input"
+                            style="width: 100%; padding-right: 2rem;"
+                            placeholder="Type to search..."
+                            autocomplete="off"
+                            value="{{ $item->item_code }} — {{ $item->location }}"
+                        />
+                        <button id="productCodeClear" type="button" title="Clear" style="position:absolute; right:0.5rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
+                    </div>
+                    <ul id="productCodeDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid var(--border); border-radius:6px; margin:2px 0 0; padding:0; list-style:none; z-index:100; box-shadow:0 4px 12px rgba(0,0,0,0.1); max-height:220px; overflow-y:auto;">
+                        @foreach($items as $groupedItem)
+                            <li data-url="{{ route('items.show', $groupedItem) }}" data-label="{{ $groupedItem->item_code }} — {{ $groupedItem->location }}" style="padding:0.6rem 0.9rem; cursor:pointer; font-size:0.9rem;" onmouseover="this.style.background='var(--bg-subtle)'" onmouseout="this.style.background=''">
+                                {{ $groupedItem->item_code }} — {{ $groupedItem->location }}
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <section style="flex: 2; min-width: 300px; display: flex; gap: 1rem; flex-wrap: wrap;" aria-label="Supplier statistics">
+            @foreach(['DOH' => 'kpi-card--blue', 'GSO' => 'kpi-card--teal'] as $supplierType => $cardClass)
+                <article class="kpi-card {{ $cardClass }}" style="flex: 1; min-width: 180px; padding: 1.5rem;">
+                    <div class="kpi-card-header">
+                        <span class="kpi-card-label" style="font-size: 1rem; font-weight: 600;">{{ $supplierType }} Supplier</span>
+                    </div>
+                    <p class="kpi-card-value" style="font-size: 2.5rem; font-weight: 700; margin: 0.5rem 0 0.25rem;">{{ number_format($supplierStats[$supplierType]->item_count) }}</p>
+                    <p class="kpi-card-foot" style="font-size: 0.95rem;">{{ number_format($supplierStats[$supplierType]->units_received) }} units received</p>
+                </article>
+            @endforeach
+        </section>
+    </div>
+
+    <script>
+        (function () {
+            const input = document.getElementById('productCodeInput');
+            const dropdown = document.getElementById('productCodeDropdown');
+            const allItems = Array.from(dropdown.querySelectorAll('li'));
+
+            const clearBtn = document.getElementById('productCodeClear');
+
+            input.addEventListener('focus', () => { filterList(input.value); dropdown.style.display = 'block'; });
+            input.addEventListener('input', () => filterList(input.value));
+            document.addEventListener('click', (e) => { if (!input.contains(e.target) && !dropdown.contains(e.target) && !clearBtn.contains(e.target)) dropdown.style.display = 'none'; });
+
+            clearBtn.addEventListener('click', () => {
+                input.value = '';
+                input.focus();
+                filterList('');
+            });
+
+            allItems.forEach(li => {
+                li.addEventListener('click', () => { window.location.href = li.dataset.url; });
+            });
+
+            function filterList(query) {
+                const q = query.toLowerCase();
+                let any = false;
+                allItems.forEach(li => {
+                    const match = li.dataset.label.toLowerCase().includes(q);
+                    li.style.display = match ? '' : 'none';
+                    if (match) any = true;
+                });
+                dropdown.style.display = any ? 'block' : 'none';
+            }
+        })();
+    </script>
+
     <div class="section-card">
         <div class="section-header">
             <div>
@@ -14,74 +93,51 @@
             <a href="{{ route('items.index') }}" class="btn btn-secondary">Back to Items</a>
         </div>
 
-        <div class="form-grid-2">
-            <div class="form-group">
-                <label>Product Code</label>
-                <p>{{ $item->item_code }}</p>
-            </div>
-            <div class="form-group">
-                <label>Item Description</label>
-                <p>{{ $item->name }}</p>
-            </div>
-        </div>
-
-        <div class="form-grid-2">
-            <div class="form-group">
-                <label>Category</label>
-                <p>{{ $item->category }}</p>
-            </div>
-            <div class="form-group">
-                <label>Unit of Measure (UOM)</label>
-                <p>{{ $item->display_unit }}</p>
-            </div>
-        </div>
-
-        <div class="form-grid-2">
-            <div class="form-group">
-                <label>Current Stock</label>
-                <p>{{ $item->quantity_on_hand }}</p>
-            </div>
-            <div class="form-group">
-                <label>Unit Cost</label>
-                <p>{{ $item->unit_cost ? number_format($item->unit_cost, 2) : '0.00' }}</p>
-            </div>
-        </div>
-
-        <div class="form-grid-2">
-            <div class="form-group">
-                <label>Location</label>
-                <p>{{ $item->location }}</p>
-            </div>
-            <div class="form-group">
-                <label>Stock Keeping Unit (Program)</label>
-                <p>{{ $item->stock_keeping_unit }}</p>
-            </div>
-        </div>
-
-        <div class="form-grid-2">
-            <div class="form-group">
-                <label>Program Coordinator</label>
-                <p>{{ $item->program_coordinator }}</p>
-            </div>
-            <div class="form-group">
-                <label>Status</label>
-                <p><span class="status-pill {{ $item->status_class }}">{{ $item->status }}</span></p>
-            </div>
-        </div>
-
-        <div class="form-grid-2">
-            <div class="form-group">
-                <label>Expiry</label>
-                <p><span class="status-pill {{ $item->expiry_badge_class }}">{{ $item->expiry_label }}</span></p>
-            </div>
-            <div></div>
-        </div>
-
-        <div class="form-group">
-            <label>Description</label>
-            <p>{{ $item->description }}</p>
+        <div class="table-container">
+            <table>
+                <tbody>
+                    <tr>
+                        <th style="width: 30%;">Product Code</th>
+                        <td>{{ $item->item_code }}</td>
+                        <th style="width: 30%;">Item Description</th>
+                        <td>{{ $item->name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Category</th>
+                        <td>{{ $item->category }}</td>
+                        <th>Unit of Measure (UOM)</th>
+                        <td>{{ $item->display_unit }}</td>
+                    </tr>
+                    <tr>
+                        <th>Current Stock</th>
+                        <td>{{ $item->quantity_on_hand }}</td>
+                        <th>Unit Cost</th>
+                        <td>{{ $item->unit_cost ? number_format($item->unit_cost, 2) : '0.00' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Location</th>
+                        <td>{{ $item->location }}</td>
+                        <th>Stock Keeping Unit (Program)</th>
+                        <td>{{ $item->stock_keeping_unit }}</td>
+                    </tr>
+                    <tr>
+                        <th>Program Coordinator</th>
+                        <td>{{ $item->program_coordinator }}</td>
+                        <th>Status</th>
+                        <td><span class="status-pill {{ $item->status_class }}">{{ $item->status }}</span></td>
+                    </tr>
+                    <tr>
+                        <th>Expiry</th>
+                        <td><span class="status-pill {{ $item->expiry_badge_class }}">{{ $item->expiry_label }}</span></td>
+                        <th>Description</th>
+                        <td>{{ $item->description }}</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
+
+
 
     <div class="section-card" style="margin-top: 2rem; padding: 1.25rem;">
         <div class="section-header compact" style="padding: 0 0 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border);">
@@ -114,7 +170,7 @@
                         <div class="kpi-card-label">Current Stock</div>
                     </div>
                 </div>
-                <p class="kpi-card-value">{{ $item->quantity_on_hand }}</p>
+                <p class="kpi-card-value">{{ $totalStock }}</p>
                 <p class="kpi-card-foot">Available in inventory</p>
             </div>
 
@@ -140,6 +196,7 @@
                         <tr>
                             <th>Date</th>
                             <th>Type</th>
+                            <th>Product Code</th>
                             <th>Reference</th>
                             <th style="text-align: center;">Quantity</th>
                             <th>Facility / Receiver</th>
@@ -153,6 +210,7 @@
                                 <td>
                                     <span class="badge" style="background: {{ $record['type'] === 'Release' ? 'rgba(220, 38, 38, 0.1)' : 'rgba(37, 99, 235, 0.1)' }}; color: {{ $record['type'] === 'Release' ? 'var(--danger)' : 'var(--primary)' }};">{{ $record['type'] }}</span>
                                 </td>
+                                <td>{{ $record['item_code'] }}</td>
                                 <td>{{ $record['reference'] }}</td>
                                 <td style="text-align: center; font-weight: 600;">{{ $record['quantity'] }}</td>
                                 <td>{{ $record['facility'] }}</td>
@@ -162,7 +220,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" style="padding: 1.25rem; text-align: center;">
+                                <td colspan="7" style="padding: 1.25rem; text-align: center;">
                                     <div class="empty-state">
                                         <strong>No deduction history found.</strong>
                                         <div style="margin-top: 0.35rem;">This item has not been released yet.</div>

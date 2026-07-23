@@ -31,11 +31,23 @@
             <nav class="sidebar-nav">
                 <div class="sidebar-nav-group">
                     <p class="sidebar-nav-label">Overview</p>
-                    <a href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') && !request()->routeIs('dashboard.doh') && !request()->routeIs('dashboard.gso') ? 'active' : '' }}">
                         <span class="sidebar-link-icon" aria-hidden="true">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                         </span>
                         <span class="sidebar-link-text">Dashboard</span>
+                    </a>
+                    <a href="{{ route('dashboard.doh') }}" class="sidebar-link {{ request()->routeIs('dashboard.doh') ? 'active' : '' }}">
+                        <span class="sidebar-link-icon" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/></svg>
+                        </span>
+                        <span class="sidebar-link-text">DOH Dashboard</span>
+                    </a>
+                    <a href="{{ route('dashboard.gso') }}" class="sidebar-link {{ request()->routeIs('dashboard.gso') ? 'active' : '' }}">
+                        <span class="sidebar-link-icon" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                        </span>
+                        <span class="sidebar-link-text">GSO Dashboard</span>
                     </a>
 
                 </div>

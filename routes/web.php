@@ -34,6 +34,8 @@ Route::middleware('web')->group(function () {
     Route::middleware(['auth'])->group(function () {
         Route::get('/', [DashboardController::class, 'index']);
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard/doh', [DashboardController::class, 'dohIndex'])->name('dashboard.doh');
+        Route::get('/dashboard/gso', [DashboardController::class, 'gsoIndex'])->name('dashboard.gso');
 
         Route::resource('items', ItemController::class)->only(['index', 'show']);
 
