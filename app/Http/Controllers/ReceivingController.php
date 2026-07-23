@@ -60,7 +60,21 @@ class ReceivingController extends Controller
         $suppliers = Supplier::orderBy('company_name')->get();
         $items = Item::orderBy('name')->get();
 
-        return view('receivings.create', compact('suppliers', 'items'));
+        // Compute next item code sequence
+        $lastItem = Item::where('item_code', 'like', 'ITEM-%')
+            ->orderByRaw('CAST(SUBSTRING_INDEX(item_code, "-", -1) AS UNSIGNED) DESC')
+            ->value('item_code');
+
+        if ($lastItem) {
+            $lastSeq = (int) substr(strrchr($lastItem, '-'), 1);
+            $nextCodeSeq = str_pad($lastSeq + 1, 4, '0', STR_PAD_LEFT);
+        } else {
+            $nextCodeSeq = '0001';
+        }
+
+        $nextItemCode = 'ITEM-' . $nextCodeSeq;
+
+        return view('receivings.create', compact('suppliers', 'items', 'nextItemCode'));
     }
 
     public function store(Request $request)

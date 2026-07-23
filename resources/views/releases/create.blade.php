@@ -16,43 +16,72 @@
 
             <div class="form-grid-3">
                 <div class="form-group">
-                    <label>PAS No.</label>
-                    <input name="pas_number" value="{{ old('pas_number') }}">
+                    <label>PAS No. <span style="color: var(--danger);">*</span></label>
+                    <input name="pas_number" value="{{ old('pas_number') }}" required>
+                    @error('pas_number')
+                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                    @enderror
                 </div>
                 <div class="form-group">
-                    <label>Health Program / Coordinator</label>
-                    <input name="health_program_coordinator" value="{{ old('health_program_coordinator') }}">
+                    <label>Health Program / Coordinator <span style="color: var(--danger);">*</span></label>
+                    <input name="health_program_coordinator" value="{{ old('health_program_coordinator') }}" required>
+                    @error('health_program_coordinator')
+                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                    @enderror
                 </div>
                 <div class="form-group">
-                    <label>PTR/ITR/RIS No.</label>
-                    <input name="ptr_itr_ris_no" value="{{ old('ptr_itr_ris_no') }}">
+                    <label>PTR/ITR/RIS No. <span style="color: var(--danger);">*</span></label>
+                    <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+                        <select id="ptrTypeSelect" style="width: auto; min-width: 80px; padding: 0.8rem 0.9rem; border: 1px solid var(--border); border-radius: 0.85rem; background: var(--surface-muted); color: var(--text);">
+                            <option value="PTR">PTR</option>
+                            <option value="ITR">ITR</option>
+                            <option value="RIS">RIS</option>
+                        </select>
+                        <input name="ptr_itr_ris_no" id="ptrNumberInput" value="{{ old('ptr_itr_ris_no', $ptrNumber ?? '') }}" readonly required style="flex: 1; background: var(--surface-strong); cursor: not-allowed;">
+                    </div>
+                    @error('ptr_itr_ris_no')
+                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                    @enderror
+                    <p style="margin: 0.3rem 0 0; font-size: 0.82rem; color: var(--text-muted);">Auto-generated sequential number. Select type (PTR/ITR/RIS) to regenerate.</p>
                 </div>
             </div>
 
             <div class="form-grid-3">
                 <div class="form-group">
-                    <label>PHO Code</label>
-                    <input name="pho_code" value="{{ old('pho_code') }}">
+                    <label>PHO Code <span style="color: var(--danger);">*</span></label>
+                    <input name="pho_code" value="{{ old('pho_code') }}" required>
+                    @error('pho_code')
+                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                    @enderror
                 </div>
                 <div class="form-group">
-                    <label>Source Docs. PTR/PO No.</label>
-                    <input name="source_docs_ptr_po_no" value="{{ old('source_docs_ptr_po_no') }}">
+                    <label>Source Docs. PTR/PO No. <span style="color: var(--danger);">*</span></label>
+                    <input name="source_docs_ptr_po_no" value="{{ old('source_docs_ptr_po_no') }}" required>
+                    @error('source_docs_ptr_po_no')
+                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                    @enderror
                 </div>
                 <div class="form-group">
-                    <label>Name of Facility / End-user</label>
-                    <input name="facility_name" value="{{ old('facility_name') }}">
+                    <label>Name of Facility / End-user <span style="color: var(--danger);">*</span></label>
+                    <input name="facility_name" value="{{ old('facility_name') }}" required>
+                    @error('facility_name')
+                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                    @enderror
                 </div>
             </div>
 
             <div class="section-note">
                 Received by, Date, and Status are assigned after saving.
             </div>
-            <input type="hidden" name="received_by" value="{{ old('received_by', '') }}">
+            <input type="hidden" name="received_by" value="{{ old('received_by', 'Unreleased') }}">
             <input type="hidden" name="date_released" value="{{ old('date_released', now()->toDateString()) }}">
-            <input type="hidden" name="status" value="{{ old('status', 'Pending') }}">
+            <input type="hidden" name="status" value="{{ old('status', 'Unreleased') }}">
 
             <div>
-                <h2 class="section-title">Released Items</h2>
+                <h2 class="section-title">Released Items <span style="color: var(--danger);">*</span></h2>
+                @error('items')
+                    <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem; display: block;">{{ $message }}</span>
+                @enderror
                 <div id="release-items" class="stack">
                     <datalist id="item-options">
                         @foreach($items as $item)
@@ -167,6 +196,23 @@
                 const allItemsData = {!! json_encode($items->map(fn($i) => ['id' => $i->id, 'code' => $i->item_code, 'name' => $i->name, 'uom' => $i->unit, 'cost' => $i->unit_cost, 'qty' => $i->quantity_on_hand, 'category' => $i->category])->toArray()) !!};
 
                 document.addEventListener('DOMContentLoaded', function () {
+                    // ---- PTR Type Switcher ----
+                    const ptrTypeSelect = document.getElementById('ptrTypeSelect');
+                    const ptrNumberInput = document.getElementById('ptrNumberInput');
+
+                    if (ptrTypeSelect && ptrNumberInput) {
+                        ptrTypeSelect.addEventListener('change', function () {
+                            const type = this.value;
+                            fetch('{{ url('releases/next-ptr-number') }}/' + type)
+                                .then(res => res.json())
+                                .then(data => {
+                                    if (data.number) {
+                                        ptrNumberInput.value = data.number;
+                                    }
+                                })
+                                .catch(err => console.error('Failed to fetch PTR number:', err));
+                        });
+                    }
                     const releaseItems = document.getElementById('release-items');
                     const addItemButton = document.getElementById('add-item-button');
                     const itemTemplate = document.getElementById('release-item-template');
@@ -240,7 +286,16 @@
                             return;
                         }
 
-                        filtered.forEach(item => {
+                        // Deduplicate by name: only show unique item names in dropdown
+                        const seen = new Set();
+                        const uniqueFiltered = filtered.filter(item => {
+                            const lower = item.nameLower;
+                            if (seen.has(lower)) return false;
+                            seen.add(lower);
+                            return true;
+                        });
+
+                        uniqueFiltered.forEach(item => {
                             const option = document.createElement('div');
                             option.className = 'autocomplete-option';
                             option.style.cssText = `
@@ -380,8 +435,64 @@
 
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">Save Release Slip</button>
-                <a href="{{ route('releases.index') }}" class="btn btn-ghost">Cancel</a>
+                <a href="{{ route('releases.index') }}" class="btn btn-ghost" id="cancelBtn">Cancel</a>
             </div>
         </form>
     </section>
+
 @endsection
+
+@push('scripts')
+<script>
+(function() {
+    const form = document.querySelector('form');
+    if (!form) return;
+
+    let formDirty = false;
+
+    function markDirty() {
+        formDirty = true;
+    }
+
+    form.querySelectorAll('input, select, textarea').forEach(function(el) {
+        el.addEventListener('input', markDirty);
+        el.addEventListener('change', markDirty);
+    });
+
+    window.addEventListener('beforeunload', function(e) {
+        if (formDirty) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+
+    var cancelBtn = document.getElementById('cancelBtn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function(e) {
+            if (formDirty && !confirm('You have unsaved changes. Leaving this page will not be recorded. Are you sure you want to leave?')) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    form.addEventListener('submit', function() {
+        formDirty = false;
+    });
+
+    // Also track dynamically added item rows
+    var addBtn = document.getElementById('add-item-button');
+    if (addBtn) {
+        var origAdd = addBtn.addEventListener;
+        var observer = new MutationObserver(function() {
+            form.querySelectorAll('.release-item-row input, .release-item-row select').forEach(function(el) {
+                el.removeEventListener('input', markDirty);
+                el.removeEventListener('change', markDirty);
+                el.addEventListener('input', markDirty);
+                el.addEventListener('change', markDirty);
+            });
+        });
+        observer.observe(document.getElementById('release-items'), { childList: true, subtree: true });
+    }
+})();
+</script>
+@endpush

@@ -26,6 +26,7 @@
                 <thead>
                     <tr>
                         <th>Company</th>
+                        <th>Type</th>
                         <th>Contact</th>
                         <th>Phone</th>
                         <th>Email</th>
@@ -35,7 +36,8 @@
                 <tbody>
                     @forelse ($suppliers as $supplier)
                         <tr>
-                            <td>{{ $supplier->company_name }}</td>
+                            <td><a href="{{ route('suppliers.show', $supplier) }}" class="table-link" style="font-weight: 600;">{{ $supplier->company_name }}</a></td>
+                            <td><span class="badge {{ $supplier->isDoh() ? 'badge-success' : 'badge-warning' }}">{{ $supplier->supplier_type }}</span></td>
                             <td>{{ $supplier->contact_person }}</td>
                             <td>{{ $supplier->phone_number }}</td>
                             <td>{{ $supplier->email }}</td>
@@ -50,7 +52,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" style="padding: 1.25rem;">
+                            <td colspan="6" style="padding: 1.25rem;">
                                 <div class="empty-state">
                                     <strong>No suppliers found.</strong>
                                     <div style="margin-top: 0.35rem;">Create your first supplier to get started.</div>

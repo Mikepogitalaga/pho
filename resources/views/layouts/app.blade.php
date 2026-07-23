@@ -37,6 +37,7 @@
                         </span>
                         <span class="sidebar-link-text">Dashboard</span>
                     </a>
+
                 </div>
 
                 <div class="sidebar-nav-group">

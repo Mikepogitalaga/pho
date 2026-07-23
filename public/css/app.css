@@ -966,6 +966,12 @@ tbody tr:hover {
     color: #991b1b;
 }
 
+.badge-primary,
+.status-pill.badge-primary {
+    background: rgba(37, 99, 235, 0.14);
+    color: #1d4ed8;
+}
+
 .badge-secondary,
 .status-pill.badge-secondary {
     background: rgba(100, 116, 139, 0.14);

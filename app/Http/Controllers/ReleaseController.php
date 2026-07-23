@@ -151,28 +151,74 @@ class ReleaseController extends Controller
     {
         $items = Item::orderBy('name')->get();
 
-        return view('releases.create', compact('items'));
+        // Auto-generate PTR/ITR/RIS No. in format: 14538-{TYPE}-yyyy-mm-XXXX
+        $year = now()->format('Y');
+        $month = now()->format('m');
+        $ptrType = 'PTR'; // default type
+        $prefix = "14538-{$ptrType}-{$year}-{$month}-";
+
+        // Get the last sequential number across ALL types (PTR, ITR, RIS) for this year-month
+        $lastPtr = Release::where('ptr_itr_ris_no', 'like', "14538-%-{$year}-{$month}-%")
+            ->orderByRaw('CAST(SUBSTRING_INDEX(ptr_itr_ris_no, "-", -1) AS UNSIGNED) DESC')
+            ->value('ptr_itr_ris_no');
+
+        if ($lastPtr) {
+            $lastSeq = (int) substr(strrchr($lastPtr, '-'), 1);
+            $nextSeq = str_pad($lastSeq + 1, 4, '0', STR_PAD_LEFT);
+        } else {
+            $nextSeq = '0001';
+        }
+
+        $ptrNumber = $prefix . $nextSeq;
+
+        return view('releases.create', compact('items', 'ptrNumber', 'year', 'month'));
+    }
+
+    public function nextPtrNumber(string $type)
+    {
+        $type = strtoupper($type);
+        if (!in_array($type, ['PTR', 'ITR', 'RIS'])) {
+            return response()->json(['error' => 'Invalid type'], 400);
+        }
+
+        $year = now()->format('Y');
+        $month = now()->format('m');
+        $prefix = "14538-{$type}-{$year}-{$month}-";
+
+        // Get the last sequential number across ALL types (PTR, ITR, RIS) for this year-month
+        $lastPtr = Release::where('ptr_itr_ris_no', 'like', "14538-%-{$year}-{$month}-%")
+            ->orderByRaw('CAST(SUBSTRING_INDEX(ptr_itr_ris_no, "-", -1) AS UNSIGNED) DESC')
+            ->value('ptr_itr_ris_no');
+
+        if ($lastPtr) {
+            $lastSeq = (int) substr(strrchr($lastPtr, '-'), 1);
+            $nextSeq = str_pad($lastSeq + 1, 4, '0', STR_PAD_LEFT);
+        } else {
+            $nextSeq = '0001';
+        }
+
+        return response()->json(['number' => $prefix . $nextSeq]);
     }
 
     public function store(Request $request)
     {
         // Status is set automatically after saving.
         $request->validate([
-            'pas_number' => 'nullable|string|max:255',
-            'health_program_coordinator' => 'nullable|string|max:255',
-            'ptr_itr_ris_no' => 'nullable|string|max:255',
-            'pho_code' => 'nullable|string|max:255',
-            'source_docs_ptr_po_no' => 'nullable|string|max:255',
-            'facility_name' => 'nullable|string|max:255',
-            'received_by' => 'nullable|string|max:255',
+            'pas_number' => 'required|string|max:255',
+            'health_program_coordinator' => 'required|string|max:255',
+            'ptr_itr_ris_no' => 'required|string|max:255',
+            'pho_code' => 'required|string|max:255',
+            'source_docs_ptr_po_no' => 'required|string|max:255',
+            'facility_name' => 'required|string|max:255',
+            'received_by' => 'required|string|max:255',
             'date_released' => 'required|date',
-            'status' => 'nullable|string|max:255',
+            'status' => 'required|string|max:255',
             'items' => 'required|array|min:1',
             'items.*.item_id' => 'required|exists:items,id',
-            'items.*.item_description' => 'nullable|string|max:1000',
+            'items.*.item_description' => 'required|string|max:1000',
             'items.*.quantity_released' => 'required|integer|min:1',
-            'items.*.uom' => 'nullable|string|max:255',
-            'items.*.unit_cost' => 'nullable|numeric|min:0',
+            'items.*.uom' => 'required|string|max:255',
+            'items.*.unit_cost' => 'required|numeric|min:0',
         ]);
 
         try {
@@ -221,7 +267,7 @@ class ReleaseController extends Controller
             return redirect()->route('releases.index')->with('success', 'Release slip saved and inventory updated.');
         } catch (Throwable $e) {
             // Show as flash notification (layouts/app.blade.php reads session('error')).
-            return redirect()->back()->with('error', $e->getMessage());
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
     }
 }

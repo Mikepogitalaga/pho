@@ -33,27 +33,22 @@
                 <label for="receivingSearch" class="sr-only">Search receivings</label>
                 <input id="receivingSearch" type="text" name="search" value="{{ request('search') }}" placeholder="Search by Receiving No." class="search-input" />
             </div>
-
             <div>
                 <label for="supplierFilter" class="sr-only">Filter by supplier</label>
                 <input id="supplierFilter" type="text" name="supplier" value="{{ request('supplier') }}" placeholder="Filter by supplier" class="search-input" />
             </div>
-
             <div>
                 <label for="poNumberFilter" class="sr-only">Filter by PO No.</label>
                 <input id="poNumberFilter" type="text" name="po_number" value="{{ request('po_number') }}" placeholder="Filter by PO No." class="search-input" />
             </div>
-
             <div>
                 <label for="startDate" class="sr-only">Start Date</label>
                 <input id="startDate" type="date" name="start_date" value="{{ request('start_date') }}" placeholder="Start Date" class="search-input" />
             </div>
-
             <div>
                 <label for="endDate" class="sr-only">End Date</label>
                 <input id="endDate" type="date" name="end_date" value="{{ request('end_date') }}" placeholder="End Date" class="search-input" />
             </div>
-
             <div style="display: flex; gap: 0.5rem;">
                 <button type="submit" class="btn btn-primary" style="min-height: 44px; flex: 1;">Apply Filters</button>
             </div>
@@ -65,7 +60,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Receiving No.</th>
+                        <th>ICS/PTR/RIS</th>
                         <th>Supplier</th>
                         <th>PO No.</th>
                         <th>Date Received</th>
@@ -77,7 +72,7 @@
                 <tbody>
                     @forelse ($receivings as $receiving)
                         <tr>
-                            <td>{{ $receiving->receiving_number }}</td>
+                            <td>{{ $receiving->ics_ptr_ris ?? '—' }}</td>
                             <td>{{ $receiving->supplier->company_name }}</td>
                             <td>{{ $receiving->po_number }}</td>
                             <td>{{ $receiving->date_received->format('M d, Y') }}</td>

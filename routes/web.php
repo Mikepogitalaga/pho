@@ -39,6 +39,9 @@ Route::middleware('web')->group(function () {
 
         Route::get('items/export', [ItemController::class, 'export'])->name('items.export');
         Route::resource('suppliers', SupplierController::class)->except(['show']);
+        Route::get('suppliers/{supplier}', [SupplierController::class, 'show'])->name('suppliers.show');
+        Route::get('doh-dashboard/{supplier}', [SupplierController::class, 'dohDashboard'])->name('doh.dashboard');
+        Route::get('gso-dashboard/{supplier}', [SupplierController::class, 'gsoDashboard'])->name('gso.dashboard');
 
         Route::get('receivings', [ReceivingController::class, 'index'])->name('receivings.index');
         Route::get('receivings/create', [ReceivingController::class, 'create'])->name('receivings.create');
@@ -47,6 +50,7 @@ Route::middleware('web')->group(function () {
 
         Route::get('releases', [ReleaseController::class, 'index'])->name('releases.index');
         Route::get('releases/create', [ReleaseController::class, 'create'])->name('releases.create');
+        Route::get('releases/next-ptr-number/{type}', [ReleaseController::class, 'nextPtrNumber'])->name('releases.next-ptr');
         Route::post('releases', [ReleaseController::class, 'store'])->name('releases.store');
         Route::get('releases/{release}', [ReleaseController::class, 'view'])->name('releases.view');
         Route::put('releases/{release}', [ReleaseController::class, 'update'])->name('releases.update');

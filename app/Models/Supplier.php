@@ -15,10 +15,43 @@ class Supplier extends Model
         'address',
         'phone_number',
         'email',
+        'supplier_type',
     ];
 
     public function receivings()
     {
         return $this->hasMany(Receiving::class);
+    }
+
+    /**
+     * Scope a query to only include DOH suppliers.
+     */
+    public function scopeDoh($query)
+    {
+        return $query->where('supplier_type', 'DOH');
+    }
+
+    /**
+     * Scope a query to only include GSO suppliers.
+     */
+    public function scopeGso($query)
+    {
+        return $query->where('supplier_type', 'GSO');
+    }
+
+    /**
+     * Check if supplier is DOH type.
+     */
+    public function isDoh(): bool
+    {
+        return $this->supplier_type === 'DOH';
+    }
+
+    /**
+     * Check if supplier is GSO type.
+     */
+    public function isGso(): bool
+    {
+        return $this->supplier_type === 'GSO';
     }
 }
