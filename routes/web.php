@@ -8,6 +8,9 @@ use App\Http\Controllers\ReceivingController;
 use App\Http\Controllers\ReleaseController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\ProgramController;
+use App\Http\Controllers\CoordinatorController;
+use App\Http\Controllers\ProgramManagementController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
@@ -39,6 +42,8 @@ Route::middleware('web')->group(function () {
 
         Route::resource('items', ItemController::class)->only(['index', 'show']);
 
+        Route::get('items/{item}/{productCode}', [ItemController::class, 'productCodeShow'])->name('items.productcode.show');
+
         Route::get('items/export', [ItemController::class, 'export'])->name('items.export');
         Route::resource('suppliers', SupplierController::class)->except(['show']);
         Route::get('suppliers/{supplier}', [SupplierController::class, 'show'])->name('suppliers.show');
@@ -61,5 +66,23 @@ Route::middleware('web')->group(function () {
             ->name('releases.status');
 
         Route::get('reports/liquidation', [ReportController::class, 'liquidation'])->name('reports.liquidation');
+
+        // Program Management Routes
+        Route::get('program-management', [ProgramManagementController::class, 'index'])->name('program-management.index');
+        Route::get('program-management/programs', [ProgramManagementController::class, 'programsIndex'])->name('program-management.programs.index');
+        Route::get('program-management/programs/create', [ProgramManagementController::class, 'programsCreate'])->name('program-management.programs.create');
+        Route::post('program-management/programs', [ProgramManagementController::class, 'programsStore'])->name('program-management.programs.store');
+        Route::get('program-management/programs/{program}', [ProgramManagementController::class, 'programsShow'])->name('program-management.programs.show');
+        Route::get('program-management/programs/{program}/edit', [ProgramManagementController::class, 'programsEdit'])->name('program-management.programs.edit');
+        Route::put('program-management/programs/{program}', [ProgramManagementController::class, 'programsUpdate'])->name('program-management.programs.update');
+        Route::delete('program-management/programs/{program}', [ProgramManagementController::class, 'programsDestroy'])->name('program-management.programs.destroy');
+        
+        Route::get('program-management/coordinators', [ProgramManagementController::class, 'coordinatorsIndex'])->name('program-management.coordinators.index');
+        Route::get('program-management/coordinators/create', [ProgramManagementController::class, 'coordinatorsCreate'])->name('program-management.coordinators.create');
+        Route::post('program-management/coordinators', [ProgramManagementController::class, 'coordinatorsStore'])->name('program-management.coordinators.store');
+        Route::get('program-management/coordinators/{coordinator}', [ProgramManagementController::class, 'coordinatorsShow'])->name('program-management.coordinators.show');
+        Route::get('program-management/coordinators/{coordinator}/edit', [ProgramManagementController::class, 'coordinatorsEdit'])->name('program-management.coordinators.edit');
+        Route::put('program-management/coordinators/{coordinator}', [ProgramManagementController::class, 'coordinatorsUpdate'])->name('program-management.coordinators.update');
+        Route::delete('program-management/coordinators/{coordinator}', [ProgramManagementController::class, 'coordinatorsDestroy'])->name('program-management.coordinators.destroy');
     });
 });

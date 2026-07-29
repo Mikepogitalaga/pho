@@ -180,6 +180,38 @@ class ItemController extends Controller
         return view('items.show', compact('item', 'items', 'totalStock', 'totalReleased', 'deductionPercentage', 'deductionHistory', 'supplierStats'));
     }
 
+    public function productCodeShow(Item $item, $productCode)
+    {
+        $product = Item::where('item_code', $productCode)
+            ->with('nextExpiryItem', 'receivingItems.receiving.supplier', 'releaseItems.release')
+            ->firstOrFail();
+
+        $totalReleased = $product->releaseItems->sum('quantity_released');
+        $totalReceived = $product->receivingItems->sum('quantity_received');
+        $totalStock = $product->quantity_on_hand;
+        $deductionPercentage = $totalReceived > 0 ? round(($totalReleased / $totalReceived) * 100) : 0;
+
+        $deductionHistory = [];
+        foreach ($product->releaseItems as $releaseItem) {
+            $release = $releaseItem->release;
+            $deductionHistory[] = [
+                'date' => $release->date_released,
+                'type' => 'Release',
+                'item_code' => $product->item_code,
+                'reference' => $release->ptr_itr_ris_no ?? $release->release_number,
+                'quantity' => $releaseItem->quantity_released,
+                'facility' => $release->facility_name,
+                'status' => $release->status,
+            ];
+        }
+
+        usort($deductionHistory, function ($a, $b) {
+            return $b['date']->timestamp - $a['date']->timestamp;
+        });
+
+        return view('items.productcode-show', compact('item', 'product', 'totalStock', 'totalReleased', 'deductionPercentage', 'deductionHistory'));
+    }
+
     public function export(Request $request)
     {
         $search = $request->query('search');

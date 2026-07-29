@@ -375,12 +375,8 @@ class DashboardController extends Controller
             $released = ReleaseItem::whereHas('release', function ($q) use ($start, $end, $type) {
                 $q->whereIn('status', ['Released', 'Released through pass'])
                   ->whereBetween('date_released', [$start, $end]);
-            })->whereIn('item_id', function ($q) use ($type) {
-                $q->select('item_id')
-                  ->from('receiving_items')
-                  ->whereHas('receiving.supplier', function ($sq) use ($type) {
-                      $sq->where('supplier_type', $type);
-                  });
+            })->whereHas('release.items.item.receivingItems.receiving.supplier', function ($q) use ($type) {
+                $q->where('supplier_type', $type);
             })->sum('quantity_released');
 
             $supplyMovement->push([
