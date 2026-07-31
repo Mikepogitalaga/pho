@@ -140,7 +140,10 @@
                                             <option value="">Select product</option>
                                         </select>
                                     </div>
-                                    <div></div>
+                                    <div class="form-group">
+                                        <label>Batch/Lot No.</label>
+                                        <input class="item-lot-input" name="items[{{ $index }}][lot_number]" value="{{ $oldItem['lot_number'] ?? '' }}">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -192,14 +195,26 @@
                                     <option value="">Select product</option>
                                 </select>
                             </div>
-                            <div></div>
+                            <div class="form-group">
+                                <label>Batch/Lot No.</label>
+                                <input class="item-lot-input" name="items[0][lot_number]" value="">
+                            </div>
                         </div>
                     </div>
                 </div>
             </template>
 
             <script>
-                const allItemsData = {!! json_encode($items->map(fn($i) => ['id' => $i->id, 'code' => $i->item_code, 'name' => $i->name, 'uom' => $i->unit, 'cost' => $i->unit_cost, 'qty' => $i->quantity_on_hand, 'category' => $i->category])->toArray()) !!};
+            const allItemsData = {!! json_encode($items->map(fn($i) => [
+                'id' => $i->id,
+                'code' => $i->item_code,
+                'name' => $i->name,
+                'uom' => $i->unit,
+                'cost' => $i->unit_cost,
+                'qty' => $i->quantity_on_hand,
+                'category' => $i->category,
+                'lot_number' => $itemLotNumbers[$i->id] ?? '',
+            ])->toArray()) !!};
 
                 document.addEventListener('DOMContentLoaded', function () {
                     // ---- PTR Type Switcher ----
@@ -340,7 +355,7 @@
                         });
                     }
 
-                    function bindRowEvents(row) {
+function bindRowEvents(row) {
                         const body = row.querySelector('.item-row-body');
                         const toggleButton = row.querySelector('.item-toggle-button');
                         const removeButton = row.querySelector('.remove-item-button');
@@ -349,6 +364,7 @@
                         const uomInput = row.querySelector('.item-uom-input');
                         const unitCostInput = row.querySelector('.item-unit-cost-input');
                         const quantityInput = row.querySelector('.item-quantity-input');
+                        const lotInput = row.querySelector('.item-lot-input');
 
                         if (descriptionInput && itemIdSelect) {
                             const dropdown = createAutocompleteDropdown(descriptionInput);
@@ -366,6 +382,11 @@
                                         if (uomInput) uomInput.value = selectedOption.dataset.uom || '';
                                         if (unitCostInput) unitCostInput.value = selectedOption.dataset.unitCost || '';
                                         if (quantityInput) quantityInput.placeholder = 'Available: ' + (selectedOption.dataset.quantity || 0);
+                                    }
+                                    // Auto-fill batch/lot number from receiving data
+                                    const itemData = allItemsData.find(item => item.id == match.id);
+                                    if (lotInput && itemData && itemData.lot_number) {
+                                        lotInput.value = itemData.lot_number;
                                     }
                                 }
                             };
@@ -395,6 +416,7 @@
                                     if (uomInput) uomInput.value = '';
                                     if (unitCostInput) unitCostInput.value = '';
                                     if (quantityInput) quantityInput.placeholder = 'Available: 0';
+                                    if (lotInput) lotInput.value = '';
                                     dropdown.style.display = 'none';
                                     descriptionInput.focus();
                                 });
@@ -408,6 +430,11 @@
                                     if (uomInput) uomInput.value = selectedOption.dataset.uom || '';
                                     if (unitCostInput) unitCostInput.value = selectedOption.dataset.unitCost || '';
                                     if (quantityInput) quantityInput.placeholder = 'Available: ' + (selectedOption.dataset.quantity || 0);
+                                    // Auto-fill batch/lot number from receiving data when product code select changes
+                                    const itemData = allItemsData.find(item => item.id == selectedOption.value);
+                                    if (lotInput && itemData && itemData.lot_number) {
+                                        lotInput.value = itemData.lot_number;
+                                    }
                                 }
                             });
                         }

@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Coordinator;
 use App\Models\Item;
+use App\Models\Program;
 use App\Models\Receiving;
 use App\Models\ReceivingItem;
 use App\Models\Supplier;
@@ -59,6 +61,8 @@ class ReceivingController extends Controller
     {
         $suppliers = Supplier::orderBy('company_name')->get();
         $items = Item::orderBy('name')->get();
+        $programs = Program::orderBy('name')->get();
+        $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
 
         // Compute next item code sequence
         $lastItem = Item::where('item_code', 'like', 'ITEM-%')
@@ -74,7 +78,7 @@ class ReceivingController extends Controller
 
         $nextItemCode = 'ITEM-' . $nextCodeSeq;
 
-        return view('receivings.create', compact('suppliers', 'items', 'nextItemCode'));
+        return view('receivings.create', compact('suppliers', 'items', 'nextItemCode', 'programs', 'coordinators'));
     }
 
     public function store(Request $request)

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Item;
+use App\Models\ReceivingItem;
 use App\Models\Release;
 use App\Models\ReleaseItem;
 use Illuminate\Http\Request;
@@ -151,6 +152,15 @@ class ReleaseController extends Controller
     {
         $items = Item::orderBy('name')->get();
 
+        // Fetch the latest lot_number for each item from receiving_items
+        $itemLotNumbers = ReceivingItem::select('item_id', 'lot_number')
+            ->whereNotNull('lot_number')
+            ->whereIn('item_id', $items->pluck('id'))
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->groupBy('item_id')
+            ->map(fn($group) => $group->first()->lot_number);
+
         // Auto-generate PTR/ITR/RIS No. in format: 14538-{TYPE}-yyyy-mm-XXXX
         $year = now()->format('Y');
         $month = now()->format('m');
@@ -171,7 +181,7 @@ class ReleaseController extends Controller
 
         $ptrNumber = $prefix . $nextSeq;
 
-        return view('releases.create', compact('items', 'ptrNumber', 'year', 'month'));
+        return view('releases.create', compact('items', 'ptrNumber', 'year', 'month', 'itemLotNumbers'));
     }
 
     public function nextPtrNumber(string $type)
@@ -257,6 +267,7 @@ class ReleaseController extends Controller
                         'item_description' => $itemData['item_description'] ?? $item->name,
                         'quantity_released' => $itemData['quantity_released'],
                         'uom' => $itemData['uom'] ?? $item->unit,
+                        'lot_number' => $itemData['lot_number'] ?? null,
                         'unit_cost' => $itemData['unit_cost'] ?? null,
                     ]);
 

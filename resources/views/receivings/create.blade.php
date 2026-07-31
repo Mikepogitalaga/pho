@@ -57,13 +57,15 @@
             </div>
 
             <div class="form-grid-2">
-                <div class="form-group">
+                <div class="form-group" style="position: relative;">
                     <label>Stock Keeping Unit (Program)</label>
-                    <input name="stock_keeping_unit" value="{{ old('stock_keeping_unit') }}" />
+                    <input name="stock_keeping_unit" id="programInput" value="{{ old('stock_keeping_unit') }}" autocomplete="off" />
+                    <div class="autocomplete-dropdown" id="programDropdown" style="display:none;"></div>
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="position: relative;">
                     <label>Program Coordinator</label>
-                    <input name="program_coordinator" value="{{ old('program_coordinator') }}" />
+                    <input name="program_coordinator" id="coordinatorInput" value="{{ old('program_coordinator') }}" autocomplete="off" />
+                    <div class="autocomplete-dropdown" id="coordinatorDropdown" style="display:none;"></div>
                 </div>
             </div>
 
@@ -201,10 +203,22 @@
         </form>
     </section>
 
-    {{-- Autocomplete data source --}}
+    {{-- Autocomplete data sources --}}
     <datalist id="item-options-receiving" style="display:none;">
         @foreach($items as $item)
             <option value="{{ $item->name }}" data-code="{{ $item->item_code }}" data-category="{{ $item->category }}" data-uom="{{ $item->unit }}" data-cost="{{ $item->unit_cost }}"></option>
+        @endforeach
+    </datalist>
+
+    <datalist id="program-options" style="display:none;">
+        @foreach($programs as $program)
+            <option value="{{ $program->name }}"></option>
+        @endforeach
+    </datalist>
+
+    <datalist id="coordinator-options" style="display:none;">
+        @foreach($coordinators as $coordinator)
+            <option value="{{ $coordinator->full_name }}" data-programs="{{ $coordinator->assigned_programs }}"></option>
         @endforeach
     </datalist>
 
@@ -224,6 +238,114 @@
                 cost: opt.dataset.cost,
             };
         });
+
+        // ---- Program & Coordinator Autocomplete Data ----
+        var programsData = Array.from(document.querySelectorAll('#program-options option')).map(function(opt) {
+            return {
+                name: opt.value,
+                nameLower: opt.value.toLowerCase(),
+            };
+        });
+
+        var coordinatorsData = Array.from(document.querySelectorAll('#coordinator-options option')).map(function(opt) {
+            return {
+                name: opt.value,
+                nameLower: opt.value.toLowerCase(),
+                assignedPrograms: opt.dataset.programs || '',
+            };
+        });
+
+        function bindAutocompleteList(input, dataList, dropdown, onSelect) {
+            function showOptions(searchText) {
+                dropdown.innerHTML = '';
+                var searchLower = searchText.toLowerCase().trim();
+                var filtered = searchLower
+                    ? dataList.filter(function(item) { return item.nameLower.indexOf(searchLower) !== -1; })
+                    : dataList;
+
+                if (filtered.length === 0) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+
+                // Deduplicate
+                var seen = {};
+                var unique = filtered.filter(function(item) {
+                    var lower = item.nameLower;
+                    if (seen[lower]) return false;
+                    seen[lower] = true;
+                    return true;
+                });
+
+                unique.forEach(function(item) {
+                    var option = document.createElement('div');
+                    option.style.cssText = [
+                        'padding: 10px 12px; cursor: pointer;',
+                        'border-bottom: 1px solid #f0f0f0;'
+                    ].join('');
+                    option.textContent = item.name;
+                    option.addEventListener('mouseover', function() {
+                        this.style.backgroundColor = '#f5f5f5';
+                    });
+                    option.addEventListener('mouseout', function() {
+                        this.style.backgroundColor = 'transparent';
+                    });
+                    option.addEventListener('click', function() {
+                        input.value = item.name;
+                        dropdown.style.display = 'none';
+                        if (onSelect) onSelect(item);
+                    });
+                    dropdown.appendChild(option);
+                });
+                dropdown.style.display = 'block';
+            }
+
+            input.addEventListener('input', function() {
+                showOptions(this.value);
+            });
+
+            input.addEventListener('blur', function() {
+                setTimeout(function() { dropdown.style.display = 'none'; }, 200);
+            });
+
+            input.addEventListener('focus', function() {
+                showOptions(this.value);
+            });
+        }
+
+        // ---- Program Autocomplete ----
+        var programInput = document.getElementById('programInput');
+        var coordinatorInput = document.getElementById('coordinatorInput');
+        var programDropdown = document.getElementById('programDropdown');
+        var coordinatorDropdown = document.getElementById('coordinatorDropdown');
+
+        if (programInput && programDropdown) {
+            bindAutocompleteList(programInput, programsData, programDropdown, function(item) {
+                // When a program is selected, check if any coordinator is assigned to it
+                var matchedCoordinator = coordinatorsData.find(function(c) {
+                    return c.assignedPrograms.toLowerCase().indexOf(item.nameLower) !== -1;
+                });
+                if (matchedCoordinator && coordinatorInput) {
+                    coordinatorInput.value = matchedCoordinator.name;
+                }
+            });
+        }
+
+        if (coordinatorInput && coordinatorDropdown) {
+            bindAutocompleteList(coordinatorInput, coordinatorsData, coordinatorDropdown, function(item) {
+                // When a coordinator is selected, auto-fill program with their first assigned program
+                if (item.assignedPrograms && programInput) {
+                    var programs = item.assignedPrograms.split(', ');
+                    if (programs.length > 0) {
+                        // Only auto-fill if program is empty or user hasn't typed something else
+                        if (!programInput.value.trim() || programsData.some(function(p) { return p.nameLower === programInput.value.trim().toLowerCase(); })) {
+                            programInput.value = programs[0];
+                        }
+                    }
+                }
+            });
+        }
+        // ---- End Program & Coordinator Autocomplete ----
 
         function generateNextCode() {
             var seq = String(nextSeq).padStart(4, '0');

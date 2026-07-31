@@ -15,6 +15,7 @@ class ReleaseItem extends Model
         'item_description',
         'quantity_released',
         'uom',
+        'lot_number',
         'unit_cost',
     ];
 

@@ -129,7 +129,8 @@
                 <table>
                     <thead>
                         <tr>
-                            <th style="text-align: left;">Item Description</th>
+<th style="text-align: left;">Item Description</th>
+                            <th style="text-align: center;">Batch/Lot No.</th>
                             <th style="text-align: center;">Quantity</th>
                             <th style="text-align: center;">UOM</th>
                             <th style="text-align: right;">Unit Cost</th>
@@ -140,6 +141,7 @@
                         @forelse($release->items as $releaseItem)
                             <tr>
                                 <td style="text-align: left; font-weight: 500;">{{ $releaseItem->item_description ?? '—' }}</td>
+                                <td style="text-align: center;">{{ $releaseItem->lot_number ?? '—' }}</td>
                                 <td style="text-align: center;">{{ $releaseItem->quantity_released }}</td>
                                 <td style="text-align: center;">{{ $releaseItem->uom ?? '—' }}</td>
                                 <td style="text-align: right;">₱ {{ isset($releaseItem->unit_cost) ? number_format($releaseItem->unit_cost, 2) : '—' }}</td>
@@ -147,7 +149,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" style="padding: 2rem; text-align: center;">
+                                <td colspan="6" style="padding: 2rem; text-align: center;">
                                     <div class="empty-state">
                                         <strong style="font-size: 1rem;">No items found</strong>
                                         <div style="margin-top: 0.5rem; color: var(--text-muted);">This release slip does not contain any released items.</div>
