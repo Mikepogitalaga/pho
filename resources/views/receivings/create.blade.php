@@ -57,15 +57,19 @@
             </div>
 
             <div class="form-grid-2">
-                <div class="form-group" style="position: relative;">
+                <div class="form-group">
                     <label>Stock Keeping Unit (Program)</label>
-                    <input name="stock_keeping_unit" id="programInput" value="{{ old('stock_keeping_unit') }}" autocomplete="off" />
-                    <div class="autocomplete-dropdown" id="programDropdown" style="display:none;"></div>
+                    <div style="position:relative;">
+                        <input name="stock_keeping_unit" id="programInput" value="{{ old('stock_keeping_unit') }}" autocomplete="off" style="width:100%;" />
+                        <div id="programDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
+                    </div>
                 </div>
-                <div class="form-group" style="position: relative;">
+                <div class="form-group">
                     <label>Program Coordinator</label>
-                    <input name="program_coordinator" id="coordinatorInput" value="{{ old('program_coordinator') }}" autocomplete="off" />
-                    <div class="autocomplete-dropdown" id="coordinatorDropdown" style="display:none;"></div>
+                    <div style="position:relative;">
+                        <input name="program_coordinator" id="coordinatorInput" value="{{ old('program_coordinator') }}" autocomplete="off" style="width:100%;" />
+                        <div id="coordinatorDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
+                    </div>
                 </div>
             </div>
 
@@ -198,7 +202,7 @@
 
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">Save Receiving</button>
-                <a href="{{ route('receivings.index') }}" class="btn btn-ghost">Cancel</a>
+                <a href="{{ route('receivings.index') }}" class="btn btn-ghost" id="receivingCancelBtn">Cancel</a>
             </div>
         </form>
     </section>
@@ -275,6 +279,11 @@
                     if (seen[lower]) return false;
                     seen[lower] = true;
                     return true;
+                });
+
+                Object.assign(dropdown.style, {
+                    background: 'var(--surface,#fff)', border: '1px solid var(--border,#ddd)',
+                    maxHeight: '200px', overflowY: 'auto', boxShadow: '0 4px 6px rgba(0,0,0,.1)', marginTop: '4px'
                 });
 
                 unique.forEach(function(item) {
@@ -539,8 +548,43 @@
 
         // Add item button
         document.getElementById('add-receiving-item-button').addEventListener('click', addItemRow);
+
+        // ---- Dirty-form / leave-site guard ----
+        var formDirty = false;
+        function markDirty() { formDirty = true; }
+
+        document.querySelector('form').querySelectorAll('input, select, textarea').forEach(function(el) {
+            el.addEventListener('input', markDirty);
+            el.addEventListener('change', markDirty);
+        });
+
+        window.addEventListener('beforeunload', function(e) {
+            if (formDirty) { e.preventDefault(); e.returnValue = ''; }
+        });
+
+        document.querySelectorAll('a').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                if (formDirty && !confirm('You have unsaved changes. Leaving this page will discard them. Are you sure you want to leave?')) {
+                    e.preventDefault();
+                }
+            });
+        });
+
+        document.querySelector('form').addEventListener('submit', function() { formDirty = false; });
+
+        var receivingItemsContainer = document.getElementById('receiving-items');
+        new MutationObserver(function() {
+            receivingItemsContainer.querySelectorAll('input, select, textarea').forEach(function(el) {
+                el.removeEventListener('input', markDirty);
+                el.removeEventListener('change', markDirty);
+                el.addEventListener('input', markDirty);
+                el.addEventListener('change', markDirty);
+            });
+        }).observe(receivingItemsContainer, { childList: true, subtree: true });
+        // ---- End guard ----
     })();
     </script>
+
     @endpush
 @endsection
 

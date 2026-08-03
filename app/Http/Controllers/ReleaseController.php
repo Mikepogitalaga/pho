@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Item;
+use App\Models\Program;
+use App\Models\Coordinator;
 use App\Models\ReceivingItem;
 use App\Models\Release;
 use App\Models\ReleaseItem;
@@ -111,10 +113,16 @@ class ReleaseController extends Controller
 
     public function view(Release $release)
     {
-        // Eager-load released items relation (defined on the Release model)
-        $release->load('items');
+        $release->load(['items.item.receivingItems.receiving']);
 
         return view('releases.view', compact('release'));
+    }
+
+    public function print(Release $release)
+    {
+        $release->load(['items.item.receivingItems.receiving']);
+
+        return view('releases.print', compact('release'));
     }
 
     public function update(Request $request, Release $release)
@@ -151,6 +159,8 @@ class ReleaseController extends Controller
     public function create()
     {
         $items = Item::orderBy('name')->get();
+        $programs = Program::orderBy('name')->get();
+        $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
 
         // Fetch the latest lot_number for each item from receiving_items
         $itemLotNumbers = ReceivingItem::select('item_id', 'lot_number')
@@ -181,7 +191,7 @@ class ReleaseController extends Controller
 
         $ptrNumber = $prefix . $nextSeq;
 
-        return view('releases.create', compact('items', 'ptrNumber', 'year', 'month', 'itemLotNumbers'));
+        return view('releases.create', compact('items', 'ptrNumber', 'year', 'month', 'itemLotNumbers', 'programs', 'coordinators'));
     }
 
     public function nextPtrNumber(string $type)

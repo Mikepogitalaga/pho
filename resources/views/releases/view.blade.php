@@ -11,7 +11,10 @@
                 <h1 class="page-heading">{{ $release->release_number }}</h1>
                 <p class="page-description">PAS: {{ $release->pas_number ?? '—' }} · PHO: {{ $release->pho_code ?? '—' }}</p>
             </div>
-            <a href="{{ route('releases.index') }}" class="btn btn-secondary">Back to Releases</a>
+            <div style="display:flex;gap:0.5rem;">
+                <a href="{{ route('releases.print', $release) }}" target="_blank" class="btn btn-secondary">🖨 Print PTR</a>
+                <a href="{{ route('releases.index') }}" class="btn btn-secondary">Back to Releases</a>
+            </div>
         </div>
 
         <form action="{{ route('releases.update', $release) }}" method="POST" class="stack">

@@ -11,6 +11,7 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\CoordinatorController;
 use App\Http\Controllers\ProgramManagementController;
+use App\Http\Controllers\PasController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
@@ -60,6 +61,7 @@ Route::middleware('web')->group(function () {
         Route::get('releases/next-ptr-number/{type}', [ReleaseController::class, 'nextPtrNumber'])->name('releases.next-ptr');
         Route::post('releases', [ReleaseController::class, 'store'])->name('releases.store');
         Route::get('releases/{release}', [ReleaseController::class, 'view'])->name('releases.view');
+        Route::get('releases/{release}/print', [ReleaseController::class, 'print'])->name('releases.print');
         Route::put('releases/{release}', [ReleaseController::class, 'update'])->name('releases.update');
         Route::post('releases/{release}/status/{status}', [ReleaseController::class, 'updateStatus'])
             ->where('status', 'released-through-pass|released|canceled|returned|unreleased')
@@ -67,21 +69,22 @@ Route::middleware('web')->group(function () {
 
         Route::get('reports/liquidation', [ReportController::class, 'liquidation'])->name('reports.liquidation');
 
-        // Program Management Routes
+        // Property Allocation Slip (PAS) Routes
+        Route::get('pas', [PasController::class, 'index'])->name('pas.index');
+        Route::get('pas/create', [PasController::class, 'create'])->name('pas.create');
+        Route::post('pas', [PasController::class, 'store'])->name('pas.store');
+        Route::get('pas/{pas}', [PasController::class, 'view'])->name('pas.view');
+        Route::get('pas/{pas}/print', [PasController::class, 'print'])->name('pas.print');
+        Route::post('pas/{pas}/status/{status}', [PasController::class, 'updateStatus'])
+            ->where('status', 'Pending|Released|Canceled')
+            ->name('pas.status');
+
+        // Program Management Routes — single unified page
         Route::get('program-management', [ProgramManagementController::class, 'index'])->name('program-management.index');
-        Route::get('program-management/programs', [ProgramManagementController::class, 'programsIndex'])->name('program-management.programs.index');
-        Route::get('program-management/programs/create', [ProgramManagementController::class, 'programsCreate'])->name('program-management.programs.create');
         Route::post('program-management/programs', [ProgramManagementController::class, 'programsStore'])->name('program-management.programs.store');
-        Route::get('program-management/programs/{program}', [ProgramManagementController::class, 'programsShow'])->name('program-management.programs.show');
-        Route::get('program-management/programs/{program}/edit', [ProgramManagementController::class, 'programsEdit'])->name('program-management.programs.edit');
         Route::put('program-management/programs/{program}', [ProgramManagementController::class, 'programsUpdate'])->name('program-management.programs.update');
         Route::delete('program-management/programs/{program}', [ProgramManagementController::class, 'programsDestroy'])->name('program-management.programs.destroy');
-        
-        Route::get('program-management/coordinators', [ProgramManagementController::class, 'coordinatorsIndex'])->name('program-management.coordinators.index');
-        Route::get('program-management/coordinators/create', [ProgramManagementController::class, 'coordinatorsCreate'])->name('program-management.coordinators.create');
         Route::post('program-management/coordinators', [ProgramManagementController::class, 'coordinatorsStore'])->name('program-management.coordinators.store');
-        Route::get('program-management/coordinators/{coordinator}', [ProgramManagementController::class, 'coordinatorsShow'])->name('program-management.coordinators.show');
-        Route::get('program-management/coordinators/{coordinator}/edit', [ProgramManagementController::class, 'coordinatorsEdit'])->name('program-management.coordinators.edit');
         Route::put('program-management/coordinators/{coordinator}', [ProgramManagementController::class, 'coordinatorsUpdate'])->name('program-management.coordinators.update');
         Route::delete('program-management/coordinators/{coordinator}', [ProgramManagementController::class, 'coordinatorsDestroy'])->name('program-management.coordinators.destroy');
     });
