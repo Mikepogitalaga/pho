@@ -160,21 +160,35 @@ class ItemController extends Controller
 
         foreach ($items as $groupedItem) {
             foreach ($groupedItem->releaseItems as $releaseItem) {
-            $release = $releaseItem->release;
-            $deductionHistory[] = [
-                'date' => $release->date_released,
-                'type' => 'Release',
-                'item_code' => $groupedItem->item_code,
-                'reference' => $release->ptr_itr_ris_no ?? $release->release_number,
-                'quantity' => $releaseItem->quantity_released,
-                'facility' => $release->facility_name,
-                'status' => $release->status,
-            ];
+                $release = $releaseItem->release;
+                $deductionHistory[] = [
+                    'date' => $release->date_released,
+                    'type' => 'Release',
+                    'item_code' => $groupedItem->item_code,
+                    'reference' => $release->ptr_itr_ris_no ?? $release->release_number,
+                    'quantity' => $releaseItem->quantity_released,
+                    'facility' => $release->facility_name,
+                    'status' => $release->status,
+                ];
+
+                if (in_array($release->status, ['Canceled', 'Returned'], true)) {
+                    $deductionHistory[] = [
+                        'date' => $release->updated_at,
+                        'type' => $release->status,
+                        'item_code' => $groupedItem->item_code,
+                        'reference' => $release->ptr_itr_ris_no ?? $release->release_number,
+                        'quantity' => $releaseItem->quantity_released,
+                        'facility' => $release->facility_name,
+                        'status' => $release->status,
+                    ];
+                }
             }
         }
 
         usort($deductionHistory, function ($a, $b) {
-            return $b['date']->timestamp - $a['date']->timestamp;
+            $aTimestamp = $a['date']?->timestamp ?? 0;
+            $bTimestamp = $b['date']?->timestamp ?? 0;
+            return $bTimestamp - $aTimestamp;
         });
 
         return view('items.show', compact('item', 'items', 'totalStock', 'totalReleased', 'deductionPercentage', 'deductionHistory', 'supplierStats'));
@@ -203,10 +217,24 @@ class ItemController extends Controller
                 'facility' => $release->facility_name,
                 'status' => $release->status,
             ];
+
+            if (in_array($release->status, ['Canceled', 'Returned'], true)) {
+                $deductionHistory[] = [
+                    'date' => $release->updated_at,
+                    'type' => $release->status,
+                    'item_code' => $product->item_code,
+                    'reference' => $release->ptr_itr_ris_no ?? $release->release_number,
+                    'quantity' => $releaseItem->quantity_released,
+                    'facility' => $release->facility_name,
+                    'status' => $release->status,
+                ];
+            }
         }
 
         usort($deductionHistory, function ($a, $b) {
-            return $b['date']->timestamp - $a['date']->timestamp;
+            $aTimestamp = $a['date']?->timestamp ?? 0;
+            $bTimestamp = $b['date']?->timestamp ?? 0;
+            return $bTimestamp - $aTimestamp;
         });
 
         return view('items.productcode-show', compact('item', 'product', 'totalStock', 'totalReleased', 'deductionPercentage', 'deductionHistory'));

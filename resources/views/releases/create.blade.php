@@ -85,11 +85,14 @@
                 </div>
             </div>
 
+            @if(request('purpose_activity'))
+                <div class="section-note">PAS Purpose / Activity: {{ request('purpose_activity') }}</div>
+            @endif
             <div class="section-note">
                 Received by, Date, and Status are assigned after saving.
             </div>
             <input type="hidden" name="received_by" value="{{ old('received_by', 'Unreleased') }}">
-            <input type="hidden" name="date_released" value="{{ old('date_released', now()->toDateString()) }}">
+            <input type="hidden" name="date_released" value="{{ old('date_released') }}">
             <input type="hidden" name="status" value="{{ old('status', 'Unreleased') }}">
 
             <div>
@@ -99,7 +102,7 @@
                 @enderror
                 <div id="release-items" class="stack">
                     @php
-                        $oldItems = collect(old('items', []))->values()->all();
+                        $oldItems = collect(old('items', request('items', [])))->values()->all();
                         if (empty($oldItems)) {
                             $oldItems = [['item_description' => '', 'quantity_released' => '', 'uom' => '', 'unit_cost' => '', 'item_id' => '']];
                         }
@@ -157,7 +160,7 @@
 
             <div class="form-group">
                 <label>Notes</label>
-                <textarea name="notes" rows="3">{{ old('notes') }}</textarea>
+                <textarea name="notes" rows="3">{{ old('notes', request('purpose_activity')) }}</textarea>
             </div>
 
             <template id="release-item-template">
@@ -250,6 +253,12 @@ const allItemsData = {!! json_encode($items->map(fn($i) => [
                 .then(d => { if (d.number) ptrNumberInput.value = d.number; })
                 .catch(e => console.error('Failed to fetch PTR number:', e));
         });
+
+        const initialTransferType = '{{ request('transfer_type', 'PTR') }}'.toUpperCase();
+        if (['PTR', 'ITR', 'RIS'].includes(initialTransferType)) {
+            ptrTypeSelect.value = initialTransferType;
+            ptrTypeSelect.dispatchEvent(new Event('change'));
+        }
     }
 
     // ---- Program & Coordinator Autocomplete ----
@@ -310,7 +319,14 @@ const allItemsData = {!! json_encode($items->map(fn($i) => [
     const addItemButton = document.getElementById('add-item-button');
     const itemTemplate  = document.getElementById('release-item-template');
 
-    const itemsData = allItemsData.map(i => ({ id: i.id, name: i.name, nameLower: i.name.toLowerCase(), category: i.category }));
+    const itemsData = allItemsData.map(i => ({
+        id: i.id,
+        name: i.name,
+        nameLower: i.name.toLowerCase(),
+        code: i.code,
+        codeLower: (i.code || '').toLowerCase(),
+        category: i.category,
+    }));
 
     function updateIndexes() {
         Array.from(releaseItems.querySelectorAll('.release-item-row')).forEach((row, index) => {
@@ -353,17 +369,36 @@ const allItemsData = {!! json_encode($items->map(fn($i) => [
         dd.style.display = 'block';
     }
 
-    function populateProductSelect(select, itemName) {
+    function buildProductOptions(select) {
         select.innerHTML = '<option value="">Select product</option>';
-        allItemsData.filter(i => i.name.toLowerCase() === itemName.toLowerCase()).forEach(i => {
+        allItemsData.forEach(i => {
             const o = document.createElement('option');
             o.value = i.id;
             o.textContent = i.code + ' - ' + i.name;
             o.dataset.uom = i.uom;
             o.dataset.unitCost = i.cost;
             o.dataset.quantity = i.qty;
+            o.dataset.lotNumber = i.lot_number || '';
             select.appendChild(o);
         });
+    }
+
+    function populateProductSelect(select, itemName) {
+        buildProductOptions(select);
+        const lowerName = itemName.toLowerCase().trim();
+        let matchItem = allItemsData.find(i =>
+            i.name.toLowerCase() === lowerName ||
+            i.code.toLowerCase() === lowerName
+        );
+        if (!matchItem) {
+            matchItem = allItemsData.find(i =>
+                i.name.toLowerCase().includes(lowerName) ||
+                i.code.toLowerCase().includes(lowerName)
+            );
+        }
+        if (matchItem) {
+            select.value = matchItem.id;
+        }
     }
 
     function bindRowEvents(row) {
@@ -381,8 +416,14 @@ const allItemsData = {!! json_encode($items->map(fn($i) => [
             const dd = createDropdown(descInput);
 
             const syncItemSelection = () => {
-                const typed = descInput.value.trim();
-                const match = itemsData.find(i => i.nameLower === typed.toLowerCase());
+                const typed = descInput.value.trim().toLowerCase();
+                if (!typed) {
+                    return;
+                }
+                let match = itemsData.find(i => i.nameLower === typed || i.codeLower === typed || i.id.toString() === typed);
+                if (!match) {
+                    match = itemsData.find(i => i.nameLower.includes(typed) || i.codeLower.includes(typed));
+                }
                 if (match) {
                     populateProductSelect(itemIdSelect, match.name);
                     itemIdSelect.value = match.id;
@@ -394,6 +435,7 @@ const allItemsData = {!! json_encode($items->map(fn($i) => [
                     }
                     const itemData = allItemsData.find(i => i.id == match.id);
                     if (lotInput && itemData && itemData.lot_number) lotInput.value = itemData.lot_number;
+                    if (descInput) descInput.value = match.name;
                 }
             };
 
@@ -419,6 +461,7 @@ const allItemsData = {!! json_encode($items->map(fn($i) => [
         }
 
         if (itemIdSelect) {
+            buildProductOptions(itemIdSelect);
             itemIdSelect.addEventListener('change', () => {
                 const sel = itemIdSelect.options[itemIdSelect.selectedIndex];
                 if (sel && sel.value) {
@@ -427,6 +470,7 @@ const allItemsData = {!! json_encode($items->map(fn($i) => [
                     if (quantityInput) quantityInput.placeholder = 'Available: ' + (sel.dataset.quantity || 0);
                     const itemData = allItemsData.find(i => i.id == sel.value);
                     if (lotInput && itemData && itemData.lot_number) lotInput.value = itemData.lot_number;
+                    if (descInput && itemData) descInput.value = itemData.name;
                 }
             });
         }
@@ -442,6 +486,9 @@ const allItemsData = {!! json_encode($items->map(fn($i) => [
         bindRowEvents(row);
         const descInput    = row.querySelector('.item-description-input');
         const itemIdSelect = row.querySelector('.item-id-select');
+        if (itemIdSelect) {
+            buildProductOptions(itemIdSelect);
+        }
         if (descInput && descInput.value.trim()) {
             const match = itemsData.find(i => i.nameLower === descInput.value.trim().toLowerCase());
             if (match) populateProductSelect(itemIdSelect, match.name);
@@ -457,6 +504,51 @@ const allItemsData = {!! json_encode($items->map(fn($i) => [
         updateIndexes();
     });
 
+    function syncRowItemSelection(row) {
+        const descInput = row.querySelector('.item-description-input');
+        const itemIdSelect = row.querySelector('.item-id-select');
+        const uomInput = row.querySelector('.item-uom-input');
+        const unitCostInput = row.querySelector('.item-unit-cost-input');
+        const quantityInput = row.querySelector('.item-quantity-input');
+        const lotInput = row.querySelector('.item-lot-input');
+
+        if (!descInput || !itemIdSelect) {
+            return;
+        }
+
+        buildProductOptions(itemIdSelect);
+
+        if (itemIdSelect.value) {
+            return;
+        }
+
+        const typed = descInput.value.trim().toLowerCase();
+        if (!typed) {
+            return;
+        }
+
+        let match = itemsData.find(i => i.nameLower === typed || i.codeLower === typed || i.id.toString() === typed);
+        if (!match) {
+            match = itemsData.find(i => i.nameLower.includes(typed) || i.codeLower.includes(typed));
+        }
+        if (!match) {
+            return;
+        }
+
+        populateProductSelect(itemIdSelect, match.name);
+        itemIdSelect.value = match.id;
+
+        const sel = itemIdSelect.options[itemIdSelect.selectedIndex];
+        if (sel && sel.value) {
+            if (uomInput)      uomInput.value = sel.dataset.uom || '';
+            if (unitCostInput) unitCostInput.value = sel.dataset.unitCost || '';
+            if (quantityInput) quantityInput.placeholder = 'Available: ' + (sel.dataset.quantity || 0);
+            const itemData = allItemsData.find(i => i.id == match.id);
+            if (lotInput && itemData && itemData.lot_number) lotInput.value = itemData.lot_number;
+            if (descInput) descInput.value = match.name;
+        }
+    }
+
     // ---- Dirty-form guard ----
     let formDirty = false;
     const releaseForm = document.getElementById('releaseForm');
@@ -471,7 +563,14 @@ const allItemsData = {!! json_encode($items->map(fn($i) => [
             if (formDirty && !confirm('You have unsaved changes. Leaving this page will discard them. Are you sure you want to leave?')) e.preventDefault();
         });
     });
-    releaseForm.addEventListener('submit', () => formDirty = false);
+
+    releaseForm.addEventListener('submit', () => {
+        Array.from(releaseItems.querySelectorAll('.release-item-row')).forEach(row => {
+            syncRowItemSelection(row);
+        });
+        formDirty = false;
+    });
+
     new MutationObserver(() => {
         releaseItems.querySelectorAll('input, select, textarea').forEach(el => {
             el.removeEventListener('input',  () => formDirty = true);

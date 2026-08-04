@@ -222,6 +222,30 @@ class ReleaseController extends Controller
 
     public function store(Request $request)
     {
+        // Map item descriptions to item IDs if the user entered a matching product name.
+        $items = $request->input('items', []);
+        foreach ($items as $index => $itemData) {
+            if (empty($itemData['item_id']) && !empty($itemData['item_description'])) {
+                $itemDescription = trim($itemData['item_description']);
+                $lowerDescription = Str::lower($itemDescription);
+
+                $matchedItem = Item::whereRaw('LOWER(name) = ?', [$lowerDescription])
+                    ->orWhereRaw('LOWER(item_code) = ?', [$lowerDescription])
+                    ->first();
+
+                if (! $matchedItem) {
+                    $matchedItem = Item::whereRaw('LOWER(name) like ?', ["%{$lowerDescription}%"] )
+                        ->orWhereRaw('LOWER(item_code) like ?', ["%{$lowerDescription}%"] )
+                        ->first();
+                }
+
+                if ($matchedItem) {
+                    $items[$index]['item_id'] = $matchedItem->id;
+                }
+            }
+        }
+        $request->merge(['items' => $items]);
+
         // Status is set automatically after saving.
         $request->validate([
             'pas_number' => 'required|string|max:255',
@@ -231,7 +255,7 @@ class ReleaseController extends Controller
             'source_docs_ptr_po_no' => 'required|string|max:255',
             'facility_name' => 'required|string|max:255',
             'received_by' => 'required|string|max:255',
-            'date_released' => 'required|date',
+            'date_released' => 'nullable|date',
             'status' => 'required|string|max:255',
             'items' => 'required|array|min:1',
             'items.*.item_id' => 'required|exists:items,id',
@@ -255,7 +279,7 @@ class ReleaseController extends Controller
                     'source_docs_ptr_po_no' => $request->input('source_docs_ptr_po_no'),
                     'facility_name' => $request->input('facility_name'),
                     'received_by' => $request->input('received_by'),
-                    'date_released' => $request->input('date_released'),
+                    'date_released' => $request->input('date_released') ?: null,
                     'notes' => $request->input('notes'),
                 ]);
 

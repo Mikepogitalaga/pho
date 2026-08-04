@@ -136,7 +136,7 @@
                                     <tr>
                                         <td>{{ $release->ptr_itr_ris_no ?? $release->release_number }}</td>
                                         <td>{{ $release->facility_name }}</td>
-                                        <td>{{ $release->date_released->format('M d, Y') }}</td>
+                                        <td>{{ optional($release->date_released)->format('M d, Y') ?? '—' }}</td>
                                         <td>{{ $item->item_description }}</td>
                                         <td>{{ $item->item?->category ?? '—' }}</td>
                                         <td style="text-align: center;">{{ $item->quantity_released }}</td>

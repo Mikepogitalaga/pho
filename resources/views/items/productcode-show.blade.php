@@ -112,16 +112,42 @@
                     <tbody>
                         @forelse($deductionHistory as $record)
                             <tr>
-                                <td>{{ $record['date']->format('M d, Y') }}</td>
+                                <td>{{ optional($record['date'])->format('M d, Y') ?? '—' }}</td>
                                 <td>
-                                    <span class="badge" style="background: {{ $record['type'] === 'Release' ? 'rgba(220, 38, 38, 0.1)' : 'rgba(37, 99, 235, 0.1)' }}; color: {{ $record['type'] === 'Release' ? 'var(--danger)' : 'var(--primary)' }};">{{ $record['type'] }}</span>
+                                    @php
+                                        $typeBg = match ($record['type']) {
+                                            'Released' => 'rgba(37, 99, 235, 0.1)',
+                                            'Release' => 'rgba(220, 38, 38, 0.1)',
+                                            'Canceled' => 'rgba(239, 68, 68, 0.1)',
+                                            'Returned' => 'rgba(34, 197, 94, 0.1)',
+                                            default => 'rgba(148, 163, 184, 0.1)',
+                                        };
+                                        $typeColor = match ($record['type']) {
+                                            'Released' => 'var(--primary)',
+                                            'Release' => 'var(--danger)',
+                                            'Canceled' => 'var(--danger)',
+                                            'Returned' => 'var(--success)',
+                                            default => 'var(--text)',
+                                        };
+                                    @endphp
+                                    <span class="badge" style="background: {{ $typeBg }}; color: {{ $typeColor }};">{{ $record['type'] }}</span>
                                 </td>
                                 <td><span style="font-weight:600;">{{ $record['item_code'] }}</span></td>
                                 <td>{{ $record['reference'] }}</td>
                                 <td style="text-align: center; font-weight: 600;">{{ $record['quantity'] }}</td>
                                 <td>{{ $record['facility'] }}</td>
                                 <td>
-                                    <span class="badge badge-success">{{ $record['status'] }}</span>
+                                    @php
+                                        $statusClass = match ($record['status']) {
+                                            'Canceled' => 'badge-danger',
+                                            'Returned' => 'badge-success',
+                                            'Released' => 'badge-info',
+                                            'Released through pass' => 'badge-info',
+                                            'Unreleased' => 'badge-warning',
+                                            default => 'badge-secondary',
+                                        };
+                                    @endphp
+                                    <span class="badge {{ $statusClass }}">{{ $record['status'] }}</span>
                                 </td>
                             </tr>
                         @empty

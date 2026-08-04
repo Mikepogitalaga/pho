@@ -153,7 +153,7 @@
                             <span class="activity-dot activity-dot--violet" aria-hidden="true"></span>
                             <div class="activity-body">
                                 <p class="activity-title">{{ $release->release_number }}</p>
-                                <p class="activity-meta">{{ $release->facility_name }} · {{ $release->date_released->format('M d, Y') }}</p>
+                                <p class="activity-meta">{{ $release->facility_name }} · {{ optional($release->date_released)->format('M d, Y') ?? '—' }}</p>
                             </div>
                         </li>
                     @endforeach

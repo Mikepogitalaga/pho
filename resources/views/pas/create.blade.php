@@ -57,7 +57,24 @@
                 @error('program')<span class="field-error">{{ $message }}</span>@enderror
             </div>
             <div class="form-group">
-                <label>Facility / Coordinator <span style="color:var(--danger)">*</span></label>
+                <label>Preferred Transfer Type</label>
+                <select name="transfer_type" id="pasTransferTypeSelect">
+                    <option value="PTR" {{ old('transfer_type', 'PTR') === 'PTR' ? 'selected' : '' }}>PTR</option>
+                    <option value="ITR" {{ old('transfer_type') === 'ITR' ? 'selected' : '' }}>ITR</option>
+                    <option value="RIS" {{ old('transfer_type') === 'RIS' ? 'selected' : '' }}>RIS</option>
+                </select>
+                @error('transfer_type')<span class="field-error">{{ $message }}</span>@enderror
+            </div>
+        </div>
+
+        <div class="form-grid-3">
+            <div class="form-group">
+                <label>Facility / End-user <span style="color:var(--danger)">*</span></label>
+                <input name="facility_name" id="pasFacilityInput" value="{{ old('facility_name') }}" required>
+                @error('facility_name')<span class="field-error">{{ $message }}</span>@enderror
+            </div>
+            <div class="form-group">
+                <label>Facility Coordinator <span style="color:var(--danger)">*</span></label>
                 <div style="position:relative;">
                     <input name="facility_coordinator" id="pasCoordinatorInput"
                         value="{{ old('facility_coordinator') }}" required autocomplete="off" style="width:100%;">
@@ -65,12 +82,11 @@
                 </div>
                 @error('facility_coordinator')<span class="field-error">{{ $message }}</span>@enderror
             </div>
-        </div>
-
-        <div class="form-group">
-            <label>Purpose / Activity</label>
-            <input name="purpose_activity" value="{{ old('purpose_activity') }}" placeholder="e.g. Immunization Drive, Health Program Distribution">
-            @error('purpose_activity')<span class="field-error">{{ $message }}</span>@enderror
+            <div class="form-group">
+                <label>Purpose / Activity</label>
+                <input name="purpose_activity" value="{{ old('purpose_activity') }}" placeholder="e.g. Immunization Drive, Health Program Distribution">
+                @error('purpose_activity')<span class="field-error">{{ $message }}</span>@enderror
+            </div>
         </div>
 
         {{-- Items --}}
@@ -126,7 +142,7 @@
                                 </div>
                                 <div class="form-group">
                                     <label>Quantity <span style="color:var(--danger)">*</span></label>
-                                    <input type="number" class="pas-qty-input" name="items[{{ $index }}][quantity]" value="{{ $oldItem['quantity'] ?? '' }}" min="1" required>
+                                    <input type="number" class="pas-qty-input" name="items[{{ $index }}][quantity]" value="{{ $oldItem['quantity'] ?? '' }}" min="1" placeholder="Available: 0" required>
                                 </div>
                                 <div class="form-group">
                                     <label>Unit <span style="color:var(--danger)">*</span></label>
@@ -156,8 +172,9 @@
             <textarea name="notes" rows="3">{{ old('notes') }}</textarea>
         </div>
 
-        <div class="form-actions">
+        <div class="form-actions" style="gap:0.75rem;display:flex;flex-wrap:wrap;align-items:center;">
             <button type="submit" class="btn btn-primary">Save PAS</button>
+            <button type="button" id="openReleaseCreateBtn" class="btn btn-secondary">Open Release Create</button>
             <a href="{{ route('pas.index') }}" class="btn btn-ghost" id="cancelBtn">Cancel</a>
         </div>
     </form>
@@ -242,6 +259,7 @@ const pasAllItems = {!! json_encode($items->map(fn($i) => [
     'name'       => $i->name,
     'unit'       => $i->unit,
     'cost'       => $i->unit_cost,
+    'qty'        => $i->quantity_on_hand,
     'lot_number' => $itemLotNumbers[$i->id]['lot_number'] ?? '',
     'expiry'     => $itemLotNumbers[$i->id]['expiry_date'] ?? '',
 ])->values()->toArray()) !!};
@@ -355,17 +373,27 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function populateProductSelect(sel, name) {
+        const lower = name.toLowerCase().trim();
         sel.innerHTML = '<option value="">Select product</option>';
-        pasAllItems.filter(it => it.name.toLowerCase() === name.toLowerCase()).forEach(it => {
+        const matches = pasAllItems.filter(it =>
+            it.name.toLowerCase() === lower ||
+            it.code.toLowerCase() === lower ||
+            it.name.toLowerCase().includes(lower) ||
+            it.code.toLowerCase().includes(lower)
+        );
+        matches.forEach(it => {
             const o = document.createElement('option');
             o.value = it.id;
-            o.textContent = it.code + ' — ' + it.name;
+            const expiryText = it.expiry ? ' | Exp: ' + it.expiry : '';
+            o.textContent = it.code + ' — ' + it.name + ' (' + (it.qty || 0) + ' available' + expiryText + ')';
             o.dataset.unit = it.unit;
             o.dataset.cost = it.cost;
+            o.dataset.qty = it.qty;
             o.dataset.lot  = it.lot_number;
             o.dataset.expiry = it.expiry;
             sel.appendChild(o);
         });
+        return matches;
     }
 
     function calcTotal(row) {
@@ -377,16 +405,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function autofillFromOption(row, opt) {
         if (!opt || !opt.value) return;
-        const unitInput  = row.querySelector('.pas-unit-input');
-        const costInput  = row.querySelector('.pas-unitcost-input');
-        const lotInput   = row.querySelector('.pas-lot-input');
-        const expiryInput= row.querySelector('.pas-expiry-input');
-        const codeInput  = row.querySelector('.pas-product-code-input');
-        if (unitInput  && opt.dataset.unit)  unitInput.value  = opt.dataset.unit;
-        if (costInput  && opt.dataset.cost)  costInput.value  = opt.dataset.cost;
-        if (lotInput   && opt.dataset.lot)   lotInput.value   = opt.dataset.lot;
-        if (expiryInput && opt.dataset.expiry) expiryInput.value = opt.dataset.expiry;
-        if (codeInput  && opt.textContent)   codeInput.value  = opt.textContent.split(' — ')[0] ?? '';
+        const unitInput   = row.querySelector('.pas-unit-input');
+        const costInput   = row.querySelector('.pas-unitcost-input');
+        const lotInput    = row.querySelector('.pas-lot-input');
+        const expiryInput = row.querySelector('.pas-expiry-input');
+        const codeInput   = row.querySelector('.pas-product-code-input');
+        const qtyInput    = row.querySelector('.pas-qty-input');
+        if (unitInput  && opt.dataset.unit)   unitInput.value   = opt.dataset.unit;
+        if (costInput  && opt.dataset.cost)   costInput.value   = opt.dataset.cost;
+        if (lotInput   && opt.dataset.lot)    lotInput.value    = opt.dataset.lot;
+        if (expiryInput) {
+            if (opt.dataset.expiry) {
+                expiryInput.value = opt.dataset.expiry;
+            } else {
+                expiryInput.value = '';
+            }
+        }
+        if (codeInput  && opt.textContent)    codeInput.value   = opt.textContent.split(' — ')[0] ?? '';
+        if (qtyInput) qtyInput.placeholder = 'Available: ' + (opt.dataset.qty || 0);
         calcTotal(row);
     }
 
@@ -404,10 +440,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const syncFromDesc = () => {
             const name = descInput.value.trim();
-            populateProductSelect(productSel, name);
+            const matches = populateProductSelect(productSel, name);
             if (productSel.options.length > 1) {
                 productSel.selectedIndex = 1;
                 autofillFromOption(row, productSel.options[1]);
+            }
+            const qtyInput = row.querySelector('.pas-qty-input');
+            if (qtyInput && matches.length) {
+                qtyInput.placeholder = 'Available: ' + (matches[0].qty || 0);
             }
         };
 
@@ -417,7 +457,14 @@ document.addEventListener('DOMContentLoaded', function () {
         descInput.addEventListener('change', syncFromDesc);
 
         productSel.addEventListener('change', () => {
-            autofillFromOption(row, productSel.options[productSel.selectedIndex]);
+            const opt = productSel.options[productSel.selectedIndex];
+            autofillFromOption(row, opt);
+            if (opt && opt.dataset.qty) {
+                qtyInput.placeholder = 'Available: ' + opt.dataset.qty;
+            }
+            if (opt && opt.dataset.expiry && row.querySelector('.pas-expiry-input')) {
+                row.querySelector('.pas-expiry-input').value = opt.dataset.expiry;
+            }
         });
 
         qtyInput.addEventListener('input',  () => calcTotal(row));
@@ -476,6 +523,28 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
+
+    const openReleaseCreateBtn = document.getElementById('openReleaseCreateBtn');
+    if (openReleaseCreateBtn) {
+        openReleaseCreateBtn.addEventListener('click', () => {
+            const params = new URLSearchParams();
+            const pasNumber = document.querySelector('[name="pas_number"]').value;
+            const program = document.querySelector('[name="program"]').value;
+            const facility = document.querySelector('[name="facility_name"]').value;
+            const coordinator = document.querySelector('[name="facility_coordinator"]').value;
+            const purpose = document.querySelector('[name="purpose_activity"]').value;
+            const transferType = document.querySelector('[name="transfer_type"]').value;
+
+            if (pasNumber) params.set('pas_number', pasNumber);
+            if (program) params.set('health_program_coordinator', program);
+            if (facility) params.set('facility_name', facility);
+            if (coordinator) params.set('release_coordinator', coordinator);
+            if (purpose) params.set('purpose_activity', purpose);
+            if (transferType) params.set('transfer_type', transferType);
+
+            window.location.href = '{{ route('releases.create') }}' + '?' + params.toString();
+        });
+    }
 
     form.addEventListener('submit', () => dirty = false);
 

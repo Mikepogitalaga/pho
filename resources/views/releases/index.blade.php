@@ -89,7 +89,7 @@
                             <td>{{ $release->pas_number }}</td>
                             <td>{{ $release->pho_code }}</td>
                             <td>{{ $release->facility_name }}</td>
-                            <td>{{ $release->date_released->format('M d, Y') }}</td>
+                            <td>{{ optional($release->date_released)->format('M d, Y') ?? '—' }}</td>
                             <td>
                                 @php
                                     $statusClass = match($release->status) {

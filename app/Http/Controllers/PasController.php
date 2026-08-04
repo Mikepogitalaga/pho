@@ -54,7 +54,10 @@ class PasController extends Controller
             ->orderBy('created_at', 'desc')
             ->get()
             ->groupBy('item_id')
-            ->map(fn($g) => ['lot_number' => $g->first()->lot_number, 'expiry_date' => $g->first()->expiry_date]);
+            ->map(fn($g) => [
+                'lot_number' => $g->first()->lot_number,
+                'expiry_date' => $g->first()->expiry_date?->format('Y-m-d'),
+            ]);
 
         // Auto-generate PAS number: PAS-yyyy-mm-XXXX
         $year  = now()->format('Y');
@@ -77,7 +80,9 @@ class PasController extends Controller
             'date_released'       => 'nullable|date',
             'supplier_id'         => 'nullable|exists:suppliers,id',
             'purpose_activity'    => 'nullable|string|max:500',
+            'facility_name'       => 'required|string|max:255',
             'facility_coordinator'=> 'required|string|max:255',
+            'transfer_type'       => 'required|string|in:PTR,ITR,RIS',
             'program'             => 'nullable|string|max:255',
             'items'               => 'required|array|min:1',
             'items.*.item_description' => 'required|string|max:1000',
@@ -94,7 +99,9 @@ class PasController extends Controller
                     'date_released'        => $request->input('date_released'),
                     'supplier_id'          => $request->input('supplier_id'),
                     'purpose_activity'     => $request->input('purpose_activity'),
+                    'facility_name'        => $request->input('facility_name'),
                     'facility_coordinator' => $request->input('facility_coordinator'),
+                    'transfer_type'        => $request->input('transfer_type'),
                     'program'              => $request->input('program'),
                     'status'               => 'Pending',
                     'notes'                => $request->input('notes'),

@@ -18,12 +18,27 @@
             </p>
         </div>
             <div style="display:flex;gap:0.5rem;">
-                <a href="{{ route('releases.create', [
-                    'pas_number'                  => $pas->pas_number,
-                    'health_program_coordinator'  => $pas->program,
-                    'release_coordinator'         => $pas->facility_coordinator,
-                    'facility_name'               => $pas->facility_coordinator,
-                ]) }}" class="btn btn-primary">+ Create PTR</a>
+                @php
+                    $releaseParams = [
+                        'pas_number'                 => $pas->pas_number,
+                        'health_program_coordinator' => $pas->program,
+                        'release_coordinator'        => $pas->facility_coordinator,
+                        'facility_name'              => $pas->facility_name ?: $pas->facility_coordinator,
+                        'transfer_type'              => $pas->transfer_type ?? 'PTR',
+                    ];
+                    if (!empty($pas->purpose_activity)) {
+                        $releaseParams['purpose_activity'] = $pas->purpose_activity;
+                    }
+                    foreach ($pas->items as $index => $item) {
+                        $releaseParams["items[{$index}][item_description]"] = $item->item_description;
+                        $releaseParams["items[{$index}][quantity_released]"] = $item->quantity;
+                        $releaseParams["items[{$index}][uom]"] = $item->unit;
+                        $releaseParams["items[{$index}][unit_cost]"] = $item->unit_cost;
+                        $releaseParams["items[{$index}][item_id]"] = $item->item_id;
+                        $releaseParams["items[{$index}][lot_number]"] = $item->lot_number;
+                    }
+                @endphp
+                <a href="{{ route('releases.create', $releaseParams) }}" class="btn btn-primary">+ Create PTR</a>
                 <a href="{{ route('pas.print', $pas) }}" target="_blank" class="btn btn-secondary">🖨 Print PAS</a>
                 <a href="{{ route('pas.index') }}" class="btn btn-secondary">Back to PAS</a>
             </div>
@@ -48,8 +63,12 @@
             <p class="detail-value">{{ $pas->supplier?->company_name ?? '—' }}</p>
         </div>
         <div>
-            <p class="detail-label">Facility / Coordinator</p>
-            <p class="detail-value">{{ $pas->facility_coordinator }}</p>
+            <p class="detail-label">Facility / End-user</p>
+            <p class="detail-value">{{ $pas->facility_name ?? '—' }}</p>
+        </div>
+        <div>
+            <p class="detail-label">Facility Coordinator</p>
+            <p class="detail-value">{{ $pas->facility_coordinator ?? '—' }}</p>
         </div>
         <div>
             <p class="detail-label">Program</p>
