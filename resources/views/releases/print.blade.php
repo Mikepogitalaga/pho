@@ -27,7 +27,14 @@
 
         /* ── Header block ── */
         .ptr-header {
-            margin-bottom: 4px;
+            margin-bottom: 6px;
+        }
+        .ptr-logo {
+            display: block;
+            margin: 0 auto 6px;
+            max-width: 140px;
+            max-height: 80px;
+            object-fit: contain;
         }
         .ptr-meta {
             font-size: 7.5pt;
@@ -203,71 +210,63 @@
 
     {{-- ── Header ── --}}
     <div class="ptr-header">
+        <img class="ptr-logo" src="{{ asset('logo.jpg') }}" alt="Logo">
         <div class="ptr-meta">
-            <div>Commodity Issue No: <strong>{{ $release->pho_code ?? '—' }}</strong></div>
-            <div>PTR No: <strong>{{ $release->ptr_itr_ris_no ?? $release->release_number }}</strong></div>
+            <div><strong>Commodity Issue No:</strong> {{ $release->pho_code ?? '—' }}</div>
+            <div><strong>PTR No:</strong> {{ $release->ptr_itr_ris_no ?? $release->release_number }}</div>
         </div>
 
         <div class="ptr-title">PROPERTY TRANSFER REPORT</div>
-        <div class="ptr-subtitle">Date Prepared: {{ $release->date_released?->format('F d, Y') ?? now()->format('F d, Y') }}</div>
+        <div class="ptr-subtitle"><strong>Date Prepared:</strong> {{ $release->date_released?->format('F d, Y') ?? now()->format('F d, Y') }}</div>
 
         <div class="ptr-info-grid">
-            <div>From: <span>Provincial Health Office</span></div>
-            <div>To: <span>{{ $release->facility_name ?? '—' }}</span></div>
-            <div>Transfer Type: <span>{{ $release->ptr_itr_ris_no ? explode('-', $release->ptr_itr_ris_no)[1] ?? 'PTR' : 'PTR' }}</span></div>
-            <div>PAS No: <span>{{ $release->pas_number ?? '—' }}</span></div>
+            <div><strong>From:</strong> <span>Provincial Health Office</span></div>
+            <div><strong>To:</strong> <span>{{ $release->facility_name ?? '—' }}</span></div>
+            <div><strong>Transfer Type:</strong> <span>{{ $release->ptr_itr_ris_no ? explode('-', $release->ptr_itr_ris_no)[1] ?? 'PTR' : 'PTR' }}</span></div>
         </div>
     </div>
 
     {{-- ── Items Table ── --}}
-    <table>
-        <thead>
-            <tr>
-                <th class="col-no">No.</th>
-                <th class="col-po">PO No / Contract No / Source Document No</th>
-                <th class="col-prog">Program / End-User</th>
-                <th class="col-desc">Complete Item Description</th>
-                <th class="col-batch">Batch No</th>
-                <th class="col-acq">Date Acquired</th>
-                <th class="col-exp">Expiry Date</th>
-                <th class="col-rack">Rack Code</th>
-                <th class="col-qty">Qty</th>
-                <th class="col-uom">UOM</th>
-                <th class="col-price">Unit Price</th>
-                <th class="col-amt">Amount</th>
-                <th class="col-rcvd">Qty Received</th>
-                <th class="col-rmk">Remarks / Reason for Rejection</th>
-            </tr>
-        </thead>
-        <tbody>
-            @php $rowNum = $pageIndex * $perPage; @endphp
-            @forelse($chunk as $releaseItem)
-            @php
-                $rowNum++;
-                $lineTotal = ($releaseItem->unit_cost ?? 0) * $releaseItem->quantity_released;
-            @endphp
-            <tr>
-                <td>{{ $rowNum }}</td>
-                <td class="left">{{ $release->source_docs_ptr_po_no ?? '—' }}</td>
-                <td class="left">{{ $release->health_program_coordinator ?? '—' }}</td>
-                <td class="left">{{ $releaseItem->item_description ?? '—' }}</td>
-                <td>{{ $releaseItem->lot_number ?? '—' }}</td>
-                <td>{{ $dateAcquiredMap[$releaseItem->id] ?? '—' }}</td>
-                <td>{{ $expiryMap[$releaseItem->id] ?? '—' }}</td>
-                <td>{{ $releaseItem->item?->location ?? '—' }}</td>
-                <td>{{ number_format($releaseItem->quantity_released) }}</td>
-                <td>{{ $releaseItem->uom ?? '—' }}</td>
-                <td class="col-price">{{ $releaseItem->unit_cost !== null ? number_format($releaseItem->unit_cost, 2) : '—' }}</td>
-                <td class="col-amt">{{ $releaseItem->unit_cost !== null ? number_format($lineTotal, 2) : '—' }}</td>
-                <td></td>
-                <td></td>
-            </tr>
-            @empty
-            <tr>
-                <td colspan="14" style="text-align:center;padding:8px;">No items recorded.</td>
-            </tr>
-            @endforelse
-        </tbody>
+    <table border="1" cellpadding="3" cellspacing="0" width="100%">
+        <tr>
+            <th colspan="9">Issuing Facility's Action</th>
+            <th colspan="2">Receiving Facility's Action</th>
+        </tr>
+        <tr>
+            <th width="12%">PO No.</th>
+            <th width="14%">Program</th>
+            <th width="22%">Description</th>
+            <th width="6%">Batch</th>
+            <th width="6%">Expiry</th>
+            <th width="6%">Qty</th>
+            <th width="6%">UOM</th>
+            <th width="6%">Cost</th>
+            <th width="6%">Amount</th>
+            <th width="5%">Qty Received</th>
+            <th width="17%">Remarks and /or Reason for rejection (if applicable)</th>
+        </tr>
+        @forelse($chunk as $releaseItem)
+        @php
+            $lineTotal = ($releaseItem->unit_cost ?? 0) * $releaseItem->quantity_released;
+        @endphp
+        <tr>
+            <td>{{ $release->source_docs_ptr_po_no ?? '—' }}</td>
+            <td>{{ $release->health_program_coordinator ?? '—' }}</td>
+            <td>{{ $releaseItem->item_description ?? '—' }}</td>
+            <td>{{ $releaseItem->lot_number ?? '—' }}</td>
+            <td>{{ $expiryMap[$releaseItem->id] ?? '—' }}</td>
+            <td align="center">{{ number_format($releaseItem->quantity_released) }}</td>
+            <td>{{ $releaseItem->uom ?? '—' }}</td>
+            <td align="right">{{ $releaseItem->unit_cost !== null ? number_format($releaseItem->unit_cost, 2) : '—' }}</td>
+            <td align="right">{{ $releaseItem->unit_cost !== null ? number_format($lineTotal, 2) : '—' }}</td>
+            <td></td>
+            <td></td>
+        </tr>
+        @empty
+        <tr>
+            <td colspan="11" style="text-align:center;padding:8px;">No items recorded.</td>
+        </tr>
+        @endforelse
     </table>
 
     {{-- ── Total (last page only) ── --}}
