@@ -11,6 +11,7 @@
                 <h1 class="page-heading">{{ $receiving->receiving_number }}</h1>
                 <p class="page-description">PO: {{ $receiving->po_number ?? '—' }} · Supplier: {{ $receiving->supplier->company_name ?? '—' }}</p>
             </div>
+            <a href="{{ route('receivings.edit', $receiving) }}" class="btn btn-primary">Edit</a>
             <a href="{{ route('receivings.index') }}" class="btn btn-secondary">Back to Receivings</a>
         </div>
 

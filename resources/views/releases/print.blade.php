@@ -14,7 +14,7 @@
 
         body {
             font-family: Arial, sans-serif;
-            font-size: 6.8pt;
+            font-size: 10pt;
             color: #000;
             background: #fff;
         }
@@ -36,7 +36,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 6.5pt;
+            font-size: 10pt;
             color: #444;
         }
         .page-footer .form-id { text-align: left; }
@@ -46,6 +46,7 @@
         .ptr-header {
             position: relative;
             margin-bottom: 4px;
+            
         }
         .ptr-annex {
             position: absolute;
@@ -53,7 +54,7 @@
             right: 0;
             border: 0.5pt solid #000;
             padding: 2px 6px;
-            font-size: 6.5pt;
+            font-size: 10pt;
             font-weight: bold;
             background: #fff;
             white-space: nowrap;
@@ -61,20 +62,20 @@
         .ptr-logo {
             display: block;
             margin: 0 auto 4px;
-            width: 60px;
-            height: 60px;
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
             object-fit: cover;
             object-position: center;
         }
         .ptr-meta {
-            font-size: 6.5pt;
+            font-size: 12pt;
             margin-bottom: 1px;
         }
         .ptr-meta div { margin-bottom: 0.5px; }
         .ptr-title {
             text-align: center;
-            font-size: 10pt;
+            font-size: 14pt;
             font-weight: bold;
             letter-spacing: 1px;
             margin: 2px 0 1px;
@@ -83,13 +84,13 @@
             display: block;
             width: 100%;
             text-align: right;
-            font-size: 6.5pt;
+            font-size: 10pt;
             margin-bottom: 4px;
             padding-right: 6px;
         }
         .ptr-info-grid {
             margin-bottom: 4px;
-            font-size: 6.5pt;
+            font-size: 10pt;
         }
         .ptr-info-grid div { margin-bottom: 1px; }
         .ptr-info-grid span { font-weight: bold; }
@@ -105,7 +106,7 @@
             border: none;
             width: 100%;
             margin: 0;
-            font-size: 6.5pt;
+            font-size: 10pt;
         }
         .item-border th,
         .item-border td {
@@ -117,7 +118,7 @@
         .item-border tr:first-child th {
             padding: 8px 6px;
             min-height: 28px;
-            font-size: 7pt;
+            font-size: 10pt;
         }
         .item-border tbody td {
             min-height: 24px;
@@ -129,7 +130,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 4px;
-            font-size: 6.5pt;
+            font-size: 10pt;
         }
         .table th,
         .table td {
@@ -154,7 +155,7 @@
             min-height: 26px;
             border: 0.5pt solid #000;
             padding: 2px 4px;
-            font-size: 6.5pt;
+            font-size: 10pt;
             font-family: Arial, sans-serif;
             resize: none;
         }
@@ -164,7 +165,7 @@
         .sig-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 6.5pt;
+            font-size: 10pt;
             border: 0.5pt solid #000;
             flex: 1;
         }
@@ -182,7 +183,7 @@
             white-space: nowrap;
         }
         .sig-table .sig-line {
-            width: 70%;
+            width: 95%;
             min-height: 28px;
             border-bottom: 0.5pt solid #000;
             padding-bottom: 4px;
@@ -218,7 +219,7 @@
             background: #d9d9d9;
             font-weight: bold;
             text-align: center;
-            font-size: 6.5pt;
+            font-size: 10pt;
             line-height: 1.2;
         }
         tbody td { text-align: center; }
@@ -247,10 +248,11 @@
             font-size: 8pt;
             font-weight: bold;
             text-align: right;
+            
         }
         .ptr-reason {
             margin-top: 6px;
-            font-size: 7.5pt;
+            font-size: 10pt;
         }
         .ptr-acceptance {
             margin-top: 8px;
@@ -378,14 +380,14 @@
             <th colspan="2">Receiving Facility's Action</th>
         </tr>
         <tr>
-            <th width="12%">PO No.</th>
-            <th width="14%">Program</th>
-            <th width="22%">Description</th>
-            <th width="6%">Batch</th>
-            <th width="6%">Expiry</th>
+            <th width="12%">Source Document No.</th>
+            <th width="14%">Program/ EndUser</th>
+            <th width="22%">Complete Item Description</th>
+            <th width="6%">Batch / Lot Number</th>
+            <th width="6%">Expiry Date</th>
             <th width="6%">Qty</th>
             <th width="6%">UOM</th>
-            <th width="6%">Cost</th>
+            <th width="6%">Unit Cost</th>
             <th width="6%">Amount</th>
             <th width="5%">Qty Received</th>
             <th width="17%">Remarks and /or Reason for rejection (if applicable)</th>
@@ -428,7 +430,7 @@
         <!-- Grand Total Section -->
         <div class="mb-3">
           <label class="form-label fw-bold">Reason for Transfer:</label>
-          <textarea class="form-control" rows="2"></textarea>
+          <textarea class="form-control" rows="2">{{ $release->notes ?? '' }}</textarea>
         </div>
 
         <!-- Approval & Signatories -->
@@ -547,7 +549,7 @@
         @endif
 
     <div class="page-footer">
-        <div class="form-id">Form ID: PHO-Ap-SCM-FORM 1</div>
+        <div class="form-id">PHO-Ap-SCM-Form 1</div>
         <div class="page-num">Page {{ $pageNum }} of {{ $totalPages }}</div>
     </div>
 </div>

@@ -48,8 +48,8 @@
                     <input type="text" name="ptr_itr_ris_no" value="{{ old('ptr_itr_ris_no', $release->ptr_itr_ris_no ?? '') }}" placeholder="Enter PTR/ITR/RIS No." />
                 </div>
 
-                <div id="releaseDetailsModal" style="display: none; position: fixed; inset: 0; z-index: 1000; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.45);">
-                    <div style="background: #fff; border-radius: 1rem; max-width: 520px; width: 94%; padding: 1.5rem; box-shadow: 0 20px 60px rgba(0,0,0,.2); position: relative;">
+                <div id="releaseDetailsModal" style="display: none; position: fixed; inset: 0; z-index: 1000; align-items: flex-start; justify-content: center; background: rgba(0, 0, 0, 0.45); padding: 1rem 1rem 2rem; overflow-y: auto;">
+                    <div style="background: #fff; border-radius: 1rem; max-width: 520px; width: 100%; padding: 1.5rem; box-shadow: 0 20px 60px rgba(0,0,0,.2); position: relative; margin-top: 1rem;">
                         <button type="button" id="closeReleaseDetailsModal" style="position: absolute; top: 0.9rem; right: 0.9rem; border: none; background: transparent; font-size: 1.25rem; cursor: pointer;">&times;</button>
                         <h2 style="margin-top: 0; margin-bottom: 1rem;">Release details</h2>
                         <div class="form-group" id="releaseDateGroup">
@@ -64,6 +64,14 @@
                             <label>Received By <span style="color: var(--danger);">*</span></label>
                             <input type="text" name="received_by" value="{{ old('received_by', $release->received_by ?? '') }}" placeholder="Enter receiver name" />
                             @error('received_by')
+                                <span style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem; display:block;">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <div class="form-group" id="statusReasonGroup" style="display:none;">
+                            <label>Reason <span style="color: var(--danger);">*</span></label>
+                            <input type="text" name="status_reason" value="{{ old('status_reason', $release->status_reason ?? '') }}" placeholder="Enter reason" />
+                            @error('status_reason')
                                 <span style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem; display:block;">{{ $message }}</span>
                             @enderror
                         </div>
@@ -97,8 +105,8 @@
             </div>
 
             <div class="form-group">
-                <label>Notes</label>
-                <textarea name="notes" rows="3" placeholder="Enter notes">{{ old('notes', $release->notes ?? '') }}</textarea>
+                <label>Purpose / Activity</label>
+                <textarea name="notes" rows="3" placeholder="Enter purpose / activity">{{ old('notes', $release->notes ?? '') }}</textarea>
             </div>
 
             <div style="display: flex; gap: 0.75rem;">
@@ -140,19 +148,34 @@
                 const saveReleaseDetailsModal = document.getElementById('saveReleaseDetailsModal');
                 const dateInput = document.querySelector('#releaseDetailsModal input[name="date_released"]');
                 const receivedInput = document.querySelector('#releaseDetailsModal input[name="received_by"]');
+                const reasonInput = document.querySelector('#releaseDetailsModal input[name="status_reason"]');
+                const releaseDateGroup = document.getElementById('releaseDateGroup');
+                const receivedByGroup = document.getElementById('receivedByGroup');
+                const statusReasonGroup = document.getElementById('statusReasonGroup');
 
                 function isReleaseStatus(status) {
                     return ['Released', 'Released through pass'].includes(status);
                 }
 
+                function needsReasonStatus(status) {
+                    return ['Canceled', 'Returned'].includes(status);
+                }
+
                 function updateReleaseDetailsState() {
                     const status = releaseStatusSelect.value;
                     const showFields = isReleaseStatus(status);
+                    const needReason = needsReasonStatus(status);
 
                     dateInput.required = showFields;
                     receivedInput.required = showFields;
+                    if (reasonInput) reasonInput.required = needReason;
 
-                    if (showFields && !dateInput.value && !receivedInput.value) {
+                    if (releaseDateGroup) releaseDateGroup.style.display = showFields ? '' : 'none';
+                    if (receivedByGroup) receivedByGroup.style.display = showFields ? '' : 'none';
+                    if (statusReasonGroup) statusReasonGroup.style.display = needReason ? '' : 'none';
+
+                    // Show modal if we need either released metadata or a reason for cancel/return
+                    if ((showFields && !dateInput.value && !receivedInput.value) || (needReason && !reasonInput.value)) {
                         openReleaseDetailsModal.click();
                     }
                 }
@@ -167,7 +190,7 @@
 
                 releaseStatusSelect.addEventListener('change', function() {
                     const status = releaseStatusSelect.value;
-                    if (isReleaseStatus(status)) {
+                    if (isReleaseStatus(status) || needsReasonStatus(status)) {
                         showModal();
                     } else {
                         hideModal();
@@ -183,11 +206,16 @@
                 cancelReleaseDetailsModal.addEventListener('click', hideModal);
 
                 saveReleaseDetailsModal.addEventListener('click', function() {
-                    if (dateInput.checkValidity() && receivedInput.checkValidity()) {
+                    const validDate = !dateInput.required || dateInput.checkValidity();
+                    const validReceived = !receivedInput.required || receivedInput.checkValidity();
+                    const validReason = !(reasonInput && reasonInput.required) || (reasonInput && reasonInput.checkValidity());
+
+                    if (validDate && validReceived && validReason) {
                         hideModal();
                     } else {
-                        dateInput.reportValidity();
-                        receivedInput.reportValidity();
+                        if (!validDate) dateInput.reportValidity();
+                        if (!validReceived) receivedInput.reportValidity();
+                        if (!validReason && reasonInput) reasonInput.reportValidity();
                     }
                 });
 
@@ -202,12 +230,7 @@
         </script>
 
 
-        @if(!empty($release->notes))
-            <div style="margin-top: 1.25rem;">
-                <div class="metric-label">Notes</div>
-                <div class="page-description" style="margin-top: 0.4rem;">{{ $release->notes }}</div>
-            </div>
-        @endif
+       
 
         <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
             <h2 class="section-card-title" style="margin-bottom: 1.25rem;">Released Items</h2>

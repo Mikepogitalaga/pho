@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Release;
 
 class Pas extends Model
 {
-    use HasFactory;
+    use HasFactory, Auditable;
 
     protected $table = 'property_allocation_slips';
 
@@ -38,5 +40,10 @@ class Pas extends Model
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);
+    }
+
+    public function release()
+    {
+        return $this->hasOne(Release::class, 'pas_number', 'pas_number')->latestOfMany();
     }
 }

@@ -5,12 +5,7 @@
 @section('pageSubheading', 'View released items and liquidation details.')
 
 @section('content')
-    <div class="section-header">
-        <div>
-            <h1 class="page-heading">Liquidation Report</h1>
-            <p class="page-description">Track all released and liquidated items.</p>
-        </div>
-    </div>
+    
 
     <section class="card" aria-label="Report filters" style="padding: 1rem; margin-bottom: 1.25rem;">
         <div class="section-header compact" style="padding: 0 0 0.9rem; margin-bottom: 0.9rem;">

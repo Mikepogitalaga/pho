@@ -17,7 +17,7 @@ class PasController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Pas::with('supplier')->latest('date_of_pass');
+        $query = Pas::with(['supplier', 'release'])->latest('date_of_pass');
 
         $search = trim((string) $request->input('search', ''));
         if ($search !== '') {
@@ -46,8 +46,9 @@ class PasController extends Controller
         $suppliers   = Supplier::orderBy('company_name')->get();
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
         $programs    = Program::orderBy('name')->get();
+        $facilities  = Pas::whereNotNull('facility_name')->where('facility_name', '<>', '')
+            ->distinct()->orderBy('facility_name')->pluck('facility_name');
 
-        // Latest lot number per item from receiving_items
         $itemLotNumbers = ReceivingItem::select('item_id', 'lot_number', 'expiry_date')
             ->whereNotNull('lot_number')
             ->whereIn('item_id', $items->pluck('id'))
@@ -59,7 +60,6 @@ class PasController extends Controller
                 'expiry_date' => $g->first()->expiry_date?->format('Y-m-d'),
             ]);
 
-        // Auto-generate PAS number: PAS-yyyy-mm-XXXX
         $year  = now()->format('Y');
         $month = now()->format('m');
         $last  = Pas::where('pas_number', 'like', "PAS-{$year}-{$month}-%")
@@ -69,7 +69,7 @@ class PasController extends Controller
         $nextSeq   = $last ? str_pad((int) substr(strrchr($last, '-'), 1) + 1, 4, '0', STR_PAD_LEFT) : '0001';
         $pasNumber = "PAS-{$year}-{$month}-{$nextSeq}";
 
-        return view('pas.create', compact('items', 'suppliers', 'coordinators', 'programs', 'pasNumber', 'itemLotNumbers'));
+        return view('pas.create', compact('items', 'suppliers', 'coordinators', 'programs', 'pasNumber', 'itemLotNumbers', 'facilities'));
     }
 
     public function store(Request $request)
@@ -134,9 +134,105 @@ class PasController extends Controller
 
     public function view(Pas $pas)
     {
-        $pas->load(['items.item', 'supplier']);
+        $pas->load(['items.item', 'supplier', 'release']);
 
         return view('pas.view', compact('pas'));
+    }
+
+    public function edit(Pas $pas)
+    {
+        $pas->load('items.item');
+        $items        = Item::orderBy('name')->get();
+        $suppliers    = Supplier::orderBy('company_name')->get();
+        $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
+        $programs     = Program::orderBy('name')->get();
+        $facilities   = Pas::whereNotNull('facility_name')->where('facility_name', '<>', '')
+            ->distinct()->orderBy('facility_name')->pluck('facility_name');
+
+        $itemLotNumbers = ReceivingItem::select('item_id', 'lot_number', 'expiry_date')
+            ->whereNotNull('lot_number')
+            ->whereIn('item_id', $items->pluck('id'))
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->groupBy('item_id')
+            ->map(fn($g) => [
+                'lot_number'  => $g->first()->lot_number,
+                'expiry_date' => $g->first()->expiry_date?->format('Y-m-d'),
+            ]);
+
+        return view('pas.edit', compact('pas', 'items', 'suppliers', 'coordinators', 'programs', 'itemLotNumbers', 'facilities'));
+    }
+
+    public function update(Request $request, Pas $pas)
+    {
+        $request->validate([
+            'pas_number'          => 'required|string|max:255|unique:property_allocation_slips,pas_number,' . $pas->id,
+            'date_of_pass'        => 'required|date',
+            'date_released'       => 'nullable|date',
+            'supplier_id'         => 'nullable|exists:suppliers,id',
+            'purpose_activity'    => 'nullable|string|max:500',
+            'facility_name'       => 'required|string|max:255',
+            'facility_coordinator'=> 'required|string|max:255',
+            'transfer_type'       => 'required|string|in:PTR,ITR,RIS',
+            'program'             => 'nullable|string|max:255',
+            'items'               => 'required|array|min:1',
+            'items.*.item_description' => 'required|string|max:1000',
+            'items.*.quantity'    => 'required|integer|min:1',
+            'items.*.unit'        => 'required|string|max:100',
+            'items.*.unit_cost'   => 'required|numeric|min:0',
+        ]);
+
+        DB::transaction(function () use ($request, $pas) {
+            $pas->update([
+                'pas_number'           => $request->input('pas_number'),
+                'date_of_pass'         => $request->input('date_of_pass'),
+                'date_released'        => $request->input('date_released'),
+                'supplier_id'          => $request->input('supplier_id'),
+                'purpose_activity'     => $request->input('purpose_activity'),
+                'facility_name'        => $request->input('facility_name'),
+                'facility_coordinator' => $request->input('facility_coordinator'),
+                'transfer_type'        => $request->input('transfer_type'),
+                'program'              => $request->input('program'),
+                'notes'                => $request->input('notes'),
+            ]);
+
+            $existingItems  = $pas->items->keyBy('id');
+            $keptIds        = [];
+
+            foreach ($request->input('items') as $row) {
+                $pasItemId = isset($row['pas_item_id']) && $row['pas_item_id'] !== '' ? (int) $row['pas_item_id'] : null;
+                $qty       = (int) $row['quantity'];
+                $unitCost  = (float) $row['unit_cost'];
+
+                $data = [
+                    'item_id'          => $row['item_id'] ?? null,
+                    'item_description' => $row['item_description'],
+                    'product_code'     => $row['product_code'] ?? null,
+                    'lot_number'       => $row['lot_number'] ?? null,
+                    'expiration_date'  => !empty($row['expiration_date']) ? $row['expiration_date'] : null,
+                    'quantity'         => $qty,
+                    'unit'             => $row['unit'],
+                    'unit_cost'        => $unitCost,
+                    'total_cost'       => $qty * $unitCost,
+                ];
+
+                if ($pasItemId && $existingItems->has($pasItemId)) {
+                    $existingItems[$pasItemId]->update($data);
+                    $keptIds[] = $pasItemId;
+                } else {
+                    $newRow = PasItem::create(array_merge($data, ['pas_id' => $pas->id]));
+                    $keptIds[] = $newRow->id;
+                }
+            }
+
+            foreach ($existingItems as $id => $existingRow) {
+                if (!in_array($id, $keptIds)) {
+                    $existingRow->delete();
+                }
+            }
+        });
+
+        return redirect()->route('pas.view', $pas)->with('success', 'PAS updated successfully.');
     }
 
     public function print(Pas $pas)

@@ -70,7 +70,10 @@
         <div class="form-grid-3">
             <div class="form-group">
                 <label>Facility / End-user <span style="color:var(--danger)">*</span></label>
-                <input name="facility_name" id="pasFacilityInput" value="{{ old('facility_name') }}" required>
+                <div style="position:relative;">
+                    <input name="facility_name" id="pasFacilityInput" value="{{ old('facility_name') }}" required autocomplete="off" style="width:100%;">
+                    <div id="pasFacilityDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
+                </div>
                 @error('facility_name')<span class="field-error">{{ $message }}</span>@enderror
             </div>
             <div class="form-group">
@@ -191,6 +194,11 @@
         <option value="{{ $c->full_name }}" data-programs="{{ $c->assigned_programs }}"></option>
     @endforeach
 </datalist>
+<datalist id="pas-facility-options" style="display:none;">
+    @foreach($facilities as $f)
+        <option value="{{ $f }}"></option>
+    @endforeach
+</datalist>
 
 <template id="pas-item-template">
     <div class="section-card pas-item-row">
@@ -304,6 +312,16 @@ document.addEventListener('DOMContentLoaded', function () {
         input.addEventListener('input',  e => show(e.target.value));
         input.addEventListener('focus',  () => show(input.value));
         input.addEventListener('blur',   () => setTimeout(() => dropdown.style.display = 'none', 200));
+    }
+
+    const pasFacilities = Array.from(document.querySelectorAll('#pas-facility-options option')).map(o => ({
+        name: o.value, nameLower: o.value.toLowerCase()
+    }));
+
+    const pasFacilityInput    = document.getElementById('pasFacilityInput');
+    const pasFacilityDropdown = document.getElementById('pasFacilityDropdown');
+    if (pasFacilityInput && pasFacilityDropdown) {
+        bindPasAutocomplete(pasFacilityInput, pasFacilities, pasFacilityDropdown, null);
     }
 
     bindPasAutocomplete(pasProgramInput, pasPrograms, pasProgramDropdown, function (item) {

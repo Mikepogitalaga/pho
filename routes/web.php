@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\DashboardController;
@@ -53,6 +54,8 @@ Route::middleware('web')->group(function () {
 
         Route::get('receivings', [ReceivingController::class, 'index'])->name('receivings.index');
         Route::get('receivings/create', [ReceivingController::class, 'create'])->name('receivings.create');
+        Route::get('receivings/{receiving}/edit', [ReceivingController::class, 'edit'])->name('receivings.edit');
+        Route::put('receivings/{receiving}', [ReceivingController::class, 'update'])->name('receivings.update');
         Route::get('receivings/{receiving}', [ReceivingController::class, 'view'])->name('receivings.view');
         Route::post('receivings', [ReceivingController::class, 'store'])->name('receivings.store');
 
@@ -69,10 +72,14 @@ Route::middleware('web')->group(function () {
 
         Route::get('reports/liquidation', [ReportController::class, 'liquidation'])->name('reports.liquidation');
 
+        Route::get('audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');
+
         // Property Allocation Slip (PAS) Routes
         Route::get('pas', [PasController::class, 'index'])->name('pas.index');
         Route::get('pas/create', [PasController::class, 'create'])->name('pas.create');
         Route::post('pas', [PasController::class, 'store'])->name('pas.store');
+        Route::get('pas/{pas}/edit', [PasController::class, 'edit'])->name('pas.edit');
+        Route::put('pas/{pas}', [PasController::class, 'update'])->name('pas.update');
         Route::get('pas/{pas}', [PasController::class, 'view'])->name('pas.view');
         Route::get('pas/{pas}/print', [PasController::class, 'print'])->name('pas.print');
         Route::post('pas/{pas}/status/{status}', [PasController::class, 'updateStatus'])

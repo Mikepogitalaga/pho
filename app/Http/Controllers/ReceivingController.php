@@ -57,6 +57,153 @@ class ReceivingController extends Controller
         return view('receivings.view', compact('receiving'));
     }
 
+    public function edit(Receiving $receiving)
+    {
+        $receiving->load('items.item');
+        $suppliers    = Supplier::orderBy('company_name')->get();
+        $items        = Item::orderBy('name')->get();
+        $programs     = Program::orderBy('name')->get();
+        $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
+
+        return view('receivings.edit', compact('receiving', 'suppliers', 'items', 'programs', 'coordinators'));
+    }
+
+    public function update(Request $request, Receiving $receiving)
+    {
+        $request->validate([
+            'supplier_id'        => 'required|exists:suppliers,id',
+            'po_number'          => 'nullable|string|max:255',
+            'ics_ptr_ris'        => 'nullable|string|max:255',
+            'document_date'      => 'nullable|date',
+            'date_received'      => 'required|date',
+            'received_by'        => 'nullable|string|max:255',
+            'location'           => 'nullable|string|max:255',
+            'stock_keeping_unit' => 'nullable|string|max:255',
+            'program_coordinator'=> 'nullable|string|max:255',
+            'items'              => 'required|array|min:1',
+            'items.*.item_description'  => 'required|string|max:255',
+            'items.*.quantity_received' => 'required|integer|min:1',
+            'items.*.uom'        => 'nullable|string|max:255',
+            'items.*.lot_number' => 'nullable|string|max:255',
+            'items.*.expiry_date'=> 'nullable|date',
+            'items.*.unit_cost'  => 'nullable|numeric|min:0',
+        ]);
+
+        DB::transaction(function () use ($request, $receiving) {
+            $receiving->update([
+                'po_number'           => $request->input('po_number'),
+                'source_document_number' => $request->input('po_number'),
+                'ics_ptr_ris'         => $request->input('ics_ptr_ris'),
+                'document_date'       => $request->input('document_date'),
+                'supplier_id'         => $request->input('supplier_id'),
+                'date_received'       => $request->input('date_received'),
+                'received_by'         => $request->input('received_by'),
+                'location'            => $request->input('location'),
+                'stock_keeping_unit'  => $request->input('stock_keeping_unit'),
+                'program_coordinator' => $request->input('program_coordinator'),
+                'notes'               => $request->input('notes'),
+            ]);
+
+            $existingItems  = $receiving->items->keyBy('id');  // keyed by int
+            $keptExistingIds = [];
+
+            foreach ($request->input('items') as $itemData) {
+                $receivingItemId = isset($itemData['receiving_item_id']) && $itemData['receiving_item_id'] !== ''
+                    ? (int) $itemData['receiving_item_id']
+                    : null;
+
+                // Resolve or create the Item record
+                $item = null;
+                if (!empty($itemData['item_id'])) {
+                    $item = Item::find((int) $itemData['item_id']);
+                }
+                if (!$item) {
+                    $item = Item::where('name', $itemData['item_description'])->first();
+                }
+                if (!$item) {
+                    $item = Item::create([
+                        'item_code'           => $itemData['item_code'] ?? null,
+                        'name'                => $itemData['item_description'],
+                        'category'            => $itemData['category'] ?? null,
+                        'unit'                => $itemData['uom'] ?? null,
+                        'description'         => $itemData['item_description'],
+                        'location'            => $request->input('location'),
+                        'stock_keeping_unit'  => $request->input('stock_keeping_unit'),
+                        'program_coordinator' => $request->input('program_coordinator'),
+                        'unit_cost'           => $itemData['unit_cost'] ?? null,
+                        'quantity_on_hand'    => 0,
+                    ]);
+                } else {
+                    $item->fill([
+                        'name'                => $itemData['item_description'],
+                        'category'            => $itemData['category'] ?? $item->category,
+                        'unit'                => $itemData['uom'] ?? $item->unit,
+                        'location'            => $request->input('location') ?? $item->location,
+                        'stock_keeping_unit'  => $request->input('stock_keeping_unit') ?? $item->stock_keeping_unit,
+                        'program_coordinator' => $request->input('program_coordinator') ?? $item->program_coordinator,
+                    ]);
+                    if (!empty($itemData['unit_cost'])) {
+                        $item->unit_cost = $itemData['unit_cost'];
+                    }
+                    $item->save();
+                }
+
+                $newQty = (int) $itemData['quantity_received'];
+
+                if ($receivingItemId && $existingItems->has($receivingItemId)) {
+                    // Existing row — reconcile stock delta
+                    $existingRow = $existingItems[$receivingItemId];
+                    $oldQty      = (int) $existingRow->quantity_received;
+                    $delta       = $newQty - $oldQty;
+
+                    $existingRow->update([
+                        'item_id'           => $item->id,
+                        'item_description'  => $itemData['item_description'],
+                        'category'          => $itemData['category'] ?? null,
+                        'uom'               => $itemData['uom'] ?? null,
+                        'lot_number'        => $itemData['lot_number'] ?? null,
+                        'expiry_date'       => !empty($itemData['expiry_date']) ? $itemData['expiry_date'] : null,
+                        'quantity_received' => $newQty,
+                        'unit_cost'         => $itemData['unit_cost'] ?? null,
+                    ]);
+
+                    if ($delta !== 0) {
+                        $item->increment('quantity_on_hand', $delta);
+                    }
+
+                    $keptExistingIds[] = $receivingItemId;
+                } else {
+                    // New row
+                    ReceivingItem::create([
+                        'receiving_id'      => $receiving->id,
+                        'item_id'           => $item->id,
+                        'item_description'  => $itemData['item_description'],
+                        'category'          => $itemData['category'] ?? null,
+                        'uom'               => $itemData['uom'] ?? null,
+                        'lot_number'        => $itemData['lot_number'] ?? null,
+                        'expiry_date'       => !empty($itemData['expiry_date']) ? $itemData['expiry_date'] : null,
+                        'quantity_received' => $newQty,
+                        'unit_cost'         => $itemData['unit_cost'] ?? null,
+                    ]);
+                    $item->increment('quantity_on_hand', $newQty);
+                }
+            }
+
+            // Remove rows that were deleted in the form and reverse their stock
+            foreach ($existingItems as $id => $existingRow) {
+                if (!in_array($id, $keptExistingIds, false)) {
+                    if ($existingRow->item_id) {
+                        Item::where('id', $existingRow->item_id)
+                            ->decrement('quantity_on_hand', (int) $existingRow->quantity_received);
+                    }
+                    $existingRow->delete();
+                }
+            }
+        });
+
+        return redirect()->route('receivings.view', $receiving)->with('success', 'Receiving updated and inventory adjusted.');
+    }
+
     public function create()
     {
         $suppliers = Supplier::orderBy('company_name')->get();

@@ -130,7 +130,9 @@ class ItemController extends Controller
             ->orderBy('item_code')
             ->get();
 
-        $totalReleased = $items->sum(fn ($groupedItem) => $groupedItem->releaseItems->sum('quantity_released'));
+        $totalReleased = $items->sum(fn ($groupedItem) => $groupedItem->releaseItems
+            ->filter(fn ($ri) => ! in_array($ri->release->status ?? '', ['Canceled', 'Returned'], true))
+            ->sum('quantity_released'));
         $totalReceived = $items->sum(fn ($groupedItem) => $groupedItem->receivingItems->sum('quantity_received'));
         $totalStock = $items->sum('quantity_on_hand');
         $deductionPercentage = $totalReceived > 0 ? round(($totalReleased / $totalReceived) * 100) : 0;
@@ -160,26 +162,32 @@ class ItemController extends Controller
 
         foreach ($items as $groupedItem) {
             foreach ($groupedItem->releaseItems as $releaseItem) {
-                $release = $releaseItem->release;
+                $release    = $releaseItem->release;
+                $isInactive = in_array($release->status, ['Canceled', 'Returned'], true);
+
                 $deductionHistory[] = [
-                    'date' => $release->date_released,
-                    'type' => 'Release',
+                    'date'      => $release->date_released,
+                    'type'      => 'Release',
+                    'direction' => 'deduct',
                     'item_code' => $groupedItem->item_code,
                     'reference' => $release->ptr_itr_ris_no ?? $release->release_number,
-                    'quantity' => $releaseItem->quantity_released,
-                    'facility' => $release->facility_name,
-                    'status' => $release->status,
+                    'quantity'  => $releaseItem->quantity_released,
+                    'facility'  => $release->facility_name,
+                    'status'    => $release->status,
+                    'reason'    => $release->status_reason ?? null,
                 ];
 
-                if (in_array($release->status, ['Canceled', 'Returned'], true)) {
+                if ($isInactive) {
                     $deductionHistory[] = [
-                        'date' => $release->updated_at,
-                        'type' => $release->status,
+                        'date'      => $release->updated_at,
+                        'type'      => $release->status,
+                        'direction' => 'restore',
                         'item_code' => $groupedItem->item_code,
                         'reference' => $release->ptr_itr_ris_no ?? $release->release_number,
-                        'quantity' => $releaseItem->quantity_released,
-                        'facility' => $release->facility_name,
-                        'status' => $release->status,
+                        'quantity'  => $releaseItem->quantity_released,
+                        'facility'  => $release->facility_name,
+                        'status'    => $release->status,
+                        'reason'    => $release->status_reason ?? null,
                     ];
                 }
             }
@@ -200,7 +208,9 @@ class ItemController extends Controller
             ->with('nextExpiryItem', 'receivingItems.receiving.supplier', 'releaseItems.release')
             ->firstOrFail();
 
-        $totalReleased = $product->releaseItems->sum('quantity_released');
+        $totalReleased = $product->releaseItems
+            ->filter(fn ($ri) => ! in_array($ri->release->status ?? '', ['Canceled', 'Returned'], true))
+            ->sum('quantity_released');
         $totalReceived = $product->receivingItems->sum('quantity_received');
         $totalStock = $product->quantity_on_hand;
         $deductionPercentage = $totalReceived > 0 ? round(($totalReleased / $totalReceived) * 100) : 0;
@@ -208,25 +218,34 @@ class ItemController extends Controller
         $deductionHistory = [];
         foreach ($product->releaseItems as $releaseItem) {
             $release = $releaseItem->release;
+
+            $isInactive = in_array($release->status, ['Canceled', 'Returned'], true);
+
+            // Original release row — always shown
             $deductionHistory[] = [
-                'date' => $release->date_released,
-                'type' => 'Release',
+                'date'      => $release->date_released,
+                'type'      => 'Release',
+                'direction' => 'deduct',
                 'item_code' => $product->item_code,
                 'reference' => $release->ptr_itr_ris_no ?? $release->release_number,
-                'quantity' => $releaseItem->quantity_released,
-                'facility' => $release->facility_name,
-                'status' => $release->status,
+                'quantity'  => $releaseItem->quantity_released,
+                'facility'  => $release->facility_name,
+                'status'    => $release->status,
+                'reason'    => $release->status_reason ?? null,
             ];
 
-            if (in_array($release->status, ['Canceled', 'Returned'], true)) {
+            // Stock restore row — only when Canceled or Returned
+            if ($isInactive) {
                 $deductionHistory[] = [
-                    'date' => $release->updated_at,
-                    'type' => $release->status,
+                    'date'      => $release->updated_at,
+                    'type'      => $release->status,
+                    'direction' => 'restore',
                     'item_code' => $product->item_code,
                     'reference' => $release->ptr_itr_ris_no ?? $release->release_number,
-                    'quantity' => $releaseItem->quantity_released,
-                    'facility' => $release->facility_name,
-                    'status' => $release->status,
+                    'quantity'  => $releaseItem->quantity_released,
+                    'facility'  => $release->facility_name,
+                    'status'    => $release->status,
+                    'reason'    => $release->status_reason ?? null,
                 ];
             }
         }

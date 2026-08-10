@@ -20,6 +20,31 @@
         </section>
     </div>
 
+    {{-- Stats Row --}}
+    <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1.5rem;">
+        <article class="kpi-card" style="flex:1; min-width:160px; padding:1.25rem 1.5rem;">
+            <div class="kpi-card-header">
+                <span class="kpi-card-label" style="font-size:0.85rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Total Released</span>
+            </div>
+            <p class="kpi-card-value" style="font-size:2rem; font-weight:700; margin:0.4rem 0 0.2rem; color:var(--danger);">{{ number_format($totalReleased) }}</p>
+            <p class="kpi-card-foot" style="font-size:0.85rem;">units released (active)</p>
+        </article>
+        <article class="kpi-card" style="flex:1; min-width:160px; padding:1.25rem 1.5rem;">
+            <div class="kpi-card-header">
+                <span class="kpi-card-label" style="font-size:0.85rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Current Stock</span>
+            </div>
+            <p class="kpi-card-value" style="font-size:2rem; font-weight:700; margin:0.4rem 0 0.2rem; color:{{ $totalStock > 0 ? 'var(--success, #16a34a)' : 'var(--danger)' }};">{{ number_format($totalStock) }}</p>
+            <p class="kpi-card-foot" style="font-size:0.85rem;">units on hand</p>
+        </article>
+        <article class="kpi-card" style="flex:1; min-width:160px; padding:1.25rem 1.5rem;">
+            <div class="kpi-card-header">
+                <span class="kpi-card-label" style="font-size:0.85rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Deduction %</span>
+            </div>
+            <p class="kpi-card-value" style="font-size:2rem; font-weight:700; margin:0.4rem 0 0.2rem; color:{{ $deductionPercentage >= 80 ? 'var(--danger)' : ($deductionPercentage >= 50 ? 'var(--warning, #d97706)' : 'var(--success, #16a34a)') }};">{{ $deductionPercentage }}%</p>
+            <p class="kpi-card-foot" style="font-size:0.85rem;">of total received</p>
+        </article>
+    </div>
+
     {{-- Item Description Banner --}}
     <div style="background: linear-gradient(135deg, var(--primary), #1d4ed8); color: #fff; padding: 1.25rem 1.5rem; border-radius: 1rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
         <div>

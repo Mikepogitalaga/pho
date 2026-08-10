@@ -8,12 +8,18 @@
     <div class="section-header">
         <div>
             <h1 class="page-heading">{{ $pas->pas_number }}</h1>
-            <p class="page-description">
-                <span class="badge {{ match($pas->status) {
+            @php
+                $linkedRelease = $pas->release;
+                $displayStatus = $linkedRelease ? 'PTR created' : $pas->status;
+                $badgeClass = match($displayStatus) {
                     'Released' => 'badge-success',
                     'Canceled' => 'badge-danger',
+                    'PTR created' => 'badge-success',
                     default    => 'badge-warning',
-                } }}">{{ $pas->status }}</span>
+                };
+            @endphp
+            <p class="page-description">
+                <span class="badge {{ $badgeClass }}">{{ $displayStatus }}</span>
                 &nbsp; Property Allocation Slip — items are NOT deducted from inventory.
             </p>
         </div>
@@ -38,7 +44,12 @@
                         $releaseParams["items[{$index}][lot_number]"] = $item->lot_number;
                     }
                 @endphp
-                <a href="{{ route('releases.create', $releaseParams) }}" class="btn btn-primary">+ Create PTR</a>
+                @if($linkedRelease)
+                    <a href="{{ route('releases.view', $linkedRelease) }}" class="btn btn-primary">View PTR</a>
+                @else
+                    <a href="{{ route('releases.create', $releaseParams) }}" class="btn btn-primary">+ Create PTR</a>
+                @endif
+                <a href="{{ route('pas.edit', $pas) }}" class="btn btn-secondary">Edit</a>
                 <a href="{{ route('pas.print', $pas) }}" target="_blank" class="btn btn-secondary">🖨 Print PAS</a>
                 <a href="{{ route('pas.index') }}" class="btn btn-secondary">Back to PAS</a>
             </div>

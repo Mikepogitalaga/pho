@@ -15,6 +15,28 @@ use Throwable;
 
 class ReleaseController extends Controller
 {
+    private function applyStatusTransition(Release $release, string $newStatus, ?string $previousStatus = null): void
+    {
+        $previousStatus = $previousStatus ?? $release->getRawOriginal('status') ?? $release->status;
+
+        $wasInactive = in_array($previousStatus, ['Canceled', 'Returned'], true);
+        $isInactive  = in_array($newStatus,      ['Canceled', 'Returned'], true);
+
+        if ($isInactive && ! $wasInactive) {
+            // Active → Canceled/Returned: restore stock
+            foreach ($release->items as $releaseItem) {
+                Item::where('id', $releaseItem->item_id)
+                    ->increment('quantity_on_hand', (int) $releaseItem->quantity_released);
+            }
+        } elseif (! $isInactive && $wasInactive) {
+            // Canceled/Returned → Active: deduct stock again
+            foreach ($release->items as $releaseItem) {
+                Item::where('id', $releaseItem->item_id)
+                    ->decrement('quantity_on_hand', (int) $releaseItem->quantity_released);
+            }
+        }
+    }
+
     public function updateStatus(Request $request, Release $release, string $status)
     {
         $allowed = ['released-through-pass', 'released', 'canceled', 'returned', 'unreleased'];
@@ -22,41 +44,33 @@ class ReleaseController extends Controller
             return redirect()->back()->with('error', 'Invalid status.');
         }
 
-        $previousStatus = $release->status;
+        $previousStatus = $release->getRawOriginal('status') ?? $release->status;
 
         $newStatus = match ($status) {
             'released-through-pass' => 'Released through pass',
-            'released' => 'Released',
-            'canceled' => 'Canceled',
-            'returned' => 'Returned',
-            default => 'Unreleased',
+            'released'              => 'Released',
+            'canceled'              => 'Canceled',
+            'returned'              => 'Returned',
+            default                 => 'Unreleased',
         };
 
         $release->status = $newStatus;
 
-        // For released/released-through-pass we capture receiving metadata.
-        // These fields already exist on the DB as `received_by` and we reuse `date_released` as receiving date.
         if (in_array($newStatus, ['Released', 'Released through pass'], true)) {
-            $release->received_by = $request->input('received_by', $release->received_by);
+            $release->received_by   = $request->input('received_by', $release->received_by);
             $release->date_released = $request->input('date_released', $release->date_released);
-
-            // Also persist PTR/ITR/RIS No. if provided.
             $release->ptr_itr_ris_no = $request->input('ptr_itr_ris_no', $release->ptr_itr_ris_no);
         }
 
-        // Inventory adjustments:
-        // - When a release is initially created, item quantity_on_hand is decremented.
-        // - If user marks a release as canceled or returned, we restore quantities.
-        if (in_array($newStatus, ['Canceled', 'Returned'], true) && !in_array($previousStatus, ['Canceled', 'Returned'], true)) {
-            foreach ($release->items as $releaseItem) {
-                $item = Item::find($releaseItem->item_id);
-                if ($item) {
-                    $item->increment('quantity_on_hand', (int) $releaseItem->quantity_released);
-                }
-            }
+        if (in_array($newStatus, ['Canceled', 'Returned'], true)) {
+            $release->status_reason = $request->input('status_reason', $release->status_reason);
         }
 
-        $release->save();
+        DB::transaction(function () use ($release, $newStatus, $previousStatus) {
+            $release->load('items');
+            $this->applyStatusTransition($release, $newStatus, $previousStatus);
+            $release->save();
+        });
 
         return redirect()->route('releases.view', $release)->with('success', 'Release status updated.');
     }
@@ -128,30 +142,35 @@ class ReleaseController extends Controller
     public function update(Request $request, Release $release)
     {
         $request->validate([
-            'pas_number' => 'nullable|string|max:255',
+            'pas_number'                 => 'nullable|string|max:255',
             'health_program_coordinator' => 'nullable|string|max:255',
-            'ptr_itr_ris_no' => 'nullable|string|max:255',
-            'pho_code' => 'nullable|string|max:255',
-            'source_docs_ptr_po_no' => 'nullable|string|max:255',
-            'facility_name' => 'nullable|string|max:255',
-            'received_by' => 'required|string|max:255',
-            'date_released' => 'required|date',
-            'status' => 'required|string|in:Unreleased,Released,Released through pass,Canceled,Returned',
-            'notes' => 'nullable|string',
+            'ptr_itr_ris_no'             => 'nullable|string|max:255',
+            'pho_code'                   => 'nullable|string|max:255',
+            'source_docs_ptr_po_no'      => 'nullable|string|max:255',
+            'facility_name'              => 'nullable|string|max:255',
+            'received_by'                => 'required|string|max:255',
+            'date_released'              => 'required|date',
+            'status'                     => 'required|string|in:Unreleased,Released,Released through pass,Canceled,Returned',
+            'status_reason'              => 'nullable|string|max:1000',
+            'notes'                      => 'nullable|string',
         ]);
 
-        $release->update($request->only([
-            'pas_number',
-            'health_program_coordinator',
-            'ptr_itr_ris_no',
-            'pho_code',
-            'source_docs_ptr_po_no',
-            'facility_name',
-            'received_by',
-            'date_released',
-            'status',
-            'notes',
-        ]));
+        // Capture BEFORE fill() overwrites it — this is critical for the stock transition
+        $previousStatus = $release->getRawOriginal('status') ?? $release->status;
+        $newStatus      = $request->input('status');
+
+        DB::transaction(function () use ($request, $release, $previousStatus, $newStatus) {
+            $release->fill($request->only([
+                'pas_number', 'health_program_coordinator', 'ptr_itr_ris_no',
+                'pho_code', 'source_docs_ptr_po_no', 'facility_name',
+                'received_by', 'date_released', 'status', 'status_reason', 'notes',
+            ]));
+
+            // Reload items fresh so increment/decrement works on correct records
+            $release->load('items');
+            $this->applyStatusTransition($release, $newStatus, $previousStatus);
+            $release->save();
+        });
 
         return redirect()->route('releases.view', $release)->with('success', 'Release details updated successfully.');
     }

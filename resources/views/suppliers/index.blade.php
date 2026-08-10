@@ -7,8 +7,7 @@
 @section('content')
     <div class="section-header">
         <div>
-            <h1 class="page-heading">Suppliers</h1>
-            <p class="page-description">Search, edit, and manage supplier records.</p>
+            
         </div>
         <div class="table-actions">
             <a href="{{ route('suppliers.create') }}" class="btn btn-primary">New Supplier</a>

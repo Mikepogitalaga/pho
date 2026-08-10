@@ -54,11 +54,20 @@
                         <td>{{ $slip->program ?? '—' }}</td>
                         <td>{{ $slip->purpose_activity ?? '—' }}</td>
                         <td>
-                            <span class="badge {{ match($slip->status) {
-                                'Released' => 'badge-success',
-                                'Canceled' => 'badge-danger',
-                                default    => 'badge-warning',
-                            } }}">{{ $slip->status }}</span>
+                            @php
+                                $linkedRelease = $slip->release;
+                                $displayStatus = $slip->status;
+                                if ($slip->status === 'Pending' && $linkedRelease) {
+                                    $displayStatus = 'PTR created';
+                                }
+                                $badgeClass = match($displayStatus) {
+                                    'Released' => 'badge-success',
+                                    'Canceled' => 'badge-danger',
+                                    'PTR created' => 'badge-success',
+                                    default    => 'badge-warning',
+                                };
+                            @endphp
+                            <span class="badge {{ $badgeClass }}">{{ $displayStatus }}</span>
                         </td>
                         <td>
                             <a href="{{ route('pas.view', $slip) }}" class="btn btn-sm btn-secondary">View</a>

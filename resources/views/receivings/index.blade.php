@@ -7,8 +7,7 @@
 @section('content')
     <div class="section-header">
         <div>
-            <h1 class="page-heading">Receive Supplies</h1>
-            <p class="page-description">Review receipts and manage incoming stock.</p>
+            
         </div>
         <div class="table-actions">
             <a href="{{ route('receivings.create') }}" class="btn btn-primary">New Receiving</a>

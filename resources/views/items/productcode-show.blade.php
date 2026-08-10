@@ -104,6 +104,7 @@
                             <th>Type</th>
                             <th>Product Code</th>
                             <th>Reference</th>
+                            <th>Reason</th>
                             <th style="text-align: center;">Quantity</th>
                             <th>Facility / Receiver</th>
                             <th>Status</th>
@@ -134,7 +135,17 @@
                                 </td>
                                 <td><span style="font-weight:600;">{{ $record['item_code'] }}</span></td>
                                 <td>{{ $record['reference'] }}</td>
-                                <td style="text-align: center; font-weight: 600;">{{ $record['quantity'] }}</td>
+                                <td style="max-width:220px;">
+                                    @if(in_array($record['type'], ['Canceled', 'Returned']))
+                                        {{ $record['reason'] ?? '—' }}
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                                <td style="text-align: center; font-weight: 600;
+                                    color: {{ ($record['direction'] ?? 'deduct') === 'restore' ? 'var(--success)' : 'var(--danger)' }}">
+                                    {{ ($record['direction'] ?? 'deduct') === 'restore' ? '+' : '−' }}{{ $record['quantity'] }}
+                                </td>
                                 <td>{{ $record['facility'] }}</td>
                                 <td>
                                     @php

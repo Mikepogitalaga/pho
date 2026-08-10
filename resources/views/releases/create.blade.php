@@ -85,9 +85,6 @@
                 </div>
             </div>
 
-            @if(request('purpose_activity'))
-                <div class="section-note">PAS Purpose / Activity: {{ request('purpose_activity') }}</div>
-            @endif
             <div class="section-note">
                 Received by, Date, and Status are assigned after saving.
             </div>
@@ -159,7 +156,7 @@
             </div>
 
             <div class="form-group">
-                <label>Notes</label>
+                <label>Purpose / Activity</label>
                 <textarea name="notes" rows="3">{{ old('notes', request('purpose_activity')) }}</textarea>
             </div>
 
@@ -369,9 +366,12 @@ const allItemsData = {!! json_encode($items->map(fn($i) => [
         dd.style.display = 'block';
     }
 
-    function buildProductOptions(select) {
+    function buildProductOptions(select, items = allItemsData) {
         select.innerHTML = '<option value="">Select product</option>';
-        allItemsData.forEach(i => {
+        if (!Array.isArray(items) || !items.length) {
+            return;
+        }
+        items.forEach(i => {
             const o = document.createElement('option');
             o.value = i.id;
             o.textContent = i.code + ' - ' + i.name;
@@ -383,15 +383,28 @@ const allItemsData = {!! json_encode($items->map(fn($i) => [
         });
     }
 
+    function filterItemsForDescription(text) {
+        const lowerText = (text || '').toLowerCase().trim();
+        if (!lowerText) {
+            return allItemsData;
+        }
+        const filtered = allItemsData.filter(i =>
+            i.name.toLowerCase().includes(lowerText) ||
+            i.code.toLowerCase().includes(lowerText)
+        );
+        return filtered.length ? filtered : allItemsData;
+    }
+
     function populateProductSelect(select, itemName) {
-        buildProductOptions(select);
+        const filteredItems = filterItemsForDescription(itemName);
+        buildProductOptions(select, filteredItems);
         const lowerName = itemName.toLowerCase().trim();
-        let matchItem = allItemsData.find(i =>
+        let matchItem = filteredItems.find(i =>
             i.name.toLowerCase() === lowerName ||
             i.code.toLowerCase() === lowerName
         );
         if (!matchItem) {
-            matchItem = allItemsData.find(i =>
+            matchItem = filteredItems.find(i =>
                 i.name.toLowerCase().includes(lowerName) ||
                 i.code.toLowerCase().includes(lowerName)
             );
