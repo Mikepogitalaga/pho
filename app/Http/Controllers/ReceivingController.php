@@ -50,6 +50,74 @@ class ReceivingController extends Controller
         return view('receivings.index', compact('receivings'));
     }
 
+    public function export(Request $request)
+    {
+        $receivings = Receiving::with(['supplier', 'items.item'])
+            ->latest('date_received')
+            ->get();
+
+        $fileName = 'receivings-' . now()->format('Y-m-d-His') . '.csv';
+
+        $headers = [
+            'PURCHASE ORDER NO.',
+            'SUPPLIER/DEALER',
+            'ICS /PTR /RIS',
+            'Date(PTR/RIS/ICS',
+            'Product Code',
+            'Item Description',
+            'Lot/Batch/SR/Model No.',
+            'Expiry Date/Est Useful life',
+            'Quantity',
+            'UOM',
+            'cost',
+            'date received',
+            'location',
+            'stock keeping unit(program)',
+            'program coordinator',
+        ];
+
+        $callback = function () use ($receivings, $headers) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, $headers);
+
+            foreach ($receivings as $receiving) {
+                $baseColumns = [
+                    $receiving->po_number ?? '—',
+                    $receiving->supplier?->company_name ?? '—',
+                    $receiving->ics_ptr_ris ?? '—',
+                    $receiving->document_date?->format('Y-m-d') ?? '—',
+                ];
+
+                if ($receiving->items->isEmpty()) {
+                    fputcsv($handle, array_merge($baseColumns, ['—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—']));
+                    continue;
+                }
+
+                foreach ($receiving->items as $item) {
+                    fputcsv($handle, array_merge($baseColumns, [
+                        $item->item?->item_code ?? '—',
+                        $item->item_description ?? $item->item?->name ?? '—',
+                        $item->lot_number ?? '—',
+                        $item->expiry_date?->format('Y-m-d') ?? '—',
+                        $item->quantity_received ?? '—',
+                        $item->uom ?? $item->item?->unit ?? '—',
+                        isset($item->unit_cost) ? number_format((float) $item->unit_cost, 2, '.', '') : '—',
+                        $receiving->date_received?->format('Y-m-d') ?? '—',
+                        $receiving->location ?? '—',
+                        $receiving->stock_keeping_unit ?? '—',
+                        $receiving->program_coordinator ?? '—',
+                    ]));
+                }
+            }
+
+            fclose($handle);
+        };
+
+        return response()->streamDownload($callback, $fileName, [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
     public function view(Receiving $receiving)
     {
         $receiving->load('items');

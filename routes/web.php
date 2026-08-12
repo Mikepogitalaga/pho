@@ -54,6 +54,7 @@ Route::middleware('web')->group(function () {
         Route::get('gso-dashboard/{supplier}', [SupplierController::class, 'gsoDashboard'])->name('gso.dashboard');
 
         Route::get('receivings', [ReceivingController::class, 'index'])->name('receivings.index');
+        Route::get('receivings/export', [ReceivingController::class, 'export'])->name('receivings.export');
         Route::get('receivings/create', [ReceivingController::class, 'create'])->name('receivings.create');
         Route::get('receivings/{receiving}/edit', [ReceivingController::class, 'edit'])->name('receivings.edit');
         Route::put('receivings/{receiving}', [ReceivingController::class, 'update'])->name('receivings.update');

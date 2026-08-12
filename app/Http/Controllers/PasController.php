@@ -141,13 +141,16 @@ class PasController extends Controller
 
     public function edit(Pas $pas)
     {
-        $pas->load('items.item');
-        $items        = Item::orderBy('name')->get();
-        $suppliers    = Supplier::orderBy('company_name')->get();
+        $pas->load(['items.item', 'supplier', 'release']);
+        $items = Item::orderBy('name')->get();
+        $suppliers = Supplier::orderBy('company_name')->get();
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
-        $programs     = Program::orderBy('name')->get();
-        $facilities   = Pas::whereNotNull('facility_name')->where('facility_name', '<>', '')
-            ->distinct()->orderBy('facility_name')->pluck('facility_name');
+        $programs = Program::orderBy('name')->get();
+        $facilities = Pas::whereNotNull('facility_name')
+            ->where('facility_name', '<>', '')
+            ->distinct()
+            ->orderBy('facility_name')
+            ->pluck('facility_name');
 
         $itemLotNumbers = ReceivingItem::select('item_id', 'lot_number', 'expiry_date')
             ->whereNotNull('lot_number')
@@ -155,8 +158,8 @@ class PasController extends Controller
             ->orderBy('created_at', 'desc')
             ->get()
             ->groupBy('item_id')
-            ->map(fn($g) => [
-                'lot_number'  => $g->first()->lot_number,
+            ->map(fn ($g) => [
+                'lot_number' => $g->first()->lot_number,
                 'expiry_date' => $g->first()->expiry_date?->format('Y-m-d'),
             ]);
 
