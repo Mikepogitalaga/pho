@@ -1,412 +1,1617 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>{{ isset($isRegister) && $isRegister ? 'Create Account' : 'Sign In' }} — PHO Supply Office</title>
+
+    {{-- Fonts --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+          rel="stylesheet">
+
+    {{-- Font Awesome --}}
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+
     <style>
-        :root {
-            color-scheme: light;
-            --auth-bg: linear-gradient(135deg, #0f172a 0%, #111827 45%, #1e3a8a 100%);
-            --panel-bg: rgba(255,255,255,0.96);
-            --panel-border: rgba(255,255,255,0.24);
-            --text: #0f172a;
-            --muted: #64748b;
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --accent: #7c3aed;
-            --danger: #dc2626;
-            --success: #16a34a;
-            --shadow: 0 24px 60px rgba(2, 6, 23, 0.22);
+
+        /* =========================================================
+           RESET
+        ========================================================= */
+
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        * { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; min-height: 100%; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
-        body {
+        html {
+            font-family: "Poppins", sans-serif;
+        }
+
+       body {
             min-height: 100vh;
-            display: grid;
-            place-items: center;
-            background: var(--auth-bg);
-            color: var(--text);
-            overflow-x: hidden;
-        }
 
-        body::before,
-        body::after {
-            content: '';
-            position: fixed;
-            inset: auto;
-            border-radius: 999px;
-            filter: blur(16px);
-            opacity: 0.55;
-            pointer-events: none;
-            animation: float 8s ease-in-out infinite;
-        }
-
-        body::before {
-            width: 280px; height: 280px; left: -90px; top: -70px; background: rgba(59,130,246,0.35);
-        }
-
-        body::after {
-            width: 320px; height: 320px; right: -120px; bottom: -90px; background: rgba(124,58,237,0.24); animation-delay: 2s;
-        }
-
-        .auth-shell {
-            position: relative;
-            width: min(1120px, calc(100% - 2rem));
-            display: grid;
-            grid-template-columns: 1.05fr 0.95fr;
-            background: rgba(255,255,255,0.16);
-            border: 1px solid rgba(255,255,255,0.16);
-            border-radius: 32px;
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
-        }
-
-        .auth-hero {
-            position: relative;
-            padding: 2rem 2rem 2.5rem;
-            background: linear-gradient(135deg, rgba(37,99,235,0.9), rgba(124,58,237,0.88));
-            color: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            min-height: 620px;
-        }
-
-        .auth-hero::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at top right, rgba(255,255,255,0.28), transparent 24%), radial-gradient(circle at bottom left, rgba(255,255,255,0.15), transparent 18%);
-            pointer-events: none;
-        }
-
-        .hero-top, .hero-bottom { position: relative; z-index: 1; }
-        .hero-mark {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.7rem;
-            padding: 0.6rem 0.8rem;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.16);
-            width: fit-content;
-        }
-
-        .hero-mark img { width: 44px; height: 44px; border-radius: 0.9rem; object-fit: cover; }
-        .hero-title { margin: 1.25rem 0 0.6rem; font-size: clamp(1.7rem, 3vw, 2.45rem); line-height: 1.12; font-weight: 800; }
-        .hero-copy { margin: 0; max-width: 420px; color: rgba(255,255,255,0.9); line-height: 1.7; }
-
-        .hero-card {
-            margin-top: 1.8rem;
-            padding: 1rem 1.1rem;
-            border-radius: 20px;
-            background: rgba(255,255,255,0.14);
-            border: 1px solid rgba(255,255,255,0.2);
-            backdrop-filter: blur(8px);
-        }
-
-        .hero-card ul { margin: 0.15rem 0 0; padding-left: 1.05rem; color: rgba(255,255,255,0.92); display: grid; gap: 0.55rem; }
-
-        .hero-badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.7rem; border-radius: 999px; background: rgba(255,255,255,0.2); font-size: 0.8rem; font-weight: 600; }
-
-        .auth-panel {
-            position: relative;
-            padding: 2rem;
-            background: var(--panel-bg);
             display: flex;
             align-items: center;
             justify-content: center;
+
+            background:
+                linear-gradient(
+                    rgba(30, 30, 30, 0.30),
+                    rgba(30, 30, 30, 0.30)
+                ),
+                url("{{ asset('bg.jpg') }}");
+
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+
+            overflow-x: hidden;
+            overflow-y: auto;
         }
 
-        .auth-panel-inner {
-            width: min(420px, 100%);
+
+        /* =========================================================
+           MAIN WRAPPER
+        ========================================================= */
+
+        .login-wrapper {
+            width: 100%;
+            min-height: 100vh;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            padding: 30px;
+        }
+
+
+        /* =========================================================
+           FLIP SCENE
+        ========================================================= */
+
+        .flip-scene {
+            width: 520px;
+            height: 520px;
+
+            perspective: 1800px;
+        }
+
+
+        .flip-card {
             position: relative;
+
+            width: 100%;
+            height: 100%;
+
+            transform-style: preserve-3d;
+
+            transition:
+                transform .9s cubic-bezier(.22,1,.36,1);
         }
 
-        .auth-switch {
-            display: inline-flex;
-            padding: 0.35rem;
-            border-radius: 999px;
-            background: #eef2ff;
-            gap: 0.3rem;
-            margin-bottom: 1.4rem;
+
+        .flip-scene.flipped .flip-card {
+            transform: rotateY(180deg);
         }
 
-        .auth-switch button {
-            border: 0;
-            background: transparent;
-            color: var(--muted);
-            padding: 0.7rem 1rem;
-            border-radius: 999px;
+
+        /* =========================================================
+           CIRCULAR NEUMORPHIC CARD
+        ========================================================= */
+
+        .glass-circle {
+            position: absolute;
+
+            inset: 0;
+
+            width: 520px;
+            height: 520px;
+
+            border-radius: 50%;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background: #e8e8e8;
+
+            box-shadow:
+                -22px -22px 44px #ffffff,
+                22px 22px 50px #c3c3c3,
+                -1px -1px 1px rgba(255,255,255,.5) inset;
+
+            z-index: 5;
+
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+
+
+        /* Inner ring */
+
+        .glass-circle::before {
+            content: "";
+
+            position: absolute;
+
+            inset: 12px;
+
+            border-radius: 50%;
+
+            border: 1px solid rgba(255,255,255,.65);
+
+            box-shadow:
+                inset 3px 3px 9px rgba(163,163,163,.18),
+                inset -3px -3px 9px rgba(255,255,255,.7);
+
+            pointer-events: none;
+        }
+
+
+        /* Back side */
+
+        .glass-circle.back {
+            transform: rotateY(180deg);
+        }
+
+
+        /* =========================================================
+           PHO LOGO
+        ========================================================= */
+
+        .pho-logo {
+            position: absolute;
+
+            top: 32px;
+            left: 50%;
+
+            transform: translateX(-50%);
+
+            z-index: 20;
+        }
+
+
+        .pho-logo img {
+            width: 70px;
+            height: 70x;
+
+            object-fit: cover;
+
+            border-radius: 100%;
+
+            padding: 5px;
+
+            background: #e8e8e8;
+
+            box-shadow:
+                -6px -6px 12px #ffffff,
+                6px 6px 12px #c3c3c3;
+        }
+
+
+        /* =========================================================
+           FORM
+        ========================================================= */
+
+        .login-form {
+            position: relative;
+
+            width: 290px;
+
+            z-index: 10;
+
+            margin-top: 75px;
+        }
+
+
+        /* =========================================================
+           TITLE
+        ========================================================= */
+
+        .login-form h1 {
+            color: #4a4a4a;
+
+            font-size: 40px;
             font-weight: 700;
-            transition: all 280ms cubic-bezier(.2,.8,.2,1);
+
+            letter-spacing: .5px;
+
+            margin-bottom: 4px;
+
+            text-align: center;
+
+            text-shadow:
+                1px 1px 1px rgba(255,255,255,.9),
+                -2px -2px 1px rgba(163,163,163,.25);
         }
 
-        .auth-switch button.active {
-            color: white;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            box-shadow: 0 8px 24px rgba(37,99,235,0.2);
+
+        .subtitle {
+            text-align: center;
+
+            color: #9a9a9a;
+
+            font-size: 12px;
+            font-weight: 500;
+
+            letter-spacing: .3px;
+
+            margin-bottom: 26px;
         }
 
-        .auth-title { margin: 0 0 0.35rem; font-size: 1.7rem; font-weight: 800; }
-        .auth-copy { margin: 0 0 1.2rem; color: var(--muted); line-height: 1.6; }
 
-        .social-row { display: grid; gap: 0.7rem; grid-template-columns: 1fr 1fr; margin-bottom: 1rem; }
-        .social-btn {
-            display: inline-flex; align-items: center; justify-content: center; gap: 0.55rem; padding: 0.8rem 0.9rem; border-radius: 999px; border: 1px solid #e2e8f0; background: white; color: #0f172a; font-weight: 600; transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+        /* =========================================================
+           ERROR MESSAGE
+        ========================================================= */
+
+        .error-pill {
+            margin-bottom: 15px;
+
+            padding: 9px 12px;
+
+            border-radius: 10px;
+
+            color: #a10f0f;
+
+            background: #e8e8e8;
+
+            font-size: 10.5px;
+
+            text-align: center;
+
+            box-shadow:
+                inset 3px 3px 6px rgba(163,163,163,.22),
+                inset -3px -3px 6px rgba(255,255,255,.8);
         }
-        .social-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(15,23,42,0.06); border-color: #cbd5e1; }
 
-        .auth-divider { display: flex; align-items: center; gap: 0.75rem; color: #94a3b8; font-size: 0.82rem; margin: 0.9rem 0 1rem; }
-        .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
 
-        .form-stack { display: flex; flex-direction: column; gap: 0.9rem; }
-        .field { position: relative; }
-        .field label { display: block; margin-bottom: 0.45rem; font-size: 0.9rem; font-weight: 700; color: #334155; }
+        /* =========================================================
+           INPUT GROUP
+        ========================================================= */
+
+        .field {
+            position: relative;
+
+            margin-bottom: 17px;
+        }
+
+
+        .field label {
+            display: none;
+        }
+
+
         .field input {
-            width: 100%; padding: 0.95rem 1rem 0.95rem 2.95rem; border: 1px solid #e2e8f0; border-radius: 16px; background: #f8fafc; color: var(--text); outline: none; transition: all 240ms ease; font-size: 0.95rem;
+            width: 100%;
+            height: 46px;
+
+            padding:
+                0 43px
+                0 45px;
+
+            border: none;
+            outline: none;
+
+            border-radius: 12px;
+
+            background: #e8e8e8;
+
+            color: #4a4a4a;
+
+            font-family: inherit;
+
+            font-size: 14px;
+            font-weight: 500;
+
+            box-shadow:
+                inset -6px -6px 10px rgba(255,255,255,.95),
+                inset 6px 6px 10px rgba(184,190,204,.45);
+
+            transition:
+                box-shadow .4s cubic-bezier(.22,1,.36,1),
+                transform .4s cubic-bezier(.22,1,.36,1);
         }
-        .field input:hover { border-color: #cbd5e1; }
-        .field input:focus { border-color: #60a5fa; box-shadow: 0 0 0 4px rgba(96,165,250,0.16); background: white; }
-        .field input.is-invalid { border-color: #fb7185; background: #fff5f7; }
+
+
+        .field input::placeholder {
+            color: #a3a3a3;
+
+            font-weight: 400;
+        }
+
+
+        .field input:hover {
+            box-shadow:
+                inset -5px -5px 9px rgba(255,255,255,.95),
+                inset 5px 5px 9px rgba(184,190,204,.45);
+        }
+
+
+        .field input:focus {
+            transform: translateY(-2px);
+
+            box-shadow:
+                inset 3px 3px 6px rgba(120,10,10,.35),
+                inset -3px -3px 6px rgba(212,55,55,.25);
+        }
+
+
+        .field input.is-invalid {
+            box-shadow:
+                inset 3px 3px 6px rgba(160,15,15,.28),
+                inset -3px -3px 6px rgba(255,255,255,.9);
+        }
+
+
+        /* =========================================================
+           INPUT ICON
+        ========================================================= */
+
         .field-icon {
-            position: absolute; top: 50%; left: 1rem; transform: translateY(-50%); color: #94a3b8; pointer-events: none; transition: color 220ms ease;
+            position: absolute;
+
+            left: 17px;
+            top: 23px;
+
+            transform: translateY(-50%);
+
+            color: #909090;
+
+            font-size: 14px;
+
+            pointer-events: none;
+
+            transition:
+                color .3s ease,
+                transform .3s ease;
         }
-        .field input:focus + .field-icon { color: var(--primary); }
 
-        .field .toggle-visibility {
-            position: absolute; right: 0.8rem; top: 50%; transform: translateY(-50%); border: 0; background: transparent; color: var(--muted); padding: 0.35rem; border-radius: 999px;
+
+        .field input:focus + .field-icon {
+            color: #a10f0f;
+
+            transform:
+                translateY(-50%)
+                scale(1.08);
         }
-        .field .toggle-visibility:hover { background: #f1f5f9; color: var(--text); }
 
-        .field-help { margin-top: 0.35rem; font-size: 0.8rem; color: #94a3b8; }
-        .form-error { margin-top: 0.35rem; font-size: 0.82rem; color: var(--danger); }
 
-        .form-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin: 0.2rem 0 0.1rem; }
-        .checkbox { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--muted); font-size: 0.9rem; }
-        .checkbox input { width: 1rem; height: 1rem; accent-color: var(--primary); }
-        .inline-link { color: var(--primary); font-weight: 700; text-decoration: none; }
-        .inline-link:hover { text-decoration: underline; }
+        /* =========================================================
+           PASSWORD VISIBILITY
+        ========================================================= */
+
+        .toggle-visibility {
+            position: absolute;
+
+            right: 9px;
+            top: 23px;
+
+            transform: translateY(-50%);
+
+            width: 30px;
+            height: 30px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border: none;
+            outline: none;
+
+            border-radius: 50%;
+
+            background: transparent;
+
+            color: #999;
+
+            cursor: pointer;
+
+            transition:
+                color .3s ease,
+                background .3s ease;
+        }
+
+
+        .toggle-visibility:hover {
+            color: #a10f0f;
+
+            background: rgba(255,255,255,.35);
+        }
+
+
+        /* =========================================================
+           FIELD ERROR
+        ========================================================= */
+
+        .form-error {
+            margin-top: 5px;
+
+            padding-left: 5px;
+
+            color: #a10f0f;
+
+            font-size: 10px;
+
+            font-weight: 500;
+        }
+
+
+        .field-help {
+            margin-top: 5px;
+
+            padding-left: 5px;
+
+            color: #999;
+
+            font-size: 9.5px;
+        }
+
+
+        /* =========================================================
+           REMEMBER + FORGOT
+        ========================================================= */
+
+        .form-row {
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 10px;
+
+            margin-top: -2px;
+
+            margin-bottom: 27px;
+        }
+
+
+        .checkbox {
+            display: flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+            color: #929191;
+
+            font-size: 11px;
+
+            cursor: pointer;
+        }
+
+
+        .checkbox input {
+            width: 14px;
+            height: 14px;
+
+            accent-color: #a10f0f;
+
+            cursor: pointer;
+        }
+
+
+        .inline-link {
+            color: #929191;
+
+            font-size: 11px;
+
+            font-weight: 500;
+
+            text-decoration: none;
+
+            transition:
+                color .3s ease;
+        }
+
+
+        .inline-link:hover {
+            color: #a10f0f;
+        }
+
+
+        /* =========================================================
+           MAIN BUTTON
+        ========================================================= */
 
         .auth-btn {
-            width: 100%; padding: 0.95rem 1rem; border: 0; border-radius: 999px; color: white; font-size: 0.96rem; font-weight: 700; background: linear-gradient(135deg, var(--primary), var(--accent)); box-shadow: 0 14px 30px rgba(37,99,235,0.22); transition: transform 220ms ease, box-shadow 220ms ease; position: relative; overflow: hidden; margin-top: 0.2rem;
+            position: relative;
+
+            width: 290px;
+            height: 42px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            overflow: hidden;
+
+            border: none;
+            outline: none;
+
+            border-radius: 12px;
+
+            background: #e8e8e8;
+
+            color: #838383;
+
+            font-family: inherit;
+
+            font-size: 14px;
+
+            font-weight: 600;
+
+            letter-spacing: 1px;
+
+            text-transform: uppercase;
+
+            cursor: pointer;
+
+            box-shadow:
+                -7px -7px 12px #f8f8f8,
+                7px 7px 12px #c8c8c8;
+
+            transition:
+                color .4s ease,
+                background .4s ease,
+                box-shadow .4s ease,
+                transform .25s ease;
         }
-        .auth-btn:hover { transform: translateY(-2px); box-shadow: 0 18px 34px rgba(37,99,235,0.28); }
-        .auth-btn:active { transform: translateY(0); }
-        .auth-btn.is-loading::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent); animation: shine 1s linear infinite; }
 
-        .form-panel { display: none; opacity: 0; transform: translateX(16px); transition: all 420ms cubic-bezier(.2,.8,.2,1); }
-        .form-panel.active { display: block; opacity: 1; transform: translateX(0); }
 
-        .success-pill, .error-pill { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.7rem 0.8rem; border-radius: 999px; margin-top: 0.75rem; font-size: 0.9rem; font-weight: 600; }
-        .success-pill { background: rgba(22,163,74,0.1); color: var(--success); }
-        .error-pill { background: rgba(220,38,38,0.1); color: var(--danger); }
+        /* Button shine */
 
-        .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+        .auth-btn::before {
+            content: "";
 
-        @keyframes float { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(18px,-16px,0) scale(1.04); } }
-        @keyframes shine { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+            position: absolute;
 
-        @media (max-width: 920px) {
-            .auth-shell { grid-template-columns: 1fr; }
-            .auth-hero { min-height: 320px; }
+            top: 0;
+            left: -60%;
+
+            width: 40%;
+            height: 100%;
+
+            background:
+                linear-gradient(
+                    115deg,
+                    transparent,
+                    rgba(255,255,255,.55),
+                    transparent
+                );
+
+            transform: skewX(-20deg);
+
+            transition:
+                left .6s ease;
         }
 
-        @media (max-width: 640px) {
-            .auth-shell { width: min(100%, calc(100% - 1rem)); border-radius: 24px; }
-            .auth-hero, .auth-panel { padding: 1.2rem; }
-            .social-row { grid-template-columns: 1fr; }
-            .auth-switch { width: 100%; }
-            .auth-switch button { flex: 1; }
+
+        .auth-btn:hover::before {
+            left: 130%;
         }
 
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+
+            color: #f5e9c8;
+
+            background:
+                linear-gradient(
+                    155deg,
+                    #b21414 0%,
+                    #7c0d0d 100%
+                );
+
+            box-shadow:
+                0 10px 22px rgba(120,10,10,.35),
+                -5px -5px 15px rgba(255,255,255,.6),
+                inset 0 1px 1px rgba(255,255,255,.25);
         }
-    </style>
-</head>
-<body>
-    <div class="auth-shell">
-        <section class="auth-hero" aria-label="Brand overview">
-            <div class="hero-top">
-                <div class="hero-mark">
-                    <img src="{{ asset('logo.jpg') }}" alt="PHO Logo">
-                    <div>
-                        <div style="font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.8;">Supply Office</div>
-                        <div style="font-size: 1rem; font-weight: 700;">PHO Inventory</div>
-                    </div>
-                </div>
-                <h1 class="hero-title">A modern hub for your inventory operations.</h1>
-                <p class="hero-copy">Manage receiving, releases, suppliers, and stock updates from a single polished workspace designed for speed and clarity.</p>
-                <div class="hero-card">
-                    <span class="hero-badge">⚡ Fast, secure, intuitive</span>
-                    <ul>
-                        <li>Real-time visibility into stock movement</li>
-                        <li>Professional workflows for procurement and distribution</li>
-                        <li>Built-in validations and friendly feedback</li>
-                    </ul>
-                </div>
-            </div>
-            <div class="hero-bottom">
-                <div class="hero-badge">Trusted by modern operations teams</div>
-            </div>
-        </section>
 
-        <section class="auth-panel" aria-label="Authentication forms">
-            <div class="auth-panel-inner">
-                <div class="auth-switch" role="tablist" aria-label="Authentication mode">
-                    <button type="button" class="active" id="show-login" data-mode="login" role="tab" aria-selected="true">Sign In</button>
-                    <button type="button" data-mode="register" role="tab" aria-selected="false">Create Account</button>
-                </div>
 
-                <h2 class="auth-title" id="authTitle">Welcome back</h2>
-                <p class="auth-copy" id="authCopy">Access your inventory workspace and continue managing your supply flow.</p>
+        .auth-btn:active {
+            transform: scale(.97);
 
-                
+            box-shadow:
+                inset 5px 5px 10px rgba(60,5,5,.4),
+                inset -5px -5px 10px rgba(212,175,55,.2);
+        }
 
-                <div class="form-panel active" id="loginPanel">
-                    <form method="POST" action="{{ route('login.attempt') }}" class="form-stack" novalidate>
-                        @csrf
-                        <div class="field">
-                            <label for="login_email">Email address</label>
-                            <input id="login_email" name="email" type="email" value="{{ old('email') }}" class="{{ $errors->has('email') ? 'is-invalid' : '' }}" required autocomplete="email" placeholder="you@example.com">
-                            <span class="field-icon">✉</span>
-                            @error('email')
-                                <div class="form-error">{{ $message }}</div>
-                            @enderror
-                        </div>
 
-                        <div class="field">
-                            <label for="login_password">Password</label>
-                            <input id="login_password" name="password" type="password" class="{{ $errors->has('password') ? 'is-invalid' : '' }}" required autocomplete="current-password" placeholder="••••••••">
-                            <span class="field-icon">🔒</span>
-                            <button type="button" class="toggle-visibility" data-target="login_password" aria-label="Show password">👁</button>
-                            @error('password')
-                                <div class="form-error">{{ $message }}</div>
-                            @enderror
-                        </div>
+        /* Loading */
 
-                        <div class="form-row">
-                            <label class="checkbox"><input type="checkbox" name="remember" {{ old('remember') ? 'checked' : '' }}> Remember me</label>
-                            <a class="inline-link" href="#">Forgot Password?</a>
-                        </div>
+        .auth-btn.is-loading {
+            pointer-events: none;
 
-                        <button type="submit" class="auth-btn" id="loginSubmit">Sign in</button>
-                    </form>
-                    @if(session('error'))
-                        <div class="error-pill">⚠ {{ session('error') }}</div>
-                    @endif
-                </div>
+            background:
+                linear-gradient(
+                    155deg,
+                    #b21414,
+                    #7c0d0d
+                );
 
-                <div class="form-panel" id="registerPanel">
-                    <form method="POST" action="{{ route('register.store') }}" class="form-stack" novalidate>
-                        @csrf
-                        <div class="field">
-                            <label for="register_name">Full name</label>
-                            <input id="register_name" name="name" type="text" value="{{ old('name') }}" class="{{ $errors->has('name') ? 'is-invalid' : '' }}" required autocomplete="name" placeholder="Juan dela Cruz">
-                            <span class="field-icon">👤</span>
-                            @error('name')
-                                <div class="form-error">{{ $message }}</div>
-                            @enderror
-                        </div>
+            color: #f5e9c8;
+        }
 
-                        <div class="field">
-                            <label for="register_email">Email address</label>
-                            <input id="register_email" name="email" type="email" value="{{ old('email') }}" class="{{ $errors->has('email') ? 'is-invalid' : '' }}" required autocomplete="email" placeholder="you@example.com">
-                            <span class="field-icon">✉</span>
-                            @error('email')
-                                <div class="form-error">{{ $message }}</div>
-                            @enderror
-                        </div>
 
-                        <div class="field">
-                            <label for="register_password">Password</label>
-                            <input id="register_password" name="password" type="password" class="{{ $errors->has('password') ? 'is-invalid' : '' }}" required autocomplete="new-password" placeholder="Min. 8 characters">
-                            <span class="field-icon">🔒</span>
-                            <button type="button" class="toggle-visibility" data-target="register_password" aria-label="Show password">👁</button>
-                            @error('password')
-                                <div class="form-error">{{ $message }}</div>
-                            @enderror
-                            <div class="field-help">Use at least 8 characters with a mix of letters and numbers.</div>
-                        </div>
+        .auth-btn.is-loading::after {
+            content: "";
 
-                        <div class="field">
-                            <label for="register_password_confirmation">Confirm password</label>
-                            <input id="register_password_confirmation" name="password_confirmation" type="password" required autocomplete="new-password" placeholder="Repeat your password">
-                            <span class="field-icon">🔐</span>
-                            <button type="button" class="toggle-visibility" data-target="register_password_confirmation" aria-label="Show password">👁</button>
-                        </div>
+            position: absolute;
 
-                        <button type="submit" class="auth-btn" id="registerSubmit">Create account</button>
-                    </form>
-                    @if($errors->any() && !$errors->has('name') && !$errors->has('email') && !$errors->has('password'))
-                        <div class="error-pill">⚠ Something went wrong. Please try again.</div>
-                    @endif
-                </div>
-            </div>
-        </section>
-    </div>
+            width: 18px;
+            height: 18px;
 
-    <script>
-        const switchButtons = document.querySelectorAll('.auth-switch button');
-        const panels = {
-            login: document.getElementById('loginPanel'),
-            register: document.getElementById('registerPanel')
-        };
-        const authTitle = document.getElementById('authTitle');
-        const authCopy = document.getElementById('authCopy');
+            border-radius: 50%;
 
-        function setMode(mode) {
-            switchButtons.forEach((button) => {
-                const active = button.dataset.mode === mode;
-                button.classList.toggle('active', active);
-                button.setAttribute('aria-selected', active ? 'true' : 'false');
-            });
+            border:
+                2px solid rgba(255,255,255,.4);
 
-            Object.entries(panels).forEach(([key, panel]) => {
-                panel.classList.toggle('active', key === mode);
-            });
+            border-top-color: #fff;
 
-            if (mode === 'register') {
-                authTitle.textContent = 'Create your account';
-                authCopy.textContent = 'Join the PHO Supply Office and unlock streamlined inventory management.';
-            } else {
-                authTitle.textContent = 'Welcome back';
-                authCopy.textContent = 'Access your inventory workspace and continue managing your supply flow.';
+            animation: spin .7s linear infinite;
+        }
+
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
             }
         }
 
-        switchButtons.forEach((button) => {
-            button.addEventListener('click', () => setMode(button.dataset.mode));
-        });
 
-        document.querySelectorAll('.toggle-visibility').forEach((button) => {
-            button.addEventListener('click', () => {
-                const target = document.getElementById(button.dataset.target);
-                if (!target) return;
-                const nextType = target.type === 'password' ? 'text' : 'password';
-                target.type = nextType;
-                button.textContent = nextType === 'password' ? '👁' : '🙈';
-            });
-        });
+            /* =========================================================
+            SWITCH / REGISTER TEXT
+            ========================================================= */
 
-        document.querySelectorAll('.auth-btn').forEach((button) => {
-            button.addEventListener('click', () => {
-                if (!button.classList.contains('is-loading')) {
-                    button.classList.add('is-loading');
-                    button.textContent = button.id === 'loginSubmit' ? 'Signing in…' : 'Creating account…';
-                    window.setTimeout(() => button.classList.remove('is-loading'), 1200);
+        .signup-text {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 5px;
+
+                margin-top: 10px;
+
+                color: #9a9a9a;
+                font-size: 11px;
+
+                white-space: nowrap;
+            }
+
+                .signup-text button {
+                    display: inline;
+                    
+                    border: none;
+                    padding: 0;
+
+                    background: transparent;
+
+                    color: #de0a0a;
+
+                    font-family: inherit;
+                    font-size: inherit;
+                    font-weight: 600;
+
+                    cursor: pointer;
+
+                    white-space: nowrap;
                 }
-            });
+
+                .signup-text button:hover {
+                    color: #7c0d0d;
+                    text-decoration: underline;
+                }
+
+        /* =========================================================
+           FORM PANELS
+        ========================================================= */
+
+        .form-panel {
+            display: none;
+
+            opacity: 0;
+
+            transform: translateX(15px);
+        }
+
+
+        .form-panel.active {
+            display: block;
+
+            opacity: 1;
+
+            transform: translateX(0);
+
+            animation:
+                formAppear .45s ease;
+        }
+
+
+        @keyframes formAppear {
+            from {
+                opacity: 0;
+                transform: translateX(15px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+
+        /* =========================================================
+           MOBILE
+        ========================================================= */
+
+        @media (max-width: 600px) {
+
+            .login-wrapper {
+                padding: 15px;
+            }
+
+            .flip-scene {
+                width: 390px;
+                height: 390px;
+            }
+
+            .glass-circle {
+                width: 390px;
+                height: 390px;
+            }
+
+            .login-form {
+                width: 220px;
+
+                margin-top: 35px;
+            }
+
+            .pho-logo {
+                top: 36px;
+            }
+
+            .pho-logo img {
+                width: 40px;
+                height: 40px;
+            }
+
+            .login-form h1 {
+                font-size: 33px;
+            }
+
+            .subtitle {
+                font-size: 10.5px;
+
+                margin-bottom: 20px;
+            }
+
+            .field {
+                margin-bottom: 13px;
+            }
+
+            .field input {
+                height: 42px;
+
+                font-size: 12px;
+
+                padding-left: 40px;
+            }
+
+            .field-icon {
+                left: 14px;
+
+                top: 21px;
+
+                font-size: 13px;
+            }
+
+            .toggle-visibility {
+                top: 21px;
+            }
+
+            .form-row {
+                margin-bottom: 21px;
+            }
+
+            .checkbox,
+            .inline-link {
+                font-size: 9px;
+            }
+
+            .auth-btn {
+                width: 215px;
+
+                height: 40px;
+
+                font-size: 12px;
+            }
+
+            .signup-text {
+                font-size: 9px;
+            }
+        }
+
+
+        /* =========================================================
+           SMALL MOBILE
+        ========================================================= */
+
+        @media (max-width: 420px) {
+
+            .login-wrapper {
+                padding: 5px;
+            }
+
+            .flip-scene {
+                width: 330px;
+                height: 330px;
+            }
+
+            .glass-circle {
+                width: 330px;
+                height: 330px;
+            }
+
+            .login-form {
+                width: 185px;
+
+                margin-top: 23px;
+            }
+
+            .pho-logo {
+                top: 27px;
+            }
+
+            .pho-logo img {
+                width: 40px;
+                height: 40px;
+            }
+
+            .login-form h1 {
+                font-size: 26px;
+            }
+
+            .subtitle {
+                font-size: 8.5px;
+
+                margin-bottom: 14px;
+            }
+
+            .field {
+                margin-bottom: 10px;
+            }
+
+            .field input {
+                height: 35px;
+
+                font-size: 10px;
+
+                padding-left: 32px;
+            }
+
+            .field-icon {
+                left: 10px;
+
+                top: 17.5px;
+
+                font-size: 10px;
+            }
+
+            .toggle-visibility {
+                top: 17.5px;
+
+                width: 25px;
+                height: 25px;
+            }
+
+            .form-row {
+                margin-bottom: 16px;
+            }
+
+            .checkbox,
+            .inline-link {
+                font-size: 7.5px;
+            }
+
+            .checkbox input {
+                width: 11px;
+                height: 11px;
+            }
+
+            .auth-btn {
+                width: 180px;
+
+                height: 36px;
+
+                font-size: 10px;
+
+                border-radius: 10px;
+            }
+
+            .signup-text {
+                margin-top: 12px;
+
+                font-size: 7.5px;
+            }
+
+            .field-help {
+                font-size: 7px;
+            }
+
+            .form-error {
+                font-size: 7.5px;
+            }
+        }
+
+
+        /* =========================================================
+           REDUCED MOTION
+        ========================================================= */
+
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: .01ms !important;
+                transition-duration: .01ms !important;
+            }
+        }
+
+    </style>
+</head>
+
+
+<body>
+
+
+<div class="login-wrapper">
+
+    <div class="flip-scene" id="flipScene">
+
+        <div class="flip-card">
+
+
+            {{-- =====================================================
+                 LOGIN SIDE
+            ====================================================== --}}
+
+            <div class="glass-circle front">
+
+
+                {{-- PHO LOGO --}}
+                <div class="pho-logo">
+
+                    <img
+                        src="{{ asset('logo.jpg') }}"
+                        alt="PHO Supply Office Logo"
+                    >
+
+                </div>
+
+
+                <div class="login-form">
+
+
+                    <div class="form-panel active" id="loginPanel">
+
+
+                        <h1>Login</h1>
+
+                        <div class="subtitle">
+                            Sign in to PHO Supply Office
+                        </div>
+
+
+                        {{-- Session Error --}}
+                        @if(session('error'))
+
+                            <div class="error-pill">
+
+                                <i class="fa-solid fa-circle-exclamation"></i>
+
+                                {{ session('error') }}
+
+                            </div>
+
+                        @endif
+
+
+                        <form
+                            method="POST"
+                            action="{{ route('login.attempt') }}"
+                            class="form-stack"
+                            id="loginForm"
+                        >
+
+                            @csrf
+
+
+                            {{-- EMAIL --}}
+                            <div class="field">
+
+                                <label for="login_email">
+                                    Email address
+                                </label>
+
+                                <input
+                                    id="login_email"
+                                    name="email"
+                                    type="email"
+                                    value="{{ old('email') }}"
+                                    class="{{ $errors->has('email') ? 'is-invalid' : '' }}"
+                                    required
+                                    autocomplete="email"
+                                    placeholder="Email address"
+                                >
+
+                                <span class="field-icon">
+                                    <i class="fa-solid fa-envelope"></i>
+                                </span>
+
+
+                                @error('email')
+
+                                    <div class="form-error">
+                                        {{ $message }}
+                                    </div>
+
+                                @enderror
+
+                            </div>
+
+
+                            {{-- PASSWORD --}}
+                            <div class="field">
+
+                                <label for="login_password">
+                                    Password
+                                </label>
+
+                                <input
+                                    id="login_password"
+                                    name="password"
+                                    type="password"
+                                    class="{{ $errors->has('password') ? 'is-invalid' : '' }}"
+                                    required
+                                    autocomplete="current-password"
+                                    placeholder="Password"
+                                >
+
+                                <span class="field-icon">
+                                    <i class="fa-solid fa-lock"></i>
+                                </span>
+
+
+                                <button
+                                    type="button"
+                                    class="toggle-visibility"
+                                    data-target="login_password"
+                                    aria-label="Show password"
+                                >
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+
+
+                                @error('password')
+
+                                    <div class="form-error">
+                                        {{ $message }}
+                                    </div>
+
+                                @enderror
+
+                            </div>
+
+
+                            {{-- REMEMBER / FORGOT --}}
+                            <div class="form-row">
+
+                                <label class="checkbox">
+
+                                    <input
+                                        type="checkbox"
+                                        name="remember"
+                                        {{ old('remember') ? 'checked' : '' }}
+                                    >
+
+                                    <span>Remember me</span>
+
+                                </label>
+
+
+                                @if(Route::has('password.request'))
+
+                                    <a
+                                        class="inline-link"
+                                        href="{{ route('password.request') }}"
+                                    >
+                                        Forgot Password?
+                                    </a>
+
+                                @else
+
+                                    <a
+                                        class="inline-link"
+                                        href="#"
+                                    >
+                                        Forgot Password?
+                                    </a>
+
+                                @endif
+
+                            </div>
+
+
+                            {{-- LOGIN BUTTON --}}
+                            <button
+                                type="submit"
+                                class="auth-btn"
+                                id="loginSubmit"
+                            >
+
+                                <i class="fa-solid fa-right-to-bracket"
+                                   style="margin-right:8px;"></i>
+
+                                Sign In
+
+                            </button>
+
+                        </form>
+
+
+                        {{-- CREATE ACCOUNT --}}
+                        <div class="signup-text">
+
+                            Don't have an account?
+
+                            <button
+                                type="button"
+                                id="toSignup"
+                            >
+                                Create Account
+                            </button>
+
+                        </div>
+
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {{-- =====================================================
+                 REGISTER SIDE
+            ====================================================== --}}
+
+            <div class="glass-circle back">
+
+
+                {{-- PHO LOGO --}}
+                <div class="pho-logo">
+
+                    <img
+                        src="{{ asset('logo.jpg') }}"
+                        alt="PHO Supply Office Logo"
+                    >
+
+                </div>
+
+
+                <div class="login-form">
+
+
+                    <div class="form-panel active">
+
+
+                        <h1>Sign Up</h1>
+
+                        
+
+
+                        <form
+                            method="POST"
+                            action="{{ route('register.store') }}"
+                            class="form-stack"
+                            id="registerForm"
+                        >
+
+                            @csrf
+
+
+                            {{-- NAME --}}
+                            <div class="field">
+
+                                <label for="register_name">
+                                    Full name
+                                </label>
+
+                                <input
+                                    id="register_name"
+                                    name="name"
+                                    type="text"
+                                    value="{{ old('name') }}"
+                                    class="{{ $errors->has('name') ? 'is-invalid' : '' }}"
+                                    required
+                                    autocomplete="name"
+                                    placeholder="Full name"
+                                >
+
+                                <span class="field-icon">
+                                    <i class="fa-solid fa-user"></i>
+                                </span>
+
+
+                                @error('name')
+
+                                    <div class="form-error">
+                                        {{ $message }}
+                                    </div>
+
+                                @enderror
+
+                            </div>
+
+
+                            {{-- EMAIL --}}
+                            <div class="field">
+
+                                <label for="register_email">
+                                    Email address
+                                </label>
+
+                                <input
+                                    id="register_email"
+                                    name="email"
+                                    type="email"
+                                    value="{{ old('email') }}"
+                                    class="{{ $errors->has('email') ? 'is-invalid' : '' }}"
+                                    required
+                                    autocomplete="email"
+                                    placeholder="Email address"
+                                >
+
+                                <span class="field-icon">
+                                    <i class="fa-solid fa-envelope"></i>
+                                </span>
+
+
+                                @error('email')
+
+                                    <div class="form-error">
+                                        {{ $message }}
+                                    </div>
+
+                                @enderror
+
+                            </div>
+
+
+                            {{-- PASSWORD --}}
+                            <div class="field">
+
+                                <label for="register_password">
+                                    Password
+                                </label>
+
+                                <input
+                                    id="register_password"
+                                    name="password"
+                                    type="password"
+                                    class="{{ $errors->has('password') ? 'is-invalid' : '' }}"
+                                    required
+                                    autocomplete="new-password"
+                                    placeholder="Password"
+                                >
+
+                                <span class="field-icon">
+                                    <i class="fa-solid fa-lock"></i>
+                                </span>
+
+
+                                <button
+                                    type="button"
+                                    class="toggle-visibility"
+                                    data-target="register_password"
+                                    aria-label="Show password"
+                                >
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+
+
+                                @error('password')
+
+                                    <div class="form-error">
+                                        {{ $message }}
+                                    </div>
+
+                                @enderror
+
+                                <div class="field-help">
+                                    Use at least 8 characters with letters and numbers.
+                                </div>
+
+                            </div>
+
+
+                            {{-- CONFIRM PASSWORD --}}
+                            <div class="field">
+
+                                <label for="register_password_confirmation">
+                                    Confirm password
+                                </label>
+
+                                <input
+                                    id="register_password_confirmation"
+                                    name="password_confirmation"
+                                    type="password"
+                                    required
+                                    autocomplete="new-password"
+                                    placeholder="Confirm password"
+                                >
+
+                                <span class="field-icon">
+                                    <i class="fa-solid fa-lock"></i>
+                                </span>
+
+
+                                <button
+                                    type="button"
+                                    class="toggle-visibility"
+                                    data-target="register_password_confirmation"
+                                    aria-label="Show password"
+                                >
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+
+                            </div>
+
+
+                            {{-- REGISTER BUTTON --}}
+                            <button
+                                type="submit"
+                                class="auth-btn"
+                                id="registerSubmit"
+                            >
+
+                                <i class="fa-solid fa-user-plus"
+                                   style="margin-right:8px;"></i>
+
+                                Create Account
+
+                            </button>
+
+                        </form>
+
+
+                        {{-- LOGIN --}}
+                        <div class="signup-text">
+
+                            Already have an account?
+
+                            <button
+                                type="button"
+                                id="toLogin"
+                            >
+                                Login
+                            </button>
+
+                        </div>
+
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<script>
+
+    /* =========================================================
+       LOGIN / REGISTER FLIP
+    ========================================================= */
+
+    const scene =
+        document.getElementById('flipScene');
+
+
+    const toSignup =
+        document.getElementById('toSignup');
+
+
+    const toLogin =
+        document.getElementById('toLogin');
+
+
+    if (toSignup) {
+
+        toSignup.addEventListener('click', function () {
+
+            scene.classList.add('flipped');
+
         });
-    </script>
+
+    }
+
+
+    if (toLogin) {
+
+        toLogin.addEventListener('click', function () {
+
+            scene.classList.remove('flipped');
+
+        });
+
+    }
+
+
+
+    /* =========================================================
+       PASSWORD VISIBILITY
+    ========================================================= */
+
+    document
+        .querySelectorAll('.toggle-visibility')
+        .forEach(function(button) {
+
+            button.addEventListener('click', function() {
+
+                const target =
+                    document.getElementById(
+                        this.dataset.target
+                    );
+
+
+                if (!target) {
+                    return;
+                }
+
+
+                const icon =
+                    this.querySelector('i');
+
+
+                if (target.type === 'password') {
+
+                    target.type = 'text';
+
+                    icon.classList.remove(
+                        'fa-eye'
+                    );
+
+                    icon.classList.add(
+                        'fa-eye-slash'
+                    );
+
+                    this.setAttribute(
+                        'aria-label',
+                        'Hide password'
+                    );
+
+                } else {
+
+                    target.type = 'password';
+
+                    icon.classList.remove(
+                        'fa-eye-slash'
+                    );
+
+                    icon.classList.add(
+                        'fa-eye'
+                    );
+
+                    this.setAttribute(
+                        'aria-label',
+                        'Show password'
+                    );
+
+                }
+
+            });
+
+        });
+
+
+
+    /* =========================================================
+       LOGIN LOADING
+    ========================================================= */
+
+    const loginForm =
+        document.getElementById('loginForm');
+
+
+    const loginSubmit =
+        document.getElementById('loginSubmit');
+
+
+    if (loginForm && loginSubmit) {
+
+        loginForm.addEventListener('submit', function() {
+
+            loginSubmit.classList.add(
+                'is-loading'
+            );
+
+            loginSubmit.innerHTML =
+                '<i class="fa-solid fa-spinner fa-spin" style="margin-right:8px;"></i> Signing in...';
+
+        });
+
+    }
+
+
+
+    /* =========================================================
+       REGISTER LOADING
+    ========================================================= */
+
+    const registerForm =
+        document.getElementById('registerForm');
+
+
+    const registerSubmit =
+        document.getElementById('registerSubmit');
+
+
+    if (registerForm && registerSubmit) {
+
+        registerForm.addEventListener('submit', function() {
+
+            registerSubmit.classList.add(
+                'is-loading'
+            );
+
+            registerSubmit.innerHTML =
+                '<i class="fa-solid fa-spinner fa-spin" style="margin-right:8px;"></i> Creating...';
+
+        });
+
+    }
+
+
+
+    /* =========================================================
+       OPEN REGISTER AUTOMATICALLY WHEN VALIDATION ERROR
+       ========================================================= */
+
+    @if(
+        $errors->has('name') ||
+        $errors->has('password_confirmation')
+    )
+
+        scene.classList.add('flipped');
+
+    @endif
+
+</script>
+
+
 </body>
 </html>
-
+```
