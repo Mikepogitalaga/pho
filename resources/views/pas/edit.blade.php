@@ -277,4 +277,265 @@
         </div>
     </div>
 </template>
+
+@push('scripts')
+<script>
+const pasAllItems = {!! json_encode($items->map(fn($i) => [
+    'id'         => $i->id,
+    'code'       => $i->item_code,
+    'name'       => $i->name,
+    'unit'       => $i->unit,
+    'cost'       => $i->unit_cost,
+    'qty'        => $i->quantity_on_hand,
+    'lot_number' => $itemLotNumbers[$i->id]['lot_number'] ?? '',
+    'expiry'     => $itemLotNumbers[$i->id]['expiry_date'] ?? '',
+])->values()->toArray()) !!};
+
+document.addEventListener('DOMContentLoaded', function () {
+    const container = document.getElementById('pas-items');
+    const template  = document.getElementById('pas-item-template');
+    const addBtn    = document.getElementById('add-pas-item');
+
+    const pasPrograms = Array.from(document.querySelectorAll('#pas-program-options option')).map(o => ({
+        name: o.value, nameLower: o.value.toLowerCase()
+    }));
+    const pasCoordinators = Array.from(document.querySelectorAll('#pas-coordinator-options option')).map(o => ({
+        name: o.value, nameLower: o.value.toLowerCase(), assignedPrograms: o.dataset.programs || ''
+    }));
+    const pasFacilities = Array.from(document.querySelectorAll('#pas-facility-options option')).map(o => ({
+        name: o.value, nameLower: o.value.toLowerCase()
+    }));
+
+    const pasProgramInput       = document.getElementById('pasProgramInput');
+    const pasCoordinatorInput   = document.getElementById('pasCoordinatorInput');
+    const pasProgramDropdown    = document.getElementById('pasProgramDropdown');
+    const pasCoordinatorDropdown = document.getElementById('pasCoordinatorDropdown');
+    const pasFacilityInput      = document.getElementById('pasFacilityInput');
+    const pasFacilityDropdown   = document.getElementById('pasFacilityDropdown');
+
+    function bindAutocompleteList(input, dataList, dropdown, onSelect) {
+        function show(q) {
+            dropdown.innerHTML = '';
+            const lower = q.toLowerCase().trim();
+            const seen = {};
+            const filtered = (lower ? dataList.filter(i => i.nameLower.includes(lower)) : dataList)
+                .filter(i => { if (seen[i.nameLower]) return false; seen[i.nameLower] = true; return true; });
+            if (!filtered.length) { dropdown.style.display = 'none'; return; }
+            Object.assign(dropdown.style, {
+                background:'var(--surface,#fff)', border:'1px solid var(--border,#ddd)',
+                maxHeight:'200px', overflowY:'auto', boxShadow:'0 4px 6px rgba(0,0,0,.1)', marginTop:'4px'
+            });
+            filtered.forEach(item => {
+                const opt = document.createElement('div');
+                opt.style.cssText = 'padding:10px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;';
+                opt.textContent = item.name;
+                opt.addEventListener('mouseover', () => opt.style.background = '#f5f5f5');
+                opt.addEventListener('mouseout',  () => opt.style.background = 'transparent');
+                opt.addEventListener('click', () => { input.value = item.name; dropdown.style.display = 'none'; if (onSelect) onSelect(item); });
+                dropdown.appendChild(opt);
+            });
+            dropdown.style.display = 'block';
+        }
+        input.addEventListener('input',  e => show(e.target.value));
+        input.addEventListener('focus',  () => show(input.value));
+        input.addEventListener('blur',   () => setTimeout(() => dropdown.style.display = 'none', 200));
+    }
+
+    if (pasFacilityInput && pasFacilityDropdown) {
+        bindAutocompleteList(pasFacilityInput, pasFacilities, pasFacilityDropdown, null);
+    }
+
+    bindAutocompleteList(pasProgramInput, pasPrograms, pasProgramDropdown, function (item) {
+        const matched = pasCoordinators.find(c => c.assignedPrograms.toLowerCase().includes(item.nameLower));
+        if (matched && pasCoordinatorInput && !pasCoordinatorInput.value.trim()) pasCoordinatorInput.value = matched.name;
+    });
+
+    bindAutocompleteList(pasCoordinatorInput, pasCoordinators, pasCoordinatorDropdown, function (item) {
+        if (item.assignedPrograms && pasProgramInput && !pasProgramInput.value.trim()) {
+            pasProgramInput.value = item.assignedPrograms.split(', ')[0] || '';
+        }
+    });
+
+    function updateIndexes() {
+        container.querySelectorAll('.pas-item-row').forEach((row, i) => {
+            row.dataset.index = i;
+            row.querySelector('.item-row-title').textContent = 'Item ' + (i + 1);
+            row.querySelectorAll('input, select').forEach(el => {
+                el.name = el.name.replace(/items\[\d+\]/, 'items[' + i + ']');
+            });
+            const del = row.querySelector('.remove-item-button');
+            del.style.display = i === 0 ? 'none' : '';
+        });
+    }
+
+    function buildDropdown(descInput) {
+        let dd = descInput.parentElement.querySelector('.autocomplete-dropdown');
+        if (dd) dd.remove();
+        dd = document.createElement('div');
+        dd.className = 'autocomplete-dropdown';
+        Object.assign(dd.style, {
+            position:'absolute', background:'var(--surface, #fff)', border:'1px solid var(--border, #ddd)',
+            maxHeight:'200px', overflowY:'auto', width:'100%', zIndex:'1000',
+            display:'none', boxShadow:'0 4px 6px rgba(0,0,0,.1)', top:'100%', left:'0', marginTop:'4px'
+        });
+        descInput.parentElement.style.position = 'relative';
+        descInput.parentElement.appendChild(dd);
+        return dd;
+    }
+
+    function showOptions(descInput, dd, query, onSelect) {
+        dd.innerHTML = '';
+        const q = query.toLowerCase().trim();
+        const seen = new Set();
+        const filtered = pasAllItems.filter(it => {
+            if (q && !it.name.toLowerCase().includes(q)) return false;
+            if (seen.has(it.name.toLowerCase())) return false;
+            seen.add(it.name.toLowerCase());
+            return true;
+        });
+        if (!filtered.length) { dd.style.display = 'none'; return; }
+        filtered.forEach(it => {
+            const opt = document.createElement('div');
+            opt.textContent = it.name;
+            Object.assign(opt.style, { padding:'10px 12px', cursor:'pointer', borderBottom:'1px solid #f0f0f0' });
+            opt.addEventListener('mouseover', () => opt.style.background = '#f5f5f5');
+            opt.addEventListener('mouseout',  () => opt.style.background = 'transparent');
+            opt.addEventListener('click', () => { descInput.value = it.name; dd.style.display = 'none'; onSelect(); });
+            dd.appendChild(opt);
+        });
+        dd.style.display = 'block';
+    }
+
+    function populateProductSelect(sel, name) {
+        const lower = name.toLowerCase().trim();
+        sel.innerHTML = '<option value="">Select product</option>';
+        const matches = pasAllItems.filter(it =>
+            it.name.toLowerCase() === lower ||
+            it.code.toLowerCase() === lower ||
+            it.name.toLowerCase().includes(lower) ||
+            it.code.toLowerCase().includes(lower)
+        );
+        matches.forEach(it => {
+            const o = document.createElement('option');
+            o.value = it.id;
+            const expiryText = it.expiry ? ' | Exp: ' + it.expiry : '';
+            o.textContent = it.code + ' — ' + it.name + ' (' + (it.qty || 0) + ' available' + expiryText + ')';
+            o.dataset.unit = it.unit;
+            o.dataset.cost = it.cost;
+            o.dataset.qty = it.qty;
+            o.dataset.lot  = it.lot_number;
+            o.dataset.expiry = it.expiry;
+            sel.appendChild(o);
+        });
+        return matches;
+    }
+
+    function calcTotal(row) {
+        const qty  = parseFloat(row.querySelector('.pas-qty-input').value) || 0;
+        const cost = parseFloat(row.querySelector('.pas-unitcost-input').value) || 0;
+        const disp = row.querySelector('.pas-totalcost-display');
+        disp.value = qty && cost ? (qty * cost).toFixed(2) : '';
+    }
+
+    function autofillFromOption(row, opt) {
+        if (!opt || !opt.value) return;
+        const unitInput   = row.querySelector('.pas-unit-input');
+        const costInput   = row.querySelector('.pas-unitcost-input');
+        const lotInput    = row.querySelector('.pas-lot-input');
+        const expiryInput = row.querySelector('.pas-expiry-input');
+        const codeInput   = row.querySelector('.pas-product-code-input');
+        const qtyInput    = row.querySelector('.pas-qty-input');
+        if (unitInput  && opt.dataset.unit)   unitInput.value   = opt.dataset.unit;
+        if (costInput  && opt.dataset.cost)   costInput.value   = opt.dataset.cost;
+        if (lotInput   && opt.dataset.lot)    lotInput.value    = opt.dataset.lot;
+        if (expiryInput) {
+            if (opt.dataset.expiry) {
+                expiryInput.value = opt.dataset.expiry;
+            } else {
+                expiryInput.value = '';
+            }
+        }
+        if (codeInput  && opt.textContent)    codeInput.value   = opt.textContent.split(' — ')[0] ?? '';
+        if (qtyInput) qtyInput.placeholder = 'Available: ' + (opt.dataset.qty || 0);
+        calcTotal(row);
+    }
+
+    function bindRow(row) {
+        const body       = row.querySelector('.item-row-body');
+        const toggleBtn  = row.querySelector('.item-toggle-button');
+        const removeBtn  = row.querySelector('.remove-item-button');
+        const descInput  = row.querySelector('.pas-desc-input');
+        const productSel = row.querySelector('.pas-product-select');
+        const qtyInput   = row.querySelector('.pas-qty-input');
+        const costInput  = row.querySelector('.pas-unitcost-input');
+        const clearBtn   = row.querySelector('.item-description-clear');
+
+        const dd = buildDropdown(descInput);
+
+        const syncFromDesc = () => {
+            const name = descInput.value.trim();
+            const matches = populateProductSelect(productSel, name);
+            if (productSel.options.length > 1) {
+                productSel.selectedIndex = 1;
+                autofillFromOption(row, productSel.options[1]);
+            }
+            const qtyInput = row.querySelector('.pas-qty-input');
+            if (qtyInput && matches.length) {
+                qtyInput.placeholder = 'Available: ' + (matches[0].qty || 0);
+            }
+        };
+
+        descInput.addEventListener('input',  e => showOptions(descInput, dd, e.target.value, syncFromDesc));
+        descInput.addEventListener('focus',  () => showOptions(descInput, dd, descInput.value, syncFromDesc));
+        descInput.addEventListener('blur',   () => setTimeout(() => dd.style.display = 'none', 200));
+        descInput.addEventListener('change', syncFromDesc);
+
+        productSel.addEventListener('change', () => {
+            const opt = productSel.options[productSel.selectedIndex];
+            autofillFromOption(row, opt);
+            if (opt && opt.dataset.qty) {
+                qtyInput.placeholder = 'Available: ' + opt.dataset.qty;
+            }
+            if (opt && opt.dataset.expiry && row.querySelector('.pas-expiry-input')) {
+                row.querySelector('.pas-expiry-input').value = opt.dataset.expiry;
+            }
+        });
+
+        qtyInput.addEventListener('input',  () => calcTotal(row));
+        costInput.addEventListener('input', () => calcTotal(row));
+
+        clearBtn.addEventListener('mousedown', e => e.preventDefault());
+        clearBtn.addEventListener('click', () => {
+            descInput.value = '';
+            productSel.innerHTML = '<option value="">Select product</option>';
+            row.querySelector('.pas-unit-input').value  = '';
+            row.querySelector('.pas-unitcost-input').value = '';
+            row.querySelector('.pas-lot-input').value   = '';
+            row.querySelector('.pas-expiry-input').value = '';
+            row.querySelector('.pas-totalcost-display').value = '';
+            dd.style.display = 'none';
+            descInput.focus();
+        });
+
+        toggleBtn.addEventListener('click', () => {
+            body.style.display = body.style.display === 'none' ? '' : 'none';
+            toggleBtn.textContent = body.style.display === 'none' ? 'Show' : 'Hide';
+        });
+
+        removeBtn.addEventListener('click', () => { row.remove(); updateIndexes(); });
+    }
+
+    container.querySelectorAll('.pas-item-row').forEach(bindRow);
+    updateIndexes();
+
+    addBtn.addEventListener('click', () => {
+        const clone = template.content.cloneNode(true);
+        const row   = clone.querySelector('.pas-item-row');
+        bindRow(row);
+        container.appendChild(row);
+        updateIndexes();
+    });
+});
+</script>
+@endpush
 @endsection
