@@ -73,6 +73,7 @@ Route::middleware('web')->group(function () {
             ->name('releases.status');
 
         Route::get('reports/liquidation', [ReportController::class, 'liquidation'])->name('reports.liquidation');
+        Route::get('reports/liquidation/export', [ReportController::class, 'export'])->name('reports.liquidation.export');
 
         Route::get('audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');
 
