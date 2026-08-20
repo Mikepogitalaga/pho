@@ -8,12 +8,15 @@ use App\Models\Program;
 use App\Models\Receiving;
 use App\Models\ReceivingItem;
 use App\Models\Supplier;
+use App\Traits\GeneratesCodes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 
 class ReceivingController extends Controller
 {
+    use GeneratesCodes;
+
     public function index(Request $request)
     {
         $query = Receiving::with('supplier')->latest('date_received');
@@ -279,19 +282,11 @@ class ReceivingController extends Controller
         $programs = Program::orderBy('name')->get();
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
 
-        // Compute next item code sequence
-        $lastItem = Item::where('item_code', 'like', 'ITEM-%')
-            ->orderByRaw('CAST(SUBSTRING_INDEX(item_code, "-", -1) AS UNSIGNED) DESC')
-            ->value('item_code');
-
-        if ($lastItem) {
-            $lastSeq = (int) substr(strrchr($lastItem, '-'), 1);
-            $nextCodeSeq = str_pad($lastSeq + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $nextCodeSeq = '0001';
-        }
-
-        $nextItemCode = 'ITEM-' . $nextCodeSeq;
+        // Compute next product code sequence in format PC{yy}{mm}{seq} (resets each year)
+        $yy = now()->format('y');
+        $mm = now()->format('m');
+        $nextItemSeq  = (int) $this->nextYearSequence(Item::class, 'item_code', "PC{$yy}{$mm}%");
+        $nextItemCode = 'PC' . $yy . $mm . str_pad($nextItemSeq, 4, '0', STR_PAD_LEFT);
 
         return view('receivings.create', compact('suppliers', 'items', 'nextItemCode', 'programs', 'coordinators'));
     }

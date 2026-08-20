@@ -8,6 +8,7 @@ use App\Models\Coordinator;
 use App\Models\ReceivingItem;
 use App\Models\Release;
 use App\Models\ReleaseItem;
+use App\Traits\GeneratesCodes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,8 @@ use Throwable;
 
 class ReleaseController extends Controller
 {
+    use GeneratesCodes;
+
     private function applyStatusTransition(Release $release, string $newStatus, ?string $previousStatus = null): void
     {
         $previousStatus = $previousStatus ?? $release->getRawOriginal('status') ?? $release->status;
@@ -197,16 +200,7 @@ class ReleaseController extends Controller
         $prefix = "14538-{$ptrType}-{$year}-{$month}-";
 
         // Get the last sequential number across ALL types (PTR, ITR, RIS) for this year-month
-        $lastPtr = Release::where('ptr_itr_ris_no', 'like', "14538-%-{$year}-{$month}-%")
-            ->orderByRaw('CAST(SUBSTRING_INDEX(ptr_itr_ris_no, "-", -1) AS UNSIGNED) DESC')
-            ->value('ptr_itr_ris_no');
-
-        if ($lastPtr) {
-            $lastSeq = (int) substr(strrchr($lastPtr, '-'), 1);
-            $nextSeq = str_pad($lastSeq + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $nextSeq = '0001';
-        }
+        $nextSeq = $this->nextYearSequence(Release::class, 'ptr_itr_ris_no', "14538-%-{$year}-{$month}-%");
 
         $ptrNumber = $prefix . $nextSeq;
 
@@ -225,16 +219,7 @@ class ReleaseController extends Controller
         $prefix = "14538-{$type}-{$year}-{$month}-";
 
         // Get the last sequential number across ALL types (PTR, ITR, RIS) for this year-month
-        $lastPtr = Release::where('ptr_itr_ris_no', 'like', "14538-%-{$year}-{$month}-%")
-            ->orderByRaw('CAST(SUBSTRING_INDEX(ptr_itr_ris_no, "-", -1) AS UNSIGNED) DESC')
-            ->value('ptr_itr_ris_no');
-
-        if ($lastPtr) {
-            $lastSeq = (int) substr(strrchr($lastPtr, '-'), 1);
-            $nextSeq = str_pad($lastSeq + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $nextSeq = '0001';
-        }
+        $nextSeq = $this->nextYearSequence(Release::class, 'ptr_itr_ris_no', "14538-%-{$year}-{$month}-%");
 
         return response()->json(['number' => $prefix . $nextSeq]);
     }

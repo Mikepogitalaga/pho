@@ -9,12 +9,15 @@ use App\Models\Supplier;
 use App\Models\Coordinator;
 use App\Models\Program;
 use App\Models\ReceivingItem;
+use App\Traits\GeneratesCodes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class PasController extends Controller
 {
+    use GeneratesCodes;
+
     public function index(Request $request)
     {
         $query = Pas::with(['supplier', 'release'])->latest('date_of_pass');
@@ -62,11 +65,7 @@ class PasController extends Controller
 
         $year  = now()->format('Y');
         $month = now()->format('m');
-        $last  = Pas::where('pas_number', 'like', "PAS-{$year}-{$month}-%")
-            ->orderByRaw('CAST(SUBSTRING_INDEX(pas_number, "-", -1) AS UNSIGNED) DESC')
-            ->value('pas_number');
-
-        $nextSeq   = $last ? str_pad((int) substr(strrchr($last, '-'), 1) + 1, 4, '0', STR_PAD_LEFT) : '0001';
+        $nextSeq   = $this->nextYearSequence(Pas::class, 'pas_number', "PAS-{$year}-{$month}-%");
         $pasNumber = "PAS-{$year}-{$month}-{$nextSeq}";
 
         return view('pas.create', compact('items', 'suppliers', 'coordinators', 'programs', 'pasNumber', 'itemLotNumbers', 'facilities'));
@@ -107,6 +106,10 @@ class PasController extends Controller
                     'notes'                => $request->input('notes'),
                 ]);
 
+                $yy = now()->format('y');
+                $mm = now()->format('m');
+                $productSeq = (int) $this->nextYearSequence(PasItem::class, 'product_code', "PC{$yy}{$mm}%");
+
                 foreach ($request->input('items') as $row) {
                     $qty      = (int) $row['quantity'];
                     $unitCost = (float) $row['unit_cost'];
@@ -115,7 +118,7 @@ class PasController extends Controller
                         'pas_id'           => $pas->id,
                         'item_id'          => $row['item_id'] ?? null,
                         'item_description' => $row['item_description'],
-                        'product_code'     => $row['product_code'] ?? null,
+                        'product_code'     => 'PC' . $yy . $mm . str_pad($productSeq++, 4, '0', STR_PAD_LEFT),
                         'lot_number'       => $row['lot_number'] ?? null,
                         'expiration_date'  => !empty($row['expiration_date']) ? $row['expiration_date'] : null,
                         'quantity'         => $qty,
@@ -202,15 +205,24 @@ class PasController extends Controller
             $existingItems  = $pas->items->keyBy('id');
             $keptIds        = [];
 
+            $yy = now()->format('y');
+            $mm = now()->format('m');
+            $productSeq = (int) $this->nextYearSequence(PasItem::class, 'product_code', "PC{$yy}{$mm}%");
+
             foreach ($request->input('items') as $row) {
                 $pasItemId = isset($row['pas_item_id']) && $row['pas_item_id'] !== '' ? (int) $row['pas_item_id'] : null;
                 $qty       = (int) $row['quantity'];
                 $unitCost  = (float) $row['unit_cost'];
 
+                $existing    = ($pasItemId && $existingItems->has($pasItemId)) ? $existingItems[$pasItemId] : null;
+                $productCode = ($existing && $existing->product_code)
+                    ? $existing->product_code
+                    : 'PC' . $yy . $mm . str_pad($productSeq++, 4, '0', STR_PAD_LEFT);
+
                 $data = [
                     'item_id'          => $row['item_id'] ?? null,
                     'item_description' => $row['item_description'],
-                    'product_code'     => $row['product_code'] ?? null,
+                    'product_code'     => $productCode,
                     'lot_number'       => $row['lot_number'] ?? null,
                     'expiration_date'  => !empty($row['expiration_date']) ? $row['expiration_date'] : null,
                     'quantity'         => $qty,

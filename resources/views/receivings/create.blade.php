@@ -229,8 +229,9 @@
     @push('scripts')
     <script>
     (function() {
-        var nextCodeBase = '{{ $nextItemCode }}';
-        var nextSeq = parseInt('{{ substr($nextItemCode, 5) }}', 10) || 1;
+        var nextCodeBase = '{{ $nextItemCode }}'; // e.g. PC26080001
+        var codePrefix = nextCodeBase.substring(0, nextCodeBase.length - 4); // 'PC' + YY + MM
+        var nextSeq = parseInt(nextCodeBase.slice(-4), 10) || 1;
 
         var itemsData = Array.from(document.querySelectorAll('#item-options-receiving option')).map(function(opt) {
             return {
@@ -359,7 +360,7 @@
         function generateNextCode() {
             var seq = String(nextSeq).padStart(4, '0');
             nextSeq++;
-            return 'ITEM-' + seq;
+            return codePrefix + seq;
         }
 
         function createAutocompleteDropdown(descriptionInput, codeInput, categoryInput, uomInput, unitCostInput) {
@@ -492,7 +493,7 @@
             var maxSeq = 0;
             Array.from(container.querySelectorAll('.item-code-input')).forEach(function(input) {
                 var val = input.value || '';
-                var match = val.match(/ITEM-(\d+)/);
+                var match = val.match(/PC\d+(\d{4})$/);
                 if (match) {
                     var seq = parseInt(match[1], 10);
                     if (seq > maxSeq) maxSeq = seq;

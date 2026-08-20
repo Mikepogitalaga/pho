@@ -20,7 +20,7 @@
         <div class="form-grid-3">
             <div class="form-group">
                 <label>PAS Number <span style="color:var(--danger)">*</span></label>
-                <input name="pas_number" value="{{ old('pas_number', $pasNumber) }}" required>
+                <input name="pas_number" value="{{ old('pas_number', $pasNumber) }}" required readonly style="background: var(--surface-strong); cursor: not-allowed;">
                 @error('pas_number')<span class="field-error">{{ $message }}</span>@enderror
             </div>
             <div class="form-group">
