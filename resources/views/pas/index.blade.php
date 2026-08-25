@@ -82,8 +82,6 @@
         </table>
     </div>
 
-    @if($slips->hasPages())
-        <div style="margin-top:1rem;">{{ $slips->withQueryString()->links() }}</div>
-    @endif
+    <x-pagination.modern :paginator="$slips" />
 </section>
 @endsection

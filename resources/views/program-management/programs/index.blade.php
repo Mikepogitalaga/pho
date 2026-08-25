@@ -121,9 +121,7 @@
                     </div>
 
                     <!-- Pagination -->
-                    <div class="mt-4">
-                        {{ $programs->links() }}
-                    </div>
+                    <x-pagination.modern :paginator="$programs" />
                 </div>
             </div>
         </div>

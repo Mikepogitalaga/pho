@@ -13,6 +13,7 @@ class ReleaseItem extends Model
         'release_id',
         'item_id',
         'item_description',
+        'category',
         'quantity_released',
         'uom',
         'lot_number',

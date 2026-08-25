@@ -6,123 +6,7 @@
 
 @section('content')
 
-    <section class="card" aria-label="Report filters" style="padding: 1.25rem; margin-bottom: 1.25rem;">
-        <div class="section-header compact" style="padding: 0 0 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border);">
-            <div>
-                <h2 class="section-card-title" style="margin: 0;">Filters</h2>
-                <p class="page-description" style="margin-top: 0.25rem;">Refine liquidation records by PTR number, facility, dates, item, category, transfer type, receiver, or status.</p>
-            </div>
-            <div class="table-actions">
-                @php
-                    $activeFilters = collect([
-                        'ptr_number' => request('ptr_number'),
-                        'facility' => request('facility'),
-                        'start_date' => request('start_date'),
-                        'end_date' => request('end_date'),
-                        'item_description' => request('item_description'),
-                        'category' => request('category'),
-                        'transfer_type' => request('transfer_type'),
-                        'received_by' => request('received_by'),
-                        'status' => request('status'),
-                    ])->filter();
-                @endphp
-                @if($activeFilters->isNotEmpty())
-                    <span class="filter-count">{{ $activeFilters->count() }}</span>
-                    <a href="{{ route('reports.liquidation') }}" class="btn btn-secondary">Clear All</a>
-                @endif
-            </div>
-        </div>
-
-        <form id="liquidationFilterForm" method="GET" class="filter-bar">
-            <div class="form-grid-3">
-                <div class="form-group">
-                    <label for="ptrNumber">PTR / ITR / RIS Number</label>
-                    <input id="ptrNumber" type="text" name="ptr_number" value="{{ request('ptr_number') }}" placeholder="Search PTR, ITR, or RIS number" class="search-input" />
-                </div>
-
-                <div class="form-group">
-                    <label for="facilityFilter">Facility / End-user</label>
-                    <input id="facilityFilter" type="text" name="facility" value="{{ request('facility') }}" placeholder="Filter by facility name" class="search-input" />
-                </div>
-
-                <div class="form-group">
-                    <label for="transferType">Transfer Type</label>
-                    <select id="transferType" name="transfer_type" class="search-input">
-                        <option value="">All Types</option>
-                        <option value="PTR" {{ request('transfer_type') === 'PTR' ? 'selected' : '' }}>PTR</option>
-                        <option value="ITR" {{ request('transfer_type') === 'ITR' ? 'selected' : '' }}>ITR</option>
-                        <option value="RIS" {{ request('transfer_type') === 'RIS' ? 'selected' : '' }}>RIS</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="startDate">Start Date</label>
-                    <input id="startDate" type="date" name="start_date" value="{{ request('start_date') }}" class="search-input" />
-                </div>
-
-                <div class="form-group">
-                    <label for="endDate">End Date</label>
-                    <input id="endDate" type="date" name="end_date" value="{{ request('end_date') }}" class="search-input" />
-                </div>
-
-                <div class="form-group">
-                    <label for="statusFilter">Status</label>
-                    <select id="statusFilter" name="status" class="search-input">
-                        <option value="">All Statuses</option>
-                        <option value="Unreleased" {{ request('status') === 'Unreleased' ? 'selected' : '' }}>Unreleased</option>
-                        <option value="Released" {{ request('status') === 'Released' ? 'selected' : '' }}>Released</option>
-                        <option value="Released through pass" {{ request('status') === 'Released through pass' ? 'selected' : '' }}>Released through pass</option>
-                        <option value="Canceled" {{ request('status') === 'Canceled' ? 'selected' : '' }}>Canceled</option>
-                        <option value="Returned" {{ request('status') === 'Returned' ? 'selected' : '' }}>Returned</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="itemDescription">Item Description</label>
-                    <input id="itemDescription" type="text" name="item_description" value="{{ request('item_description') }}" placeholder="Search item description" class="search-input" />
-                </div>
-
-                <div class="form-group">
-                    <label for="categoryFilter">Category</label>
-                    <input id="categoryFilter" type="text" name="category" value="{{ request('category') }}" placeholder="Filter by category" class="search-input" />
-                </div>
-
-                <div class="form-group">
-                    <label for="receivedBy">Received By</label>
-                    <input id="receivedBy" type="text" name="received_by" value="{{ request('received_by') }}" placeholder="Search receiver name" class="search-input" />
-                </div>
-            </div>
-
-            <div class="filter-actions">
-                <div class="quick-date-bar">
-                    <span class="quick-date-label">Quick:</span>
-                    <button type="button" class="quick-date-btn" data-start="{{ \Carbon\Carbon::today()->format('Y-m-d') }}" data-end="{{ \Carbon\Carbon::today()->format('Y-m-d') }}">Today</button>
-                    <button type="button" class="quick-date-btn" data-start="{{ \Carbon\Carbon::now()->startOfWeek()->format('Y-m-d') }}" data-end="{{ \Carbon\Carbon::now()->endOfWeek()->format('Y-m-d') }}">This Week</button>
-                    <button type="button" class="quick-date-btn" data-start="{{ \Carbon\Carbon::now()->startOfMonth()->format('Y-m-d') }}" data-end="{{ \Carbon\Carbon::now()->endOfMonth()->format('Y-m-d') }}">This Month</button>
-                    <button type="button" class="quick-date-btn" data-start="{{ \Carbon\Carbon::now()->startOfYear()->format('Y-m-d') }}" data-end="{{ \Carbon\Carbon::now()->endOfYear()->format('Y-m-d') }}">This Year</button>
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Apply Filters</button>
-                </div>
-            </div>
-        </form>
-
-        @if($activeFilters->isNotEmpty())
-            <div class="active-filters" style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border);">
-                <span class="active-filters-label">Active filters:</span>
-                <div class="filter-chips">
-                    @foreach($activeFilters as $key => $value)
-                        <span class="filter-chip">
-                            <span class="filter-chip-label">{{ ucfirst(str_replace('_', ' ', $key)) }}:</span>
-                            <span class="filter-chip-value">{{ $value }}</span>
-                            <a href="{{ route('reports.liquidation', array_filter($activeFilters->except($key)->toArray())) }}" class="filter-chip-remove" title="Remove filter">&times;</a>
-                        </span>
-                    @endforeach
-                </div>
-            </div>
-        @endif
-    </section>
-
+    {{-- KPI Cards --}}
     <section class="card" style="padding: 1.25rem; margin-bottom: 1.25rem; background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(124, 58, 237, 0.08)); border: 1px solid rgba(37, 99, 235, 0.12);">
         <div class="section-header compact" style="padding: 0 0 1rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(15, 23, 42, 0.08);">
             <div>
@@ -173,6 +57,99 @@
         </div>
     </section>
 
+    {{-- Filters --}}
+    <section class="card" aria-label="Report filters" style="padding: 1.25rem; margin-bottom: 1.25rem;">
+        <div class="section-header compact" style="padding: 0 0 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border);">
+            <div>
+                <h2 class="section-card-title" style="margin: 0;">Filters</h2>
+                <p class="page-description" style="margin-top: 0.25rem;">Refine liquidation records by PTR number, facility, dates, item description, or category.</p>
+            </div>
+            <div class="table-actions">
+                @php
+                    $activeFilters = collect([
+                        'ptr_number' => request('ptr_number'),
+                        'facility' => request('facility'),
+                        'start_date' => request('start_date'),
+                        'end_date' => request('end_date'),
+                        'item_description' => request('item_description'),
+                        'category' => request('category'),
+                    ])->filter();
+                @endphp
+                @if($activeFilters->isNotEmpty())
+                    <span class="filter-count">{{ $activeFilters->count() }}</span>
+                    <a href="{{ route('reports.liquidation') }}" class="btn btn-secondary">Clear All</a>
+                @endif
+            </div>
+        </div>
+
+        <form id="liquidationFilterForm" method="GET" class="filter-bar">
+            <div class="form-grid-3">
+                <div class="form-group">
+                    <label for="ptrNumber">PTR / ITR / RIS Number</label>
+                    <input id="ptrNumber" type="text" name="ptr_number" value="{{ request('ptr_number') }}" placeholder="Search PTR, ITR, or RIS number" class="search-input" />
+                </div>
+
+                <div class="form-group">
+                    <label for="facilityFilter">Facility / End-user</label>
+                    <input id="facilityFilter" type="text" name="facility" value="{{ request('facility') }}" placeholder="Filter by facility name" class="search-input" />
+                </div>
+
+                <div class="form-group">
+                    <label for="startDate">Start Date</label>
+                    <input id="startDate" type="date" name="start_date" value="{{ request('start_date') }}" class="search-input" />
+                </div>
+
+                <div class="form-group">
+                    <label for="endDate">End Date</label>
+                    <input id="endDate" type="date" name="end_date" value="{{ request('end_date') }}" class="search-input" />
+                </div>
+
+                <div class="form-group">
+                    <label for="itemDescription">Item Description</label>
+                    <input id="itemDescription" type="text" name="item_description" value="{{ request('item_description') }}" placeholder="Search item description" class="search-input" />
+                </div>
+
+                <div class="form-group">
+                    <label for="categoryFilter">Category</label>
+                    <select id="categoryFilter" name="category" class="search-input">
+                        <option value="">All Categories</option>
+                        @foreach($categoriesWithLiquidations as $cat)
+                            <option value="{{ $cat }}" {{ request('category') === $cat ? 'selected' : '' }}>{{ $cat }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-actions">
+                <div class="quick-date-bar">
+                    <span class="quick-date-label">Quick:</span>
+                    <button type="button" class="quick-date-btn" data-start="{{ \Carbon\Carbon::today()->format('Y-m-d') }}" data-end="{{ \Carbon\Carbon::today()->format('Y-m-d') }}">Today</button>
+                    <button type="button" class="quick-date-btn" data-start="{{ \Carbon\Carbon::now()->startOfWeek()->format('Y-m-d') }}" data-end="{{ \Carbon\Carbon::now()->endOfWeek()->format('Y-m-d') }}">This Week</button>
+                    <button type="button" class="quick-date-btn" data-start="{{ \Carbon\Carbon::now()->startOfMonth()->format('Y-m-d') }}" data-end="{{ \Carbon\Carbon::now()->endOfMonth()->format('Y-m-d') }}">This Month</button>
+                    <button type="button" class="quick-date-btn" data-start="{{ \Carbon\Carbon::now()->startOfYear()->format('Y-m-d') }}" data-end="{{ \Carbon\Carbon::now()->endOfYear()->format('Y-m-d') }}">This Year</button>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                </div>
+            </div>
+        </form>
+
+        @if($activeFilters->isNotEmpty())
+            <div class="active-filters">
+                <span class="active-filters-label">Active filters:</span>
+                <div class="filter-chips">
+                    @foreach($activeFilters as $key => $value)
+                        <span class="filter-chip">
+                            <span class="filter-chip-label">{{ ucfirst(str_replace('_', ' ', $key)) }}:</span>
+                            <span class="filter-chip-value">{{ $value }}</span>
+                            <a href="{{ route('reports.liquidation', array_filter($activeFilters->except($key)->toArray())) }}" class="filter-chip-remove" title="Remove filter">&times;</a>
+                        </span>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+    </section>
+
     <section class="card" style="padding: 0.75rem;" id="resultsTable">
         <div class="section-header compact" style="padding: 0 0 0.75rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border);">
             <div>
@@ -206,8 +183,14 @@
                 <tbody>
                     @if($releases->count() > 0)
                         @forelse ($releases as $release)
-                            @if($release->items->count() > 0)
-                                @forelse($release->items as $item)
+                            @php
+                                $filteredItems = $release->items;
+                                if (request('category')) {
+                                    $filteredItems = $filteredItems->where('category', request('category'));
+                                }
+                            @endphp
+                            @if($filteredItems->count() > 0)
+                                @foreach($filteredItems as $item)
                                     <tr>
                                         <td>{{ $release->ptr_itr_ris_no ?? $release->release_number }}</td>
                                         <td>{{ $release->facility_name }}</td>
@@ -242,13 +225,18 @@
                                             </div>
                                         </td>
                                     </tr>
-                                @empty
-                                @endforelse
+                                @endforeach
                             @endif
                         @empty
                         @endforelse
                     @endif
-                    @if($releases->count() === 0 || $releases->sum(function($r) { return $r->items->count(); }) === 0)
+                    @if($releases->count() === 0 || $releases->sum(function($r) { 
+                            $items = $r->items;
+                            if (request('category')) {
+                                $items = $items->where('category', request('category'));
+                            }
+                            return $items->count(); 
+                        }) === 0)
                         <tr>
                             <td colspan="11" style="padding: 1.25rem;">
                                 <div class="empty-state">
@@ -264,13 +252,12 @@
         </div>
     </section>
 
-    <div class="pagination-wrapper">
-        {{ $releases->withQueryString()->links() }}
-    </div>
+    <x-pagination.modern :paginator="$releases" />
 
+    @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const hasFilters = {{ request()->hasAny(['ptr_number','facility','start_date','end_date','item_description','category','transfer_type','received_by','status']) ? 'true' : 'false' }};
+            const hasFilters = {{ request()->hasAny(['ptr_number','facility','start_date','end_date','item_description','category']) ? 'true' : 'false' }};
             if (hasFilters) {
                 document.getElementById('resultsTable').scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
@@ -286,4 +273,5 @@
             });
         });
     </script>
+    @endpush
 @endsection

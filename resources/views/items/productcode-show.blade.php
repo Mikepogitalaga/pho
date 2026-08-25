@@ -108,6 +108,7 @@
                             <th style="text-align: center;">Quantity</th>
                             <th>Facility / Receiver</th>
                             <th>Status</th>
+                            <th style="text-align: center;">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -160,10 +161,15 @@
                                     @endphp
                                     <span class="badge {{ $statusClass }}">{{ $record['status'] }}</span>
                                 </td>
+                                <td style="text-align: center;">
+                                    @if(!empty($record['release_id']))
+                                        <a href="{{ route('releases.view', $record['release_id']) }}" class="btn btn-secondary" style="min-height:auto; padding:0.35rem 0.85rem; font-size:0.82rem;">View</a>
+                                    @endif
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" style="padding: 1.25rem; text-align: center;">
+                                <td colspan="9" style="padding: 1.25rem; text-align: center;">
                                     <div class="empty-state">
                                         <strong>No deduction history found.</strong>
                                         <div style="margin-top: 0.35rem;">This product code has not been released yet.</div>

@@ -35,7 +35,19 @@ class AuditLogController extends Controller
             $query->whereDate('created_at', '<=', $to);
         }
 
-        $logs    = $query->paginate(30)->withQueryString();
+        $perPageParam = $request->query('per_page', 30);
+
+        if ($perPageParam === 'all') {
+            $perPage = PHP_INT_MAX;
+        } else {
+            $perPage = (int) $perPageParam;
+
+            if ($perPage <= 0) {
+                $perPage = 30;
+            }
+        }
+
+        $logs    = $query->paginate($perPage)->withQueryString();
         $modules = AuditLog::select('module')->distinct()->orderBy('module')->pluck('module');
         $actions = AuditLog::select('action')->distinct()->orderBy('action')->pluck('action');
 

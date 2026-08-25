@@ -23,7 +23,13 @@ class CoordinatorController extends Controller
             });
         }
 
-        $coordinators = $query->orderBy('full_name')->paginate(15);
+        $perPage = (int) $request->query('per_page', 15);
+
+        if ($perPage <= 0) {
+            $perPage = PHP_INT_MAX;
+        }
+
+        $coordinators = $query->orderBy('full_name')->paginate($perPage)->withQueryString();
 
         return view('coordinators.index', compact('coordinators', 'search'));
     }

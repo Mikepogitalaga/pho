@@ -22,7 +22,7 @@
                 <p class="page-description" style="margin-top: 0.25rem;">Search and filter release records by various criteria.</p>
             </div>
             <div class="table-actions">
-                @if(request()->hasAny(['search','status','facility','pho_code','pas_number']))
+                @if(request()->hasAny(['search','status','facility','pho_code','pas_number','program']))
                     <a href="{{ route('releases.index') }}" class="btn btn-secondary" style="min-height: 44px;">Clear All</a>
                 @endif
             </div>
@@ -61,6 +61,16 @@
                 </select>
             </div>
 
+            <div>
+                <label for="programFilter" class="sr-only">Filter by program</label>
+                <select id="programFilter" name="program" class="search-input">
+                    <option value="">All programs</option>
+                    @foreach($programs as $programOption)
+                        <option value="{{ $programOption->name }}" @selected(request('program') === $programOption->name)>{{ $programOption->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
             <div style="display: flex; gap: 0.5rem;">
                 <button type="submit" class="btn btn-primary" style="min-height: 44px; flex: 1;">Apply Filters</button>
             </div>
@@ -77,6 +87,7 @@
                         <th>PAS No.</th>
                         <th>PHO Code</th>
                         <th>Facility / End-user</th>
+                        <th>Program</th>
                         <th>Date Released</th>
                         <th>Status</th>
                         <th>Action</th>
@@ -89,6 +100,7 @@
                             <td>{{ $release->pas_number }}</td>
                             <td>{{ $release->pho_code }}</td>
                             <td>{{ $release->facility_name }}</td>
+                            <td>{{ $release->health_program_coordinator ?? '—' }}</td>
                             <td>{{ optional($release->date_released)->format('M d, Y') ?? '—' }}</td>
                             <td>
                                 @php
@@ -110,7 +122,7 @@
 
                     @empty
                         <tr>
-                            <td colspan="7" style="padding: 1.25rem;">
+                            <td colspan="8" style="padding: 1.25rem;">
                                 <div class="empty-state">
                                     <strong>No release records found.</strong>
                                     <div style="margin-top: 0.35rem;">Create a new release slip to track outgoing supplies.</div>
@@ -123,10 +135,9 @@
         </div>
     </section>
 
-    <div class="pagination-wrapper">
-        {{ $releases->links() }}
-    </div>
+    <x-pagination.modern :paginator="$releases" />
 
+    @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const hasFilters = {{ request()->hasAny(['search','status','facility','pho_code','pas_number']) ? 'true' : 'false' }};
@@ -135,4 +146,5 @@
             }
         });
     </script>
+    @endpush
 @endsection

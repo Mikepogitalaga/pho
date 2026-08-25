@@ -15,11 +15,17 @@ class SupplierController extends Controller
     {
         $search = $request->query('search');
 
+        $perPage = (int) $request->query('per_page', 15);
+
+        if ($perPage <= 0) {
+            $perPage = PHP_INT_MAX;
+        }
+
         $suppliers = Supplier::when($search, function ($query, $search) {
             $query->where('company_name', 'like', "%{$search}%")
                 ->orWhere('contact_person', 'like', "%{$search}%")
                 ->orWhere('email', 'like', "%{$search}%");
-        })->orderBy('company_name')->paginate(15);
+        })->orderBy('company_name')->paginate($perPage)->withQueryString();
 
         return view('suppliers.index', compact('suppliers', 'search'));
     }

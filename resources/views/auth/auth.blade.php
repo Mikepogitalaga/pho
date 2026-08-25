@@ -479,6 +479,29 @@
         }
 
 
+        /* =========================================================
+           TWO-COLUMN FIELD ROW (REGISTER)
+        ========================================================= */
+
+        .form-duo {
+            display: flex;
+
+            gap: 10px;
+        }
+
+        .form-duo .field {
+            flex: 1;
+
+            min-width: 0;
+        }
+
+        .form-duo .field input {
+            font-size: 12px;
+
+            padding-left: 32px;
+        }
+
+
         .checkbox {
             display: flex;
 
@@ -1270,6 +1293,76 @@
                             </div>
 
 
+                            {{-- ID NO. / ADDRESS --}}
+                            <div class="form-duo">
+
+                                <div class="field">
+
+                                    <label for="register_employee_id">
+                                        ID No.
+                                    </label>
+
+                                    <input
+                                        id="register_employee_id"
+                                        name="employee_id"
+                                        type="text"
+                                        value="{{ old('employee_id') }}"
+                                        class="{{ $errors->has('employee_id') ? 'is-invalid' : '' }}"
+                                        autocomplete="off"
+                                        maxlength="50"
+                                        placeholder="ID No."
+                                    >
+
+                                    <span class="field-icon">
+                                        <i class="fa-solid fa-id-card"></i>
+                                    </span>
+
+
+                                    @error('employee_id')
+
+                                        <div class="form-error">
+                                            {{ $message }}
+                                        </div>
+
+                                    @enderror
+
+                                </div>
+
+                                <div class="field">
+
+                                    <label for="register_address">
+                                        Address
+                                    </label>
+
+                                    <input
+                                        id="register_address"
+                                        name="address"
+                                        type="text"
+                                        value="{{ old('address') }}"
+                                        class="{{ $errors->has('address') ? 'is-invalid' : '' }}"
+                                        autocomplete="street-address"
+                                        maxlength="500"
+                                        placeholder="Address"
+                                    >
+
+                                    <span class="field-icon">
+                                        <i class="fa-solid fa-location-dot"></i>
+                                    </span>
+
+
+                                    @error('address')
+
+                                        <div class="form-error">
+                                            {{ $message }}
+                                        </div>
+
+                                    @enderror
+
+                                </div>
+
+                            </div>
+
+
                             {{-- EMAIL --}}
                             <div class="field">
 
@@ -1602,6 +1695,8 @@
 
     @if(
         $errors->has('name') ||
+        $errors->has('employee_id') ||
+        $errors->has('address') ||
         $errors->has('password_confirmation')
     )
 
@@ -1614,4 +1709,3 @@
 
 </body>
 </html>
-```

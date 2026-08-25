@@ -64,8 +64,6 @@
         </div>
     </section>
 
-    <div class="pagination-wrapper">
-        {{ $suppliers->withQueryString()->links() }}
-    </div>
+    <x-pagination.modern :paginator="$suppliers" />
 @endsection
 

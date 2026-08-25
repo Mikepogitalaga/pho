@@ -27,7 +27,13 @@ class OpDistributionController extends Controller
             $query->where('status', $status);
         }
 
-        $distributions = $query->paginate(15)->withQueryString();
+        $perPage = (int) $request->query('per_page', 15);
+
+        if ($perPage <= 0) {
+            $perPage = PHP_INT_MAX;
+        }
+
+        $distributions = $query->paginate($perPage)->withQueryString();
 
         return view('op-distribution.index', compact('distributions'));
     }

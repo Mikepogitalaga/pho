@@ -75,8 +75,6 @@
         </table>
     </div>
 
-    @if($distributions->hasPages())
-        <div style="margin-top:1rem;">{{ $distributions->links() }}</div>
-    @endif
+    <x-pagination.modern :paginator="$distributions" />
 </div>
 @endsection

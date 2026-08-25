@@ -14,7 +14,6 @@
 </head>
 <body>
 <table>
-    {{-- ROW 1: Facility + Summary --}}
     <tr>
         <td></td>
         <td class="fw-bold text-center" colspan="3">{{ $facility }}</td>
@@ -28,7 +27,6 @@
         @endforeach
     </tr>
 
-    {{-- ROW 2: EXPIRED/REJECTED (one time) + PTR Numbers + RETURNED TO STOCKROOM per PTR --}}
     <tr>
         <td></td>
         <td></td>
@@ -39,9 +37,11 @@
             <td class="fw-bold text-center" colspan="2">{{ $ptrs[$release->id] ?? '—' }}</td>
             <td class="fw-bold text-center" colspan="2">RETURNED TO STOCKROOM</td>
         @endforeach
+        <td class="fw-bold text-center">TOTAL RIS</td>
+        <td class="fw-bold text-center">TOTAL RETURNED</td>
+        <td class="fw-bold text-right">TOTAL COST</td>
     </tr>
 
-    {{-- ROW 3: Receivers --}}
     <tr>
         <td></td>
         <td></td>
@@ -56,7 +56,6 @@
         @endforeach
     </tr>
 
-    {{-- ROW 4: Column Headers --}}
     <tr>
         <td></td>
         <td class="fw-bold text-center">ITEM</td>
@@ -70,10 +69,16 @@
             <td></td>
             <td></td>
         @endforeach
+        <td></td>
+        <td></td>
+        <td></td>
     </tr>
 
-    {{-- ROW 5+: Data rows --}}
     @foreach($allItems as $item)
+        @php
+            $itemTotalQty = array_sum($item['qtys']);
+            $itemTotalCost = array_sum($item['totals']);
+        @endphp
         <tr>
             <td></td>
             <td class="text-left">{{ $item['description'] }}</td>
@@ -91,6 +96,9 @@
                 <td></td>
                 <td></td>
             @endforeach
+            <td class="text-right">{{ $itemTotalQty > 0 ? $itemTotalQty : '-' }}</td>
+            <td class="text-right">-</td>
+            <td class="text-right">{{ $itemTotalCost > 0 ? number_format($itemTotalCost, 2) : '-' }}</td>
         </tr>
     @endforeach
 </table>

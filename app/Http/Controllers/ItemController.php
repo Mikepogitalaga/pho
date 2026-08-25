@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Item;
+use App\Models\Program;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,7 @@ class ItemController extends Controller
         $search = $request->query('search');
         $status = $request->query('status');
         $category = $request->query('category');
+        $program = $request->query('program');
 
         $query = Item::query();
 
@@ -34,9 +36,6 @@ class ItemController extends Controller
                 $query->where('quantity_on_hand', '>', 0)
                       ->whereColumn('quantity_on_hand', '>', 'reorder_level');
             } elseif ($status === 'low') {
-                // Low stock rule (fallback):
-                // - If reorder_level is set (>0), low if quantity_on_hand <= reorder_level
-                // - Otherwise (null/0), low if quantity_on_hand <= 20
                 $query->where('quantity_on_hand', '>', 0)
                       ->where('quantity_on_hand', '<=', 20)
                       ->where(function ($q) {
@@ -50,10 +49,6 @@ class ItemController extends Controller
                           });
                       });
             } elseif ($status === 'out') {
-
-
-
-
                 $query->where('quantity_on_hand', '<=', 0);
             }
         }
@@ -62,12 +57,18 @@ class ItemController extends Controller
             $query->where('category', $category);
         }
 
+        if ($program) {
+            $query->where('stock_keeping_unit', $program);
+        }
+
         $categories = Item::select('category')
             ->whereNotNull('category')
             ->where('category', '<>', '')
             ->groupBy('category')
             ->orderBy('category')
             ->pluck('category');
+
+        $programs = Program::orderBy('name')->get();
 
         $groupedItems = $query->with('nextExpiryItem', 'receivingItems.receiving.supplier')->orderBy('name')->get()
             ->groupBy('name')
@@ -88,11 +89,23 @@ class ItemController extends Controller
             })
             ->values();
 
+        $perPageParam = $request->query('per_page', 15);
+
+        if ($perPageParam === 'all') {
+            $perPage = PHP_INT_MAX;
+        } else {
+            $perPage = (int) $perPageParam;
+
+            if ($perPage <= 0) {
+                $perPage = 15;
+            }
+        }
+
         $currentPage = LengthAwarePaginator::resolveCurrentPage();
         $items = new LengthAwarePaginator(
-            $groupedItems->forPage($currentPage, 15)->values(),
+            $groupedItems->forPage($currentPage, $perPage)->values(),
             $groupedItems->count(),
-            15,
+            $perPage,
             $currentPage,
             ['path' => LengthAwarePaginator::resolveCurrentPath()]
         );
@@ -119,7 +132,7 @@ class ItemController extends Controller
             ]));
         }
 
-        return view('items.index', compact('items', 'search', 'status', 'category', 'categories', 'supplierStats'));
+        return view('items.index', compact('items', 'search', 'status', 'category', 'categories', 'supplierStats', 'programs', 'program'));
     }
 
     public function show(Item $item)
@@ -175,6 +188,7 @@ class ItemController extends Controller
                     'facility'  => $release->facility_name,
                     'status'    => $release->status,
                     'reason'    => $release->status_reason ?? null,
+                    'release_id' => $release->id,
                 ];
 
                 if ($isInactive) {
@@ -188,6 +202,7 @@ class ItemController extends Controller
                         'facility'  => $release->facility_name,
                         'status'    => $release->status,
                         'reason'    => $release->status_reason ?? null,
+                        'release_id' => $release->id,
                     ];
                 }
             }
@@ -232,6 +247,7 @@ class ItemController extends Controller
                 'facility'  => $release->facility_name,
                 'status'    => $release->status,
                 'reason'    => $release->status_reason ?? null,
+                'release_id' => $release->id,
             ];
 
             // Stock restore row — only when Canceled or Returned
@@ -246,6 +262,7 @@ class ItemController extends Controller
                     'facility'  => $release->facility_name,
                     'status'    => $release->status,
                     'reason'    => $release->status_reason ?? null,
+                    'release_id' => $release->id,
                 ];
             }
         }

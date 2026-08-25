@@ -67,7 +67,7 @@
     </div>
 
     {{-- Search & Filter Panel --}}
-    <form method="GET" style="display:grid; grid-template-columns:1.6fr 1fr 1fr auto; gap:0.75rem; padding:1rem 1.1rem; border:1px solid var(--border); border-radius:1rem; background:var(--surface); box-shadow:var(--shadow-sm); margin-bottom:1.25rem; align-items:end;">
+    <form method="GET" style="display:grid; grid-template-columns:1.6fr 1fr 1fr 1fr auto; gap:0.75rem; padding:1rem 1.1rem; border:1px solid var(--border); border-radius:1rem; background:var(--surface); box-shadow:var(--shadow-sm); margin-bottom:1.25rem; align-items:end;">
         <div style="display:flex; flex-direction:column; gap:0.3rem;">
             <label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted);">Search</label>
             <div style="position:relative;">
@@ -93,12 +93,21 @@
                 <option value="out" @selected($status === 'out')>Out of Stock</option>
             </select>
         </div>
+        <div style="display:flex; flex-direction:column; gap:0.3rem;">
+            <label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted);">Program</label>
+            <select name="program" class="search-input">
+                <option value="">All programs</option>
+                @foreach($programs as $programOption)
+                    <option value="{{ $programOption->name }}" @selected($programOption->name === $program)>{{ $programOption->name }}</option>
+                @endforeach
+            </select>
+        </div>
         <div style="display:flex; gap:0.5rem;">
             <button type="submit" class="btn btn-primary" style="gap:0.4rem;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 Filter
             </button>
-            @if($search || $status || $category)
+            @if($search || $status || $category || $program)
                 <a href="{{ route('items.index') }}" class="btn btn-ghost" title="Clear filters">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </a>
@@ -127,6 +136,7 @@
                         <th>Current Stock</th>
                         <th>Location</th>
                         <th>Supplier</th>
+                        <th>Program</th>
                         <th>Records</th>
                         <th>Status</th>
                         <th style="text-align:center;">Actions</th>
@@ -177,6 +187,7 @@
                                     <span style="color:var(--text-muted);">—</span>
                                 @endif
                             </td>
+                            <td style="color:var(--text-muted); font-size:0.9rem;">{{ $item->stock_keeping_unit ?? '—' }}</td>
                             <td>
                                 <span style="background:rgba(37,99,235,0.1); color:var(--primary); font-size:0.8rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:999px;">
                                     {{ $item->record_count }}
@@ -192,14 +203,14 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" style="padding:2.5rem 1.25rem;">
+                            <td colspan="10" style="padding:2.5rem 1.25rem;">
                                 <div style="display:flex; flex-direction:column; align-items:center; gap:0.75rem; color:var(--text-muted);">
                                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
                                     <div style="text-align:center;">
                                         <strong style="display:block; color:var(--text); font-size:1rem;">No items found</strong>
                                         <span style="font-size:0.88rem;">Try adjusting your search or filters.</span>
                                     </div>
-                                    @if($search || $status || $category)
+            @if($search || $status || $category || $program)
                                         <a href="{{ route('items.index') }}" class="btn btn-secondary" style="min-height:auto; padding:0.4rem 1rem; font-size:0.85rem;">Clear filters</a>
                                     @endif
                                 </div>
@@ -211,8 +222,6 @@
         </div>
     </section>
 
-    <div class="pagination-wrapper" style="margin-top:1rem;">
-        {{ $items->withQueryString()->links() }}
-    </div>
+    <x-pagination.modern :paginator="$items" />
 
 @endsection

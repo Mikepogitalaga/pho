@@ -51,13 +51,14 @@
                             <option value="PTR">PTR</option>
                             <option value="ITR">ITR</option>
                             <option value="RIS">RIS</option>
+                            <option value="ELMIS">ELMIS</option>
                         </select>
                         <input name="ptr_itr_ris_no" id="ptrNumberInput" value="{{ old('ptr_itr_ris_no', $ptrNumber ?? '') }}" readonly required style="flex: 1; background: var(--surface-strong); cursor: not-allowed;">
                     </div>
                     @error('ptr_itr_ris_no')
                         <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
                     @enderror
-                    <p style="margin: 0.3rem 0 0; font-size: 0.82rem; color: var(--text-muted);">Auto-generated sequential number. Select type (PTR/ITR/RIS) to regenerate.</p>
+                    <p style="margin: 0.3rem 0 0; font-size: 0.82rem; color: var(--text-muted);">Auto-generated sequential number. Select type (PTR/ITR/RIS) to regenerate. Select <strong>ELMIS</strong> to enter your own ELMIS No.</p>
                 </div>
                 <div class="form-group">
                     <label>PHO Code <span style="color: var(--danger);">*</span></label>
@@ -240,19 +241,55 @@ const allItemsData = {!! json_encode($items->map(fn($i) => [
 ])->toArray()) !!};
 
 (function () {
-    // ---- PTR Type Switcher ----
+    // ---- PTR/ITR/RIS/ELMIS Type Switcher ----
     const ptrTypeSelect  = document.getElementById('ptrTypeSelect');
     const ptrNumberInput = document.getElementById('ptrNumberInput');
+
+    // ELMIS = manual entry; PTR/ITR/RIS = auto-generated (readonly)
+    function setManualEntry(enabled, focus) {
+        if (enabled) {
+            ptrNumberInput.removeAttribute('readonly');
+            ptrNumberInput.style.background = 'var(--surface)';
+            ptrNumberInput.style.cursor = 'text';
+            ptrNumberInput.placeholder = 'Enter ELMIS No.';
+            if (focus) {
+                ptrNumberInput.value = '';
+                ptrNumberInput.focus();
+            }
+        } else {
+            ptrNumberInput.setAttribute('readonly', 'readonly');
+            ptrNumberInput.style.background = 'var(--surface-strong)';
+            ptrNumberInput.style.cursor = 'not-allowed';
+            ptrNumberInput.placeholder = '';
+        }
+    }
+
     if (ptrTypeSelect && ptrNumberInput) {
         ptrTypeSelect.addEventListener('change', function () {
+            if (this.value === 'ELMIS') {
+                // Only ELMIS allows typing into the number field.
+                setManualEntry(true, true);
+                return;
+            }
+
+            // PTR / ITR / RIS — regenerate the sequential number.
+            setManualEntry(false, false);
             fetch('{{ url('releases/next-ptr-number') }}/' + this.value)
                 .then(r => r.json())
                 .then(d => { if (d.number) ptrNumberInput.value = d.number; })
                 .catch(e => console.error('Failed to fetch PTR number:', e));
         });
 
-        const initialTransferType = '{{ request('transfer_type', 'PTR') }}'.toUpperCase();
-        if (['PTR', 'ITR', 'RIS'].includes(initialTransferType)) {
+        const initialValue = '{{ old('ptr_itr_ris_no') }}';
+        const initialTransferType = '{{ request('transfer_type', '') }}'.toUpperCase();
+
+        if (initialValue && !/^14538-/i.test(initialValue)) {
+            // Old value is not an auto-generated number → it was a manual
+            // ELMIS entry. Restore the selection and keep the typed value.
+            ptrTypeSelect.value = 'ELMIS';
+            setManualEntry(true, false);
+            ptrNumberInput.value = initialValue;
+        } else if (['PTR', 'ITR', 'RIS'].includes(initialTransferType)) {
             ptrTypeSelect.value = initialTransferType;
             ptrTypeSelect.dispatchEvent(new Event('change'));
         }
@@ -428,11 +465,19 @@ const allItemsData = {!! json_encode($items->map(fn($i) => [
         if (descInput && itemIdSelect) {
             const dd = createDropdown(descInput);
 
-            const syncItemSelection = () => {
+            const syncItemSelection = (preserveExistingSelection = false) => {
                 const typed = descInput.value.trim().toLowerCase();
                 if (!typed) {
                     return;
                 }
+
+                if (preserveExistingSelection && itemIdSelect.value && itemIdSelect.value !== '') {
+                    const selectedItem = allItemsData.find(i => i.id == itemIdSelect.value);
+                    if (selectedItem && (selectedItem.name.toLowerCase() === typed || selectedItem.code.toLowerCase() === typed)) {
+                        return;
+                    }
+                }
+
                 let match = itemsData.find(i => i.nameLower === typed || i.codeLower === typed || i.id.toString() === typed);
                 if (!match) {
                     match = itemsData.find(i => i.nameLower.includes(typed) || i.codeLower.includes(typed));
@@ -579,6 +624,10 @@ const allItemsData = {!! json_encode($items->map(fn($i) => [
 
     releaseForm.addEventListener('submit', () => {
         Array.from(releaseItems.querySelectorAll('.release-item-row')).forEach(row => {
+            const itemIdSelect = row.querySelector('.item-id-select');
+            if (itemIdSelect && itemIdSelect.value) {
+                return;
+            }
             syncRowItemSelection(row);
         });
         formDirty = false;

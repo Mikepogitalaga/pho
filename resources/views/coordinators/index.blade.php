@@ -97,7 +97,5 @@
         </div>
     </section>
 
-    <div class="pagination-wrapper" style="margin-top:1rem;">
-        {{ $coordinators->withQueryString()->links() }}
-    </div>
+    <x-pagination.modern :paginator="$coordinators" />
 @endsection

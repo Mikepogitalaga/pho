@@ -26,7 +26,13 @@ class ProgramController extends Controller
             $query->where('status', $status);
         }
 
-        $programs = $query->orderBy('name')->paginate(15);
+        $perPage = (int) $request->query('per_page', 15);
+
+        if ($perPage <= 0) {
+            $perPage = PHP_INT_MAX;
+        }
+
+        $programs = $query->orderBy('name')->paginate($perPage)->withQueryString();
 
         return view('programs.index', compact('programs', 'search', 'status'));
     }

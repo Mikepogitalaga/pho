@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Coordinator;
+use App\Models\AuditLog;
 use App\Models\Item;
 use App\Models\Program;
 use App\Models\Receiving;
 use App\Models\ReceivingItem;
+use App\Models\ReleaseItem;
 use App\Models\Supplier;
 use App\Traits\GeneratesCodes;
 use Illuminate\Http\Request;
@@ -19,7 +21,7 @@ class ReceivingController extends Controller
 
     public function index(Request $request)
     {
-        $query = Receiving::with('supplier')->latest('date_received');
+        $query = Receiving::with(['supplier', 'items'])->latest('date_received');
 
         $search = trim((string) $request->input('search', ''));
         if ($search !== '') {
@@ -38,6 +40,11 @@ class ReceivingController extends Controller
             $query->where('po_number', 'like', '%' . $poNumber . '%');
         }
 
+        $program = trim((string) $request->input('program', ''));
+        if ($program !== '') {
+            $query->where('stock_keeping_unit', 'like', '%' . $program . '%');
+        }
+
         $startDate = $request->input('start_date');
         if ($startDate) {
             $query->whereDate('date_received', '>=', $startDate);
@@ -48,9 +55,17 @@ class ReceivingController extends Controller
             $query->whereDate('date_received', '<=', $endDate);
         }
 
-        $receivings = $query->paginate(15);
+        $perPage = (int) $request->query('per_page', 15);
 
-        return view('receivings.index', compact('receivings'));
+        if ($perPage <= 0) {
+            $perPage = PHP_INT_MAX;
+        }
+
+        $receivings = $query->paginate($perPage)->withQueryString();
+
+        $programs = Program::orderBy('name')->get();
+
+        return view('receivings.index', compact('receivings', 'programs', 'program'));
     }
 
     public function export(Request $request)
@@ -160,7 +175,9 @@ class ReceivingController extends Controller
             'items.*.unit_cost'  => 'nullable|numeric|min:0',
         ]);
 
-        DB::transaction(function () use ($request, $receiving) {
+        $syncedTotal = 0;
+
+        DB::transaction(function () use ($request, $receiving, &$syncedTotal) {
             $receiving->update([
                 'po_number'           => $request->input('po_number'),
                 'source_document_number' => $request->input('po_number'),
@@ -226,6 +243,7 @@ class ReceivingController extends Controller
                     $existingRow = $existingItems[$receivingItemId];
                     $oldQty      = (int) $existingRow->quantity_received;
                     $delta       = $newQty - $oldQty;
+                    $oldLot      = $existingRow->lot_number; // lot the releases were made from
 
                     $existingRow->update([
                         'item_id'           => $item->id,
@@ -241,6 +259,16 @@ class ReceivingController extends Controller
                     if ($delta !== 0) {
                         $item->increment('quantity_on_hand', $delta);
                     }
+
+                    // Propagate description / UOM / unit cost edits onto the
+                    // released item copies so liquidation reports stay consistent.
+                    $syncedTotal += $this->syncReleaseItems(
+                        $item->id,
+                        $oldLot,
+                        $itemData['item_description'],
+                        $itemData['uom'] ?? null,
+                        isset($itemData['unit_cost']) ? (float) $itemData['unit_cost'] : null
+                    );
 
                     $keptExistingIds[] = $receivingItemId;
                 } else {
@@ -271,6 +299,26 @@ class ReceivingController extends Controller
                 }
             }
         });
+
+        if ($syncedTotal > 0) {
+            try {
+                AuditLog::create([
+                    'user_id'      => auth()->id(),
+                    'user_name'    => auth()->user()?->name ?? 'System',
+                    'action'       => 'updated',
+                    'module'       => 'ReleaseItem',
+                    'record_id'    => $receiving->id,
+                    'record_label' => 'Receiving '.$receiving->receiving_number.' → synced '.$syncedTotal.' released item(s)',
+                    'changes'      => ['source' => 'Receiving edit'],
+                    'ip_address'   => request()->ip(),
+                ]);
+            } catch (\Throwable) {
+                // Never break the main flow due to audit failure
+            }
+
+            return redirect()->route('receivings.view', $receiving)
+                ->with('success', "Receiving updated and inventory adjusted. {$syncedTotal} released item copy(ies) updated to match.");
+        }
 
         return redirect()->route('receivings.view', $receiving)->with('success', 'Receiving updated and inventory adjusted.');
     }
@@ -391,5 +439,54 @@ class ReceivingController extends Controller
         });
 
         return redirect()->route('receivings.index')->with('success', 'Receiving recorded and inventory updated.');
+    }
+
+    /**
+     * Propagate receiving-item edits (description, UOM, unit cost) onto the
+     * matching released-item copies so the liquidation report reflects them.
+     *
+     * Matching rule: same item AND the same lot number the release was made
+     * from (null lot matches null lot). Quantity released is never touched —
+     * it is a historical fact of what physically left the warehouse.
+     */
+    private function syncReleaseItems(int $itemId, ?string $oldLotNumber, string $description, ?string $uom, ?float $unitCost): int
+    {
+        $releaseItems = ReleaseItem::where('item_id', $itemId)
+            ->when(
+                $oldLotNumber === null,
+                fn ($q) => $q->whereNull('lot_number'),
+                fn ($q) => $q->where('lot_number', $oldLotNumber)
+            )
+            ->get();
+
+        $synced = 0;
+
+        foreach ($releaseItems as $releaseItem) {
+            $dirty = [];
+
+            if (trim((string) $releaseItem->item_description) !== trim((string) $description)) {
+                $dirty['item_description'] = $description;
+            }
+
+            if ((string) ($releaseItem->uom ?? '') !== (string) ($uom ?? '')) {
+                $dirty['uom'] = $uom;
+            }
+
+            $currentCost = $releaseItem->unit_cost === null ? null : (float) $releaseItem->unit_cost;
+
+            $costChanged = ($currentCost === null) !== ($unitCost === null)
+                || ($unitCost !== null && abs($currentCost - $unitCost) > 0.000001);
+
+            if ($costChanged) {
+                $dirty['unit_cost'] = $unitCost;
+            }
+
+            if (!empty($dirty)) {
+                $releaseItem->update($dirty);
+                $synced++;
+            }
+        }
+
+        return $synced;
     }
 }

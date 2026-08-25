@@ -11,7 +11,13 @@ class ReportController extends Controller
 {
     public function liquidation(Request $request)
     {
-        $releases = $this->liquidationQuery($request)->paginate(15);
+        $perPage = (int) $request->query('per_page', 15);
+
+        if ($perPage <= 0) {
+            $perPage = PHP_INT_MAX;
+        }
+
+        $releases = $this->liquidationQuery($request)->paginate($perPage)->withQueryString();
 
         $totalQuantity = 0;
         $totalCost = 0;
@@ -23,7 +29,12 @@ class ReportController extends Controller
             }
         }
 
-        return view('reports.liquidation', compact('releases', 'totalQuantity', 'totalCost'));
+        $categoriesWithLiquidations = \App\Models\ReleaseItem::whereNotNull('category')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category');
+
+        return view('reports.liquidation', compact('releases', 'totalQuantity', 'totalCost', 'categoriesWithLiquidations'));
     }
 
     public function export(Request $request)
@@ -38,6 +49,7 @@ class ReportController extends Controller
 
         $ptrFilter = trim((string) $request->input('ptr_number', ''));
         $releaseId = $request->query('release');
+        $category = trim((string) $request->input('category', ''));
 
         if ($ptrFilter !== '') {
             $fileName = 'Liquidation_Report_' . preg_replace('/[^A-Za-z0-9\-]/', '_', $ptrFilter) . '.xlsx';
@@ -45,11 +57,13 @@ class ReportController extends Controller
             $release = Release::find($releaseId);
             $ptr = $release ? ($release->ptr_itr_ris_no ?? $release->release_number ?? 'liquidation') : 'liquidation';
             $fileName = 'Liquidation_Report_' . preg_replace('/[^A-Za-z0-9\-]/', '_', (string) $ptr) . '.xlsx';
+        } elseif ($category !== '') {
+            $fileName = 'Liquidation_Report_' . preg_replace('/[^A-Za-z0-9\-]/', '_', $category) . '.xlsx';
         } else {
             $fileName = 'Liquidation_Report_' . now()->format('Y-m-d-His') . '.xlsx';
         }
 
-        return Excel::download(new LiquidationExport($releases), $fileName);
+        return Excel::download(new LiquidationExport($releases, $category !== '' ? $category : null), $fileName);
     }
 
     private function liquidationQuery(Request $request)
@@ -64,18 +78,6 @@ class ReportController extends Controller
         $endDate = $request->input('end_date');
         $itemDescription = trim((string) $request->input('item_description', ''));
         $category = trim((string) $request->input('category', ''));
-        $transferType = trim((string) $request->input('transfer_type', ''));
-        $receivedBy = trim((string) $request->input('received_by', ''));
-        $status = trim((string) $request->input('status', ''));
-
-        if ($status !== '') {
-            $query->where('status', $status);
-        } else {
-            $query->where(function ($q) {
-                $q->where('status', 'Released')
-                  ->orWhere('status', 'Released through pass');
-            });
-        }
 
         if ($ptrNumber !== '') {
             $query->where(function ($q) use ($ptrNumber) {
@@ -103,17 +105,9 @@ class ReportController extends Controller
         }
 
         if ($category !== '') {
-            $query->whereHas('items.item', function ($q) use ($category) {
-                $q->where('category', 'like', '%' . $category . '%');
+            $query->whereHas('items', function ($q) use ($category) {
+                $q->where('category', $category);
             });
-        }
-
-        if ($transferType !== '') {
-            $query->where('transfer_type', $transferType);
-        }
-
-        if ($receivedBy !== '') {
-            $query->where('received_by', 'like', '%' . $receivedBy . '%');
         }
 
         return $query;

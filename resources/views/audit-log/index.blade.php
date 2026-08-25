@@ -58,8 +58,8 @@
                     <th style="width:10%;">Module</th>
                     <th style="width:8%;">Action</th>
                     <th style="width:14%;">Record</th>
-                    <th style="width:10%;">IP Address</th>
-                    <th>Changes</th>
+                    <th class="col-hide-md" style="width:10%;">IP Address</th>
+                    <th class="col-hide-md">Changes</th>
                 </tr>
             </thead>
             <tbody>
@@ -94,8 +94,8 @@
                                 <span style="color:var(--text-muted); font-size:0.78rem;"> #{{ $log->record_id }}</span>
                             @endif
                         </td>
-                        <td style="font-size:0.82rem; color:var(--text-muted);">{{ $log->ip_address ?? '—' }}</td>
-                        <td style="font-size:0.82rem;">
+                        <td class="col-hide-md" style="font-size:0.82rem; color:var(--text-muted);">{{ $log->ip_address ?? '—' }}</td>
+                        <td class="col-hide-md" style="font-size:0.82rem;">
                             @if(!empty($log->changes))
                                 <div style="display:flex; flex-direction:column; gap:0.3rem;">
                                     @foreach($log->changes as $field => $change)
@@ -120,7 +120,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" style="padding:2.5rem; text-align:center; color:var(--text-muted);">
+                        <td colspan="5" style="padding:2.5rem; text-align:center; color:var(--text-muted);">
                             No audit log entries found.
                         </td>
                     </tr>
@@ -129,10 +129,6 @@
         </table>
     </div>
 
-    @if($logs->hasPages())
-        <div style="margin-top:1rem;">
-            {{ $logs->links() }}
-        </div>
-    @endif
+    <x-pagination.modern :paginator="$logs" :default-per-page="30" />
 </div>
 @endsection

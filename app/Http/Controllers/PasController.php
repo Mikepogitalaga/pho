@@ -38,7 +38,13 @@ class PasController extends Controller
             $query->where('status', $status);
         }
 
-        $slips = $query->paginate(15);
+        $perPage = (int) $request->query('per_page', 15);
+
+        if ($perPage <= 0) {
+            $perPage = PHP_INT_MAX;
+        }
+
+        $slips = $query->paginate($perPage)->withQueryString();
 
         return view('pas.index', compact('slips'));
     }

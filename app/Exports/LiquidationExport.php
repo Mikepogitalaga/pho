@@ -15,7 +15,7 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 class LiquidationExport implements FromView, WithEvents
 {
-    public function __construct(protected iterable $releases) {}
+    public function __construct(protected iterable $releases, protected ?string $category = null) {}
 
     protected $summaryQtys = [];
     protected $summaryCosts = [];
@@ -39,10 +39,14 @@ class LiquidationExport implements FromView, WithEvents
         $allItems = [];
         foreach ($releases as $release) {
             foreach ($release->items as $item) {
+                if ($this->category && $item->category !== $this->category) {
+                    continue;
+                }
+
                 $key = $item->item_description . '|' . $item->uom . '|' . $item->unit_cost;
                 if (!isset($allItems[$key])) {
                     $allItems[$key] = [
-                        'description' => $item->item_description,
+                        'description' => $item->item->name ?? $item->item_description,
                         'uom' => $item->uom,
                         'unit_cost' => $item->unit_cost,
                         'qtys' => [],
@@ -54,7 +58,29 @@ class LiquidationExport implements FromView, WithEvents
             }
         }
 
+        $inventoryItems = \App\Models\Item::orderBy('name')->get();
+        foreach ($inventoryItems as $invItem) {
+            if ($this->category && $invItem->category !== $this->category) {
+                continue;
+            }
+
+            $key = $invItem->name . '|' . $invItem->unit . '|' . $invItem->unit_cost;
+            if (!isset($allItems[$key])) {
+                $allItems[$key] = [
+                    'description' => $invItem->name,
+                    'uom' => $invItem->unit,
+                    'unit_cost' => $invItem->unit_cost,
+                    'qtys' => [],
+                    'totals' => [],
+                ];
+            }
+        }
+
         ksort($allItems);
+
+        uasort($allItems, function ($a, $b) {
+            return strcasecmp($a['description'], $b['description']);
+        });
 
         $this->sortedReleases = collect($this->releases)->sort(function ($a, $b) {
             $ptrA = mb_substr($a->ptr_itr_ris_no ?? $a->release_number ?? '—', 0, 31);
@@ -73,15 +99,22 @@ class LiquidationExport implements FromView, WithEvents
             $totalQty = 0;
             $totalCost = 0;
             foreach ($release->items as $item) {
+                if ($this->category && $item->category !== $this->category) {
+                    continue;
+                }
                 $totalQty += (int) $item->quantity_released;
                 $totalCost += ((float) $item->unit_cost ?? 0) * (int) $item->quantity_released;
             }
 
-            $this->summaryQtys[$release->id] = $totalQty;
-            $this->summaryCosts[$release->id] = $totalCost;
-            $this->ptrs[$release->id] = mb_substr($release->ptr_itr_ris_no ?? $release->release_number ?? '—', 0, 31);
-            $this->receivers[$release->id] = $release->received_by ?: '—';
-        }
+        $this->summaryQtys[$release->id] = $totalQty;
+        $this->summaryCosts[$release->id] = $totalCost;
+        $this->ptrs[$release->id] = mb_substr($release->ptr_itr_ris_no ?? $release->release_number ?? '—', 0, 31);
+        $this->receivers[$release->id] = $release->received_by ?: '—';
+    }
+
+    $totalQtyAll = array_sum($this->summaryQtys);
+    $totalCostAll = array_sum($this->summaryCosts);
+    $totalReturnedAll = 0;
 
         $summaryQtys = $this->summaryQtys;
         $summaryCosts = $this->summaryCosts;
@@ -118,6 +151,11 @@ class LiquidationExport implements FromView, WithEvents
                     $colIndex += 4;
                 }
 
+                $totalColIndex = $colIndex;
+                $sheet->getColumnDimensionByColumn($totalColIndex)->setWidth(12);    // TOTAL RIS
+                $sheet->getColumnDimensionByColumn($totalColIndex + 1)->setWidth(18); // TOTAL RETURNED TO STOCKROOM
+                $sheet->getColumnDimensionByColumn($totalColIndex + 2)->setWidth(14); // TOTAL COST
+
                 $sheet->getRowDimension(1)->setRowHeight(36);
                 $sheet->getRowDimension(2)->setRowHeight(28);
                 $sheet->getRowDimension(3)->setRowHeight(28);
@@ -137,6 +175,11 @@ class LiquidationExport implements FromView, WithEvents
                     $sheet->mergeCellsByColumnAndRow($colIndex + 2, 2, $colIndex + 3, 2); // RETURNED TO STOCKROOM
                     $colIndex += 4;
                 }
+
+                $totalColIndex = $colIndex;
+                $sheet->mergeCellsByColumnAndRow($totalColIndex, 2, $totalColIndex, 3);       // TOTAL RIS
+                $sheet->mergeCellsByColumnAndRow($totalColIndex + 1, 2, $totalColIndex + 1, 3); // TOTAL RETURNED TO STOCKROOM
+                $sheet->mergeCellsByColumnAndRow($totalColIndex + 2, 2, $totalColIndex + 2, 3); // TOTAL COST
 
                 $sheet->getStyle('B1:' . $lastCol . '1')->getFill()
                     ->setFillType(Fill::FILL_SOLID)
@@ -176,6 +219,13 @@ class LiquidationExport implements FromView, WithEvents
                     $colIndex += 4;
                 }
 
+                $totalRisCol = Coordinate::stringFromColumnIndex($totalColIndex);
+                $totalReturnedCol = Coordinate::stringFromColumnIndex($totalColIndex + 1);
+                $totalCostCol = Coordinate::stringFromColumnIndex($totalColIndex + 2);
+                $sheet->getStyle($totalRisCol . '4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle($totalReturnedCol . '4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle($totalCostCol . '4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
                 $sheet->getStyle('B5:' . $lastCol . $lastRow)->getAlignment()
                     ->setVertical(Alignment::VERTICAL_CENTER)
                     ->setWrapText(true);
@@ -192,6 +242,13 @@ class LiquidationExport implements FromView, WithEvents
                     $sheet->getStyle($totalCol . '5:' . $totalCol . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
                     $colIndex += 4;
                 }
+
+                $totalRisCol = Coordinate::stringFromColumnIndex($totalColIndex);
+                $totalReturnedCol = Coordinate::stringFromColumnIndex($totalColIndex + 1);
+                $totalCostCol = Coordinate::stringFromColumnIndex($totalColIndex + 2);
+                $sheet->getStyle($totalRisCol . '5:' . $totalRisCol . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle($totalReturnedCol . '5:' . $totalReturnedCol . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle($totalCostCol . '5:' . $totalCostCol . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
 
                 $sheet->getStyle('D5:D' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.00');
                 $sheet->getStyle('G5:' . $lastCol . $lastRow)->getNumberFormat()->setFormatCode('#,##0.00');

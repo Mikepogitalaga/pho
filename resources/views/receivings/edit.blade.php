@@ -381,18 +381,22 @@
 
         // Dirty guard
         var formDirty = false;
+        var isSubmitting = false;
         var form = document.getElementById('editReceivingForm');
         form.querySelectorAll('input, select, textarea').forEach(function(el) {
             el.addEventListener('input',  function() { formDirty = true; });
             el.addEventListener('change', function() { formDirty = true; });
         });
-        window.addEventListener('beforeunload', function(e) { if (formDirty) { e.preventDefault(); e.returnValue = ''; } });
+        window.addEventListener('beforeunload', function(e) { 
+            if (formDirty && !isSubmitting) { e.preventDefault(); e.returnValue = ''; } 
+        });
         document.querySelectorAll('a').forEach(function(link) {
             link.addEventListener('click', function(e) {
+                if (isSubmitting) return;
                 if (formDirty && !confirm('You have unsaved changes. Leaving this page will discard them. Are you sure?')) e.preventDefault();
             });
         });
-        form.addEventListener('submit', function() { formDirty = false; });
+        form.addEventListener('submit', function() { isSubmitting = true; formDirty = false; });
 
         new MutationObserver(function() {
             document.querySelectorAll('#receiving-items input, #receiving-items select, #receiving-items textarea').forEach(function(el) {

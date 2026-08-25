@@ -109,6 +109,18 @@ class ReleaseController extends Controller
             $query->where('pas_number', 'like', '%' . $pasNumber . '%');
         }
 
+        $program = trim((string) $request->input('program', ''));
+        if ($program !== '') {
+            $query->where('health_program_coordinator', 'like', '%' . $program . '%');
+        }
+
+        $itemId = trim((string) $request->input('item', ''));
+        if ($itemId !== '') {
+            $query->whereHas('items', function ($q) use ($itemId) {
+                $q->where('items.id', $itemId);
+            });
+        }
+
         $status = $request->input('status');
         if (!empty($status)) {
             $newStatus = match ($status) {
@@ -123,9 +135,17 @@ class ReleaseController extends Controller
             $query->where('status', $newStatus);
         }
 
-        $releases = $query->paginate(15);
+        $perPage = (int) $request->query('per_page', 15);
 
-        return view('releases.index', compact('releases'));
+        if ($perPage <= 0) {
+            $perPage = PHP_INT_MAX;
+        }
+
+        $releases = $query->paginate($perPage)->withQueryString();
+
+        $programs = Program::orderBy('name')->get();
+
+        return view('releases.index', compact('releases', 'programs', 'program'));
     }
 
     public function view(Release $release)
@@ -175,7 +195,7 @@ class ReleaseController extends Controller
             $release->save();
         });
 
-        return redirect()->route('releases.view', $release)->with('success', 'Release details updated successfully.');
+        return redirect()->route('releases.index')->with('success', 'Release details updated successfully.');
     }
 
     public function create()
@@ -303,6 +323,7 @@ class ReleaseController extends Controller
                         'release_id' => $release->id,
                         'item_id' => $itemData['item_id'],
                         'item_description' => $itemData['item_description'] ?? $item->name,
+                        'category' => $item->category,
                         'quantity_released' => $itemData['quantity_released'],
                         'uom' => $itemData['uom'] ?? $item->unit,
                         'lot_number' => $itemData['lot_number'] ?? null,

@@ -14,6 +14,7 @@ use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\CoordinatorController;
 use App\Http\Controllers\ProgramManagementController;
 use App\Http\Controllers\PasController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
@@ -37,7 +38,7 @@ Route::middleware('web')->group(function () {
         ->middleware('auth')
         ->name('logout');
 
-    Route::middleware(['auth'])->group(function () {
+    Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/', [DashboardController::class, 'index']);
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/dashboard/doh', [DashboardController::class, 'dohIndex'])->name('dashboard.doh');
@@ -105,5 +106,17 @@ Route::middleware('web')->group(function () {
         Route::post('program-management/coordinators', [ProgramManagementController::class, 'coordinatorsStore'])->name('program-management.coordinators.store');
         Route::put('program-management/coordinators/{coordinator}', [ProgramManagementController::class, 'coordinatorsUpdate'])->name('program-management.coordinators.update');
         Route::delete('program-management/coordinators/{coordinator}', [ProgramManagementController::class, 'coordinatorsDestroy'])->name('program-management.coordinators.destroy');
+
+        // User Management (administrators only)
+        Route::middleware(['admin'])->group(function () {
+            Route::get('users', [UserController::class, 'index'])->name('users.index');
+            Route::get('users/create', [UserController::class, 'create'])->name('users.create');
+            Route::post('users', [UserController::class, 'store'])->name('users.store');
+            Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+            Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
+            Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+            Route::post('users/{user}/unlock', [UserController::class, 'unlock'])->name('users.unlock');
+            Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
+        });
     });
 });

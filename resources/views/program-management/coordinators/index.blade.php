@@ -113,9 +113,7 @@
                     </div>
 
                     <!-- Pagination -->
-                    <div class="mt-4">
-                        {{ $coordinators->links() }}
-                    </div>
+                    <x-pagination.modern :paginator="$coordinators" />
                 </div>
             </div>
         </div>

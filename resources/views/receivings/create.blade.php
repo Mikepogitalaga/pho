@@ -93,7 +93,7 @@
                                 <div class="form-grid-4">
                                     <div class="form-group" style="position: relative;">
                                         <label>Product Code</label>
-                                        <input class="item-code-input" name="items[0][item_code]" readonly style="background: var(--surface-strong); cursor: not-allowed;" />
+                                        <input class="item-code-input" name="items[0][item_code]" />
                                     </div>
                                     <div class="form-group" style="position: relative;">
                                         <label>Item Description</label>
@@ -160,7 +160,7 @@
                                 <div class="form-grid-4">
                                     <div class="form-group" style="position: relative;">
                                         <label>Product Code</label>
-                                        <input class="item-code-input" name="items[{{ $index }}][item_code]" value="{{ $oldItem['item_code'] ?? ($index === 0 ? ($nextItemCode ?? '') : '') }}" readonly style="background: var(--surface-strong); cursor: not-allowed;" />
+                                        <input class="item-code-input" name="items[{{ $index }}][item_code]" value="{{ $oldItem['item_code'] ?? ($index === 0 ? ($nextItemCode ?? '') : '') }}" />
                                     </div>
                                     <div class="form-group" style="position: relative;">
                                         <label>Item Description</label>
@@ -230,7 +230,9 @@
     <script>
     (function() {
         var nextCodeBase = '{{ $nextItemCode }}'; // e.g. PC26080001
-        var codePrefix = nextCodeBase.substring(0, nextCodeBase.length - 4); // 'PC' + YY + MM
+        // Ensure we extract the prefix correctly. Based on PC{yy}{mm}{seq}, length is usually 10.
+        // If nextCodeBase is PC26080001, substring(0, 6) is 'PC2608'.
+        var codePrefix = nextCodeBase.substring(0, 6); // PC + YY + MM 
         var nextSeq = parseInt(nextCodeBase.slice(-4), 10) || 1;
 
         var itemsData = Array.from(document.querySelectorAll('#item-options-receiving option')).map(function(opt) {
@@ -493,7 +495,8 @@
             var maxSeq = 0;
             Array.from(container.querySelectorAll('.item-code-input')).forEach(function(input) {
                 var val = input.value || '';
-                var match = val.match(/PC\d+(\d{4})$/);
+                // Match format PC{yy}{mm}{seq} - exactly 6 chars prefix (PC + YY + MM) + 4 digits
+                var match = val.match(/^PC\d{6}(\d{4})$/);
                 if (match) {
                     var seq = parseInt(match[1], 10);
                     if (seq > maxSeq) maxSeq = seq;
@@ -552,6 +555,7 @@
 
         // ---- Dirty-form / leave-site guard ----
         var formDirty = false;
+        var isSubmitting = false; // Add this to track submission
         function markDirty() { formDirty = true; }
 
         document.querySelector('form').querySelectorAll('input, select, textarea').forEach(function(el) {
@@ -560,18 +564,28 @@
         });
 
         window.addEventListener('beforeunload', function(e) {
-            if (formDirty) { e.preventDefault(); e.returnValue = ''; }
+            // Only show warning if dirty and NOT submitting
+            if (formDirty && !isSubmitting) { 
+                e.preventDefault(); 
+                e.returnValue = ''; 
+            }
         });
 
         document.querySelectorAll('a').forEach(function(link) {
             link.addEventListener('click', function(e) {
+                // If submitting, allow navigation without confirmation
+                if (isSubmitting) return; 
+                
                 if (formDirty && !confirm('You have unsaved changes. Leaving this page will discard them. Are you sure you want to leave?')) {
                     e.preventDefault();
                 }
             });
         });
 
-        document.querySelector('form').addEventListener('submit', function() { formDirty = false; });
+        document.querySelector('form').addEventListener('submit', function() { 
+            isSubmitting = true; 
+            formDirty = false; 
+        });
 
         var receivingItemsContainer = document.getElementById('receiving-items');
         new MutationObserver(function() {

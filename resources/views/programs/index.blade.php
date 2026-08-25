@@ -107,8 +107,6 @@
         </div>
     </section>
 
-    <div class="pagination-wrapper" style="margin-top:1rem;">
-        {{ $programs->withQueryString()->links() }}
-    </div>
+    <x-pagination.modern :paginator="$programs" />
 @endsection
 
