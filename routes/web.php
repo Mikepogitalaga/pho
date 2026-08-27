@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\FacilityController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -44,6 +45,7 @@ Route::middleware('web')->group(function () {
         Route::get('/dashboard/gso', [DashboardController::class, 'gsoIndex'])->name('dashboard.gso');
 
         Route::resource('items', ItemController::class)->only(['index', 'show']);
+        Route::resource('facilities', FacilityController::class)->only(['index', 'store', 'update', 'destroy']);
 
         Route::get('items/{item}/{productCode}', [ItemController::class, 'productCodeShow'])->name('items.productcode.show');
 

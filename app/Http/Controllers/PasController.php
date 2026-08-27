@@ -55,8 +55,10 @@ class PasController extends Controller
         $suppliers   = Supplier::orderBy('company_name')->get();
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
         $programs    = Program::orderBy('name')->get();
-        $facilities  = Pas::whereNotNull('facility_name')->where('facility_name', '<>', '')
+        $pasFacilities  = Pas::whereNotNull('facility_name')->where('facility_name', '<>', '')
             ->distinct()->orderBy('facility_name')->pluck('facility_name');
+        $dbFacilities = \App\Models\Facility::active()->orderBy('name')->pluck('name');
+        $facilities = $pasFacilities->merge($dbFacilities)->unique()->sort()->values();
 
         $itemLotNumbers = ReceivingItem::select('item_id', 'lot_number', 'expiry_date')
             ->whereNotNull('lot_number')
@@ -155,11 +157,13 @@ class PasController extends Controller
         $suppliers = Supplier::orderBy('company_name')->get();
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
         $programs = Program::orderBy('name')->get();
-        $facilities = Pas::whereNotNull('facility_name')
+        $pasFacilities = Pas::whereNotNull('facility_name')
             ->where('facility_name', '<>', '')
             ->distinct()
             ->orderBy('facility_name')
             ->pluck('facility_name');
+        $dbFacilities = \App\Models\Facility::active()->orderBy('name')->pluck('name');
+        $facilities = $pasFacilities->merge($dbFacilities)->unique()->sort()->values();
 
         $itemLotNumbers = ReceivingItem::select('item_id', 'lot_number', 'expiry_date')
             ->whereNotNull('lot_number')

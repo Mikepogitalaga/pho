@@ -69,11 +69,20 @@
 
         <div class="form-grid-3">
             <div class="form-group">
+                <label>Facility Category <span style="color:var(--danger)">*</span></label>
+                <select id="facilityCategory" required onchange="filterFacilities()">
+                    <option value="">— Select Category —</option>
+                    @foreach(\App\Models\Facility::categories() as $cat)
+                        <option value="{{ $cat }}" {{ old('facility_category') === $cat ? 'selected' : '' }}>{{ $cat }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="form-group">
                 <label>Facility / End-user <span style="color:var(--danger)">*</span></label>
-                <div style="position:relative;">
-                    <input name="facility_name" id="pasFacilityInput" value="{{ old('facility_name') }}" required autocomplete="off" style="width:100%;">
-                    <div id="pasFacilityDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
-                </div>
+                <select name="facility_name" id="facilityName" required disabled>
+                    <option value="">— Select Category First —</option>
+                </select>
+                <a href="{{ route('facilities.index') }}" class="section-link" style="font-size:0.78rem;margin-top:0.35rem;display:inline-block;">+ Manage Facilities</a>
                 @error('facility_name')<span class="field-error">{{ $message }}</span>@enderror
             </div>
             <div class="form-group">
@@ -260,6 +269,33 @@
 </template>
 
 @push('scripts')
+<script>
+    // Double dropdown for facilities
+    const allFacilities = @json(\App\Models\Facility::active()->get()->map(fn($f) => ['name' => $f->name, 'category' => $f->category]));
+    const facilityCategory = document.getElementById('facilityCategory');
+    const facilityName = document.getElementById('facilityName');
+    const selectedFacility = '{{ old('facility_name') }}';
+
+    function filterFacilities() {
+        const cat = facilityCategory.value;
+        facilityName.innerHTML = '<option value="">— Select Facility —</option>';
+        if (!cat) {
+            facilityName.disabled = true;
+            return;
+        }
+        facilityName.disabled = false;
+        const filtered = allFacilities.filter(f => f.category === cat);
+        filtered.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f.name;
+            opt.textContent = f.name;
+            if (f.name === selectedFacility) opt.selected = true;
+            facilityName.appendChild(opt);
+        });
+    }
+
+    if (facilityCategory.value) filterFacilities();
+</script>
 <script>
 const pasAllItems = {!! json_encode($items->map(fn($i) => [
     'id'         => $i->id,
