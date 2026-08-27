@@ -12,8 +12,8 @@ use App\Models\ReleaseItem;
 use App\Models\Supplier;
 use App\Traits\GeneratesCodes;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ReceivingController extends Controller
 {
@@ -330,13 +330,33 @@ class ReceivingController extends Controller
         $programs = Program::orderBy('name')->get();
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
 
-        // Compute next product code sequence in format PC{yy}{mm}{seq} (resets each year)
         $yy = now()->format('y');
         $mm = now()->format('m');
-        $nextItemSeq  = (int) $this->nextYearSequence(Item::class, 'item_code', "PC{$yy}{$mm}%");
-        $nextItemCode = 'PC' . $yy . $mm . str_pad($nextItemSeq, 4, '0', STR_PAD_LEFT);
 
-        return view('receivings.create', compact('suppliers', 'items', 'nextItemCode', 'programs', 'coordinators'));
+        $programSequences = [];
+        foreach ($programs as $program) {
+            if ($program->description) {
+                $prefix = $program->description;
+                $pattern = "{$prefix}-{$yy}-{$mm}%";
+                $programSequences[$prefix] = (int) $this->nextYearSequence(Item::class, 'item_code', $pattern);
+            }
+        }
+
+        $receivingNumber = $this->nextReceivingNumber();
+
+        return view('receivings.create', compact('suppliers', 'items', 'programs', 'coordinators', 'receivingNumber', 'programSequences'));
+    }
+
+    private function nextReceivingNumber(): string
+    {
+        $prefix = 'REC-' . now()->format('Y-m') . '-';
+        $last   = Receiving::where('receiving_number', 'like', $prefix . '%')
+            ->orderByRaw('CAST(SUBSTRING_INDEX(receiving_number, "-", -1) AS UNSIGNED) DESC')
+            ->value('receiving_number');
+
+        $seq = $last ? str_pad((int) substr(strrchr($last, '-'), 1) + 1, 4, '0', STR_PAD_LEFT) : '0001';
+
+        return $prefix . $seq;
     }
 
     public function store(Request $request)

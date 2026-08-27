@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\OpDistributionController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ItemController;
@@ -77,14 +76,6 @@ Route::middleware('web')->group(function () {
         Route::get('reports/liquidation/export', [ReportController::class, 'export'])->name('reports.liquidation.export');
 
         Route::get('audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');
-
-        // OP Distribution
-        Route::get('op-distribution', [OpDistributionController::class, 'index'])->name('op-distribution.index');
-        Route::get('op-distribution/create', [OpDistributionController::class, 'create'])->name('op-distribution.create');
-        Route::post('op-distribution', [OpDistributionController::class, 'store'])->name('op-distribution.store');
-        Route::get('op-distribution/{opDistribution}/edit', [OpDistributionController::class, 'edit'])->name('op-distribution.edit');
-        Route::put('op-distribution/{opDistribution}', [OpDistributionController::class, 'update'])->name('op-distribution.update');
-        Route::get('op-distribution/{opDistribution}', [OpDistributionController::class, 'view'])->name('op-distribution.view');
 
         // Property Allocation Slip (PAS) Routes
         Route::get('pas', [PasController::class, 'index'])->name('pas.index');

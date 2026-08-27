@@ -88,6 +88,7 @@
                         <th>PHO Code</th>
                         <th>Facility / End-user</th>
                         <th>Program</th>
+                        <th>Item Description</th>
                         <th>Date Released</th>
                         <th>Status</th>
                         <th>Action</th>
@@ -101,6 +102,20 @@
                             <td>{{ $release->pho_code }}</td>
                             <td>{{ $release->facility_name }}</td>
                             <td>{{ $release->health_program_coordinator ?? '—' }}</td>
+                            <td>
+                                <div class="item-desc-cell">
+                                    <div class="item-desc-primary">{{ $release->items->first()?->item_description ?? '—' }}</div>
+                                    @php
+                                        $allDescriptions = $release->items->pluck('item_description')->filter()->values();
+                                    @endphp
+                                    @if($allDescriptions->count() > 1)
+                                        <button type="button" class="btn btn-ghost view-items-btn" style="padding:0; min-height:auto; font-size:0.8rem;" data-items='@json($allDescriptions)'>
+                                            View {{ $allDescriptions->count() }} items
+                                        </button>
+                                    @endif
+                                    <div class="items-dropdown" style="display:none;"></div>
+                                </div>
+                            </td>
                             <td>{{ optional($release->date_released)->format('M d, Y') ?? '—' }}</td>
                             <td>
                                 @php
@@ -122,7 +137,7 @@
 
                     @empty
                         <tr>
-                            <td colspan="8" style="padding: 1.25rem;">
+                            <td colspan="9" style="padding: 1.25rem;">
                                 <div class="empty-state">
                                     <strong>No release records found.</strong>
                                     <div style="margin-top: 0.35rem;">Create a new release slip to track outgoing supplies.</div>
@@ -140,11 +155,61 @@
     @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const hasFilters = {{ request()->hasAny(['search','status','facility','pho_code','pas_number']) ? 'true' : 'false' }};
+            const hasFilters = {{ request()->hasAny(['search','status','facility','pho_code','pas_number','program']) ? 'true' : 'false' }};
             if (hasFilters) {
                 document.getElementById('releasesTable').scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
+
+            document.querySelectorAll('.view-items-btn').forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const dropdown = this.nextElementSibling;
+                    const items = JSON.parse(this.dataset.items || '[]');
+
+                    document.querySelectorAll('.items-dropdown').forEach(function(d) {
+                        if (d !== dropdown) {
+                            d.style.display = 'none';
+                        }
+                    });
+
+                    dropdown.innerHTML = items.map(function(it, idx) {
+                        return '<div style="padding:0.45rem 0.75rem; border-bottom:1px solid var(--border); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' +
+                            '<span style="font-weight:700; margin-right:0.5rem; color:var(--text-muted);">' + (idx + 1) + '.</span>' +
+                            '<span>' + (it || '—') + '</span></div>';
+                    }).join('');
+
+                    dropdown.style.display = 'block';
+                });
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.item-desc-cell')) {
+                    document.querySelectorAll('.items-dropdown').forEach(function(d) {
+                        d.style.display = 'none';
+                    });
+                }
+            });
         });
     </script>
     @endpush
+
+    <style>
+        .item-desc-cell { position: relative; }
+        .items-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 1050;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,.15);
+            padding: 0.35rem 0;
+            min-width: 260px;
+            max-width: 420px;
+            max-height: 240px;
+            overflow-y: auto;
+            margin-top: 0.35rem;
+        }
+    </style>
 @endsection

@@ -55,10 +55,11 @@
             border: 0.5pt solid #000;
             padding: 2px 6px;
             font-size: 10pt;
-            font-weight: bold;
+            Margin-right: 150px;
             background: #fff;
             white-space: nowrap;
         }
+        
         .ptr-logo {
             display: block;
             margin: 0 auto 4px;
@@ -86,7 +87,7 @@
             text-align: right;
             font-size: 10pt;
             margin-bottom: 4px;
-            padding-right: 6px;
+            padding-right: 200px;
         }
         .ptr-info-grid {
             margin-bottom: 4px;
@@ -148,17 +149,12 @@
         }
         .text-end { text-align: right; }
         .fw-bold { font-weight: bold; }
-        .mb-3 { margin-bottom: 8px; }
+        .mb-3 { margin-bottom: 8px; 
+               border-bottom: 0.5pt solid #000;
+               padding: 3px 4px;
+         }
         .form-label { display: block; margin-bottom: 3px; font-weight: bold; }
-        .form-control {
-            width: 100%;
-            min-height: 26px;
-            border: 0.5pt solid #000;
-            padding: 2px 4px;
-            font-size: 10pt;
-            font-family: Arial, sans-serif;
-            resize: none;
-        }
+        
         .row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: stretch; }
         .col-md-3 { flex: 1 1 23%; min-width: 120px; display: flex; flex-direction: column; }
         .text-center { text-align: center; }
@@ -355,7 +351,7 @@
 
     {{-- ── Header ── --}}
     <div class="ptr-header">
-        <div class="ptr-annex">Annex 21</div>
+        <div class="ptr-annex">PHO-Ap-SCM-form1</div>
         <img class="ptr-logo" src="{{ asset('logo.jpg') }}" alt="Logo">
         <div class="ptr-meta">
             <div><strong>Commodity Issue No:</strong> {{ $release->pho_code ?? '—' }}</div>
@@ -390,7 +386,7 @@
             <th width="6%">Unit Cost</th>
             <th width="6%">Amount</th>
             <th width="5%">Qty Received</th>
-            <th width="17%">Remarks and /or Reason for rejection (if applicable)</th>
+            <th width="17%">Remarks and /or Reason for rejection</th>
         </tr>
         @forelse($chunk as $releaseItem)
         @php
@@ -429,9 +425,12 @@
     @if($pageNum === $totalPages)
         <!-- Grand Total Section -->
         <div class="mb-3">
-          <label class="form-label fw-bold">Reason for Transfer:</label>
-          <textarea class="form-control" rows="2">{{ $release->notes ?? '' }}</textarea>
+          <label class="form-label fw-bold">Reason for Transfer: {{ $release->notes ?? '' }}</label>
+                   
         </div>
+
+
+      
 
         <!-- Approval & Signatories -->
         <div class="row text-center">
@@ -447,11 +446,11 @@
               </tr>
               <tr>
                 <td class="sig-title">Name:</td>
-                <td class="sig-line"></td>
+                <td class="sig-line">ROBERT O. BONGUI</td>
               </tr>
               <tr>
                 <td class="sig-title">Designation:</td>
-                <td class="sig-line"></td>
+                <td class="sig-line">Supervising Administrative Officer</td>
               </tr>
               <tr>
                 <td class="sig-title">Date:</td>
@@ -474,11 +473,11 @@
               </tr>
               <tr>
                 <td></td>
-                <td class="sig-line"></td>
+                <td class="sig-line">CHERRY-ANN P. EVILLA</td>
               </tr>
               <tr>
                 <td></td>
-                <td class="sig-line"></td>
+                <td class="sig-line">Pharmacist II</td>
               </tr>
               <tr>
                 <td></td>

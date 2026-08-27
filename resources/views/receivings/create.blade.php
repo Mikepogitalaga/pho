@@ -160,7 +160,7 @@
                                 <div class="form-grid-4">
                                     <div class="form-group" style="position: relative;">
                                         <label>Product Code</label>
-                                        <input class="item-code-input" name="items[{{ $index }}][item_code]" value="{{ $oldItem['item_code'] ?? ($index === 0 ? ($nextItemCode ?? '') : '') }}" />
+                                        <input class="item-code-input" name="items[{{ $index }}][item_code]" value="{{ $oldItem['item_code'] ?? '' }}" />
                                     </div>
                                     <div class="form-group" style="position: relative;">
                                         <label>Item Description</label>
@@ -216,7 +216,7 @@
 
     <datalist id="program-options" style="display:none;">
         @foreach($programs as $program)
-            <option value="{{ $program->name }}"></option>
+            <option value="{{ $program->name }}" data-description="{{ $program->description }}"></option>
         @endforeach
     </datalist>
 
@@ -229,11 +229,11 @@
     @push('scripts')
     <script>
     (function() {
-        var nextCodeBase = '{{ $nextItemCode }}'; // e.g. PC26080001
-        // Ensure we extract the prefix correctly. Based on PC{yy}{mm}{seq}, length is usually 10.
-        // If nextCodeBase is PC26080001, substring(0, 6) is 'PC2608'.
-        var codePrefix = nextCodeBase.substring(0, 6); // PC + YY + MM 
-        var nextSeq = parseInt(nextCodeBase.slice(-4), 10) || 1;
+        var currentYear = new Date().getFullYear().toString().slice(-2);
+        var currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+        var currentCodePrefix = '';
+        var codeSequences = {};
+        var programSequences = @json($programSequences ?? []);
 
         var itemsData = Array.from(document.querySelectorAll('#item-options-receiving option')).map(function(opt) {
             return {
@@ -251,6 +251,7 @@
             return {
                 name: opt.value,
                 nameLower: opt.value.toLowerCase(),
+                description: (opt.dataset.description || '').trim(),
             };
         });
 
@@ -333,25 +334,27 @@
 
         if (programInput && programDropdown) {
             bindAutocompleteList(programInput, programsData, programDropdown, function(item) {
-                // When a program is selected, check if any coordinator is assigned to it
+                currentCodePrefix = item.description || '';
                 var matchedCoordinator = coordinatorsData.find(function(c) {
                     return c.assignedPrograms.toLowerCase().indexOf(item.nameLower) !== -1;
                 });
                 if (matchedCoordinator && coordinatorInput) {
                     coordinatorInput.value = matchedCoordinator.name;
                 }
+                refreshAllItemCodes();
             });
         }
 
         if (coordinatorInput && coordinatorDropdown) {
             bindAutocompleteList(coordinatorInput, coordinatorsData, coordinatorDropdown, function(item) {
-                // When a coordinator is selected, auto-fill program with their first assigned program
                 if (item.assignedPrograms && programInput) {
                     var programs = item.assignedPrograms.split(', ');
                     if (programs.length > 0) {
-                        // Only auto-fill if program is empty or user hasn't typed something else
                         if (!programInput.value.trim() || programsData.some(function(p) { return p.nameLower === programInput.value.trim().toLowerCase(); })) {
                             programInput.value = programs[0];
+                            var matched = programsData.find(function(p) { return p.nameLower === programs[0].toLowerCase(); });
+                            currentCodePrefix = matched ? matched.description : '';
+                            refreshAllItemCodes();
                         }
                     }
                 }
@@ -359,10 +362,59 @@
         }
         // ---- End Program & Coordinator Autocomplete ----
 
+        function refreshAllItemCodes() {
+            var container = document.getElementById('receiving-items');
+            var prefix = currentCodePrefix;
+            if (!prefix) return;
+
+            var maxExistingSeq = 0;
+            Array.from(container.querySelectorAll('.item-code-input')).forEach(function(input) {
+                var val = input.value || '';
+                var matchNew = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
+                if (matchNew) {
+                    var seq = parseInt(matchNew[1], 10);
+                    if (seq > maxExistingSeq) maxExistingSeq = seq;
+                }
+            });
+
+            var dbSeq = programSequences[prefix] || 0;
+            var nextSeq = Math.max(dbSeq, maxExistingSeq);
+            codeSequences[prefix] = nextSeq;
+
+            Array.from(container.querySelectorAll('.item-code-input')).forEach(function(input) {
+                var val = input.value || '';
+                var matchNew = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
+
+                if (!matchNew) {
+                    input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(nextSeq).padStart(4, '0');
+                    nextSeq++;
+                }
+            });
+
+            codeSequences[prefix] = nextSeq;
+        }
+
+        function getNextSequence(prefix) {
+            if (!codeSequences[prefix]) {
+                var dbSeq = programSequences[prefix] || 0;
+                var maxExisting = 0;
+                Array.from(document.querySelectorAll('.item-code-input')).forEach(function(input) {
+                    var val = input.value || '';
+                    var match = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
+                    if (match) {
+                        var seq = parseInt(match[1], 10);
+                        if (seq > maxExisting) maxExisting = seq;
+                    }
+                });
+                codeSequences[prefix] = Math.max(dbSeq, maxExisting);
+            }
+            return codeSequences[prefix]++;
+        }
+
         function generateNextCode() {
-            var seq = String(nextSeq).padStart(4, '0');
-            nextSeq++;
-            return codePrefix + seq;
+            if (!currentCodePrefix) return '';
+            var seq = getNextSequence(currentCodePrefix);
+            return currentCodePrefix + '-' + currentYear + '-' + currentMonth + '-' + String(seq).padStart(4, '0');
         }
 
         function createAutocompleteDropdown(descriptionInput, codeInput, categoryInput, uomInput, unitCostInput) {
@@ -374,7 +426,7 @@
             dropdown.style.cssText = [
                 'position: absolute; background: white; border: 1px solid #ddd;',
                 'max-height: 200px; overflow-y: auto; width: 100%; z-index: 1000;',
-                'display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);',
+                'display: none; box-shadow: 0 4px 6px rgba(0,0,0,.1);',
                 'top: 100%; left: 0; margin-top: 4px;'
             ].join('');
             descriptionInput.parentElement.style.position = 'relative';
@@ -391,16 +443,10 @@
 
             if (!descriptionInput) return;
 
-            // Set initial auto-generated code if empty
-            if (codeInput && !codeInput.value) {
-                codeInput.value = generateNextCode();
-            }
-
             var dropdown = createAutocompleteDropdown(descriptionInput, codeInput, categoryInput, uomInput, unitCostInput);
 
             function syncFromSelection(item) {
                 descriptionInput.value = item.name;
-                // Product Code always keeps its auto-generated value
                 if (categoryInput) categoryInput.value = item.category || '';
                 if (uomInput) uomInput.value = item.uom || '';
                 if (unitCostInput) unitCostInput.value = item.cost || '';
@@ -487,22 +533,47 @@
             removeButton.addEventListener('click', function() {
                 row.remove();
                 updateIndexes();
+                if (currentCodePrefix) {
+                    renumberAllItemCodes();
+                }
             });
         }
 
         function recalcNextSeq() {
             var container = document.getElementById('receiving-items');
-            var maxSeq = 0;
+            var maxNewSeqs = {};
             Array.from(container.querySelectorAll('.item-code-input')).forEach(function(input) {
                 var val = input.value || '';
-                // Match format PC{yy}{mm}{seq} - exactly 6 chars prefix (PC + YY + MM) + 4 digits
-                var match = val.match(/^PC\d{6}(\d{4})$/);
-                if (match) {
-                    var seq = parseInt(match[1], 10);
-                    if (seq > maxSeq) maxSeq = seq;
+                var matchNew = val.match(/^([A-Za-z]+)-\d{2}-\d{2}-(\d{4})$/);
+                if (matchNew) {
+                    var prefix = matchNew[1];
+                    var seq = parseInt(matchNew[2], 10);
+                    if (!maxNewSeqs[prefix] || seq > maxNewSeqs[prefix]) {
+                        maxNewSeqs[prefix] = seq;
+                    }
                 }
             });
-            nextSeq = maxSeq + 1;
+
+            Object.keys(maxNewSeqs).forEach(function(prefix) {
+                codeSequences[prefix] = maxNewSeqs[prefix] + 1;
+            });
+        }
+
+        function renumberAllItemCodes() {
+            var container = document.getElementById('receiving-items');
+            var prefix = currentCodePrefix;
+            if (!prefix) return;
+
+            var inputs = Array.from(container.querySelectorAll('.item-code-input'));
+            var dbSeq = programSequences[prefix] || 0;
+            var seq = dbSeq;
+
+            inputs.forEach(function(input) {
+                input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(seq).padStart(4, '0');
+                seq++;
+            });
+
+            codeSequences[prefix] = seq;
         }
 
         function updateIndexes() {
@@ -532,7 +603,8 @@
             var row = clone.querySelector('.receiving-item-row');
             var container = document.getElementById('receiving-items');
 
-            // Set auto-generated code for the new item
+            recalcNextSeq();
+
             var codeInput = row.querySelector('.item-code-input');
             if (codeInput) codeInput.value = generateNextCode();
 
@@ -549,6 +621,15 @@
         });
         updateIndexes();
         recalcNextSeq();
+
+        // If a program is already pre-selected on page load, initialize the code prefix
+        if (programInput && programInput.value.trim()) {
+            var matched = programsData.find(function(p) { return p.nameLower === programInput.value.trim().toLowerCase(); });
+            if (matched) {
+                currentCodePrefix = matched.description || '';
+                refreshAllItemCodes();
+            }
+        }
 
         // Add item button
         document.getElementById('add-receiving-item-button').addEventListener('click', addItemRow);

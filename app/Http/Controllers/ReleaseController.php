@@ -80,7 +80,7 @@ class ReleaseController extends Controller
 
     public function index(Request $request)
     {
-        $query = Release::query()->latest('date_released');
+        $query = Release::query()->with('items')->latest('date_released');
 
         $search = trim((string) $request->input('search', ''));
         if ($search !== '') {
