@@ -101,42 +101,42 @@
         @endif
     </div>
 
-    {{-- Items Table --}}
-    <h2 class="section-title" style="margin-bottom:0.75rem;">Items</h2>
-    <div class="table-wrapper">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Item Description</th>
-                    <th>Product Code</th>
-                    <th>Lot Number</th>
-                    <th>Expiration</th>
-                    <th>Qty</th>
-                    <th>Unit</th>
-                    <th>Unit Cost</th>
-                    <th>Total Cost</th>
-                </tr>
-            </thead>
-            <tbody>
-                @php $grandTotal = 0; @endphp
-                @forelse($pas->items as $i => $item)
-                    @php $grandTotal += (float) $item->total_cost; @endphp
-                    <tr>
-                        <td>{{ $i + 1 }}</td>
-                        <td>{{ $item->item_description }}</td>
-                        <td>{{ $item->product_code ?? $item->item?->item_code ?? '—' }}</td>
-                        <td>{{ $item->lot_number ?? '—' }}</td>
-                        <td>{{ $item->expiration_date?->format('M d, Y') ?? '—' }}</td>
-                        <td>{{ number_format($item->quantity) }}</td>
-                        <td>{{ $item->unit }}</td>
-                        <td>{{ number_format($item->unit_cost, 2) }}</td>
-                        <td>{{ number_format($item->total_cost, 2) }}</td>
-                    </tr>
-                @empty
-                    <tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:2rem;">No items recorded.</td></tr>
-                @endforelse
-            </tbody>
+     {{-- Items Table --}}
+     <h2 class="section-title" style="margin-bottom:0.75rem;">Items</h2>
+     <div class="table-wrapper">
+         <table class="data-table">
+             <thead>
+                 <tr>
+                     <th>#</th>
+                     <th class="col-hide-md">Product Code</th>
+                     <th>Item Description</th>
+                     <th class="col-hide-md">Lot Number</th>
+                     <th class="col-hide-md">Expiration</th>
+                     <th>Qty</th>
+                     <th>Unit</th>
+                     <th>Unit Cost</th>
+                     <th>Total Cost</th>
+                 </tr>
+             </thead>
+             <tbody>
+                 @php $grandTotal = 0; @endphp
+                 @forelse($pas->items as $i => $item)
+                     @php $grandTotal += (float) $item->total_cost; @endphp
+                     <tr>
+                         <td class="mobile-card-header">{{ $i + 1 }}</td>
+                         <td data-label="Product Code" class="col-hide-md">{{ $item->product_code ?? $item->item?->item_code ?? '—' }}</td>
+                         <td data-label="Item Description">{{ $item->item_description }}</td>
+                         <td data-label="Lot Number" class="col-hide-md">{{ $item->lot_number ?? '—' }}</td>
+                         <td data-label="Expiration" class="col-hide-md">{{ $item->expiration_date?->format('M d, Y') ?? '—' }}</td>
+                         <td data-label="Qty">{{ number_format($item->quantity) }}</td>
+                         <td data-label="Unit">{{ $item->unit }}</td>
+                         <td data-label="Unit Cost">{{ number_format($item->unit_cost, 2) }}</td>
+                         <td data-label="Total Cost">{{ number_format($item->total_cost, 2) }}</td>
+                     </tr>
+                 @empty
+                     <tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:2rem;">No items recorded.</td></tr>
+                 @endforelse
+             </tbody>
             @if($pas->items->count())
             <tfoot>
                 <tr>

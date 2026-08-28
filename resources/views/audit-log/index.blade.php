@@ -62,70 +62,57 @@
                     <th class="col-hide-md">Changes</th>
                 </tr>
             </thead>
-            <tbody>
-                @forelse($logs as $log)
-                    <tr>
-                        <td style="white-space:nowrap; color:var(--text-muted); font-size:0.85rem;">
-                            {{ $log->created_at->format('M d, Y') }}<br>
-                            <span style="font-size:0.78rem;">{{ $log->created_at->format('h:i:s A') }}</span>
-                        </td>
-                        <td style="font-weight:600;">{{ $log->user_name ?? '—' }}</td>
-                        <td>
-                            <span style="padding:0.2rem 0.6rem; border-radius:999px; font-size:0.75rem; font-weight:700; background:rgba(37,99,235,0.1); color:var(--primary);">
-                                {{ $log->module }}
-                            </span>
-                        </td>
-                        <td>
-                            @php
-                                $actionColors = [
-                                    'created' => 'background:rgba(22,163,74,0.12); color:#16a34a;',
-                                    'updated' => 'background:rgba(217,119,6,0.12); color:#d97706;',
-                                    'deleted' => 'background:rgba(220,38,38,0.12); color:#dc2626;',
-                                ];
-                                $style = $actionColors[$log->action] ?? 'background:rgba(100,116,139,0.12); color:#64748b;';
-                            @endphp
-                            <span style="padding:0.2rem 0.6rem; border-radius:999px; font-size:0.75rem; font-weight:700; {{ $style }}">
-                                {{ ucfirst($log->action) }}
-                            </span>
-                        </td>
-                        <td style="font-size:0.88rem;">
-                            <span style="font-weight:600;">{{ $log->record_label ?? '—' }}</span>
-                            @if($log->record_id)
-                                <span style="color:var(--text-muted); font-size:0.78rem;"> #{{ $log->record_id }}</span>
-                            @endif
-                        </td>
-                        <td class="col-hide-md" style="font-size:0.82rem; color:var(--text-muted);">{{ $log->ip_address ?? '—' }}</td>
-                        <td class="col-hide-md" style="font-size:0.82rem;">
-                            @if(!empty($log->changes))
-                                <div style="display:flex; flex-direction:column; gap:0.3rem;">
-                                    @foreach($log->changes as $field => $change)
-                                        <div>
-                                            <span style="font-weight:600; color:var(--text);">{{ str_replace('_', ' ', $field) }}:</span>
-                                            @if($change['old'] !== null && $change['old'] !== '')
-                                                <span style="color:var(--danger); text-decoration:line-through; margin-right:0.3rem;">{{ is_array($change['old']) ? json_encode($change['old']) : $change['old'] }}</span>
-                                                <span style="color:var(--text-muted);">→</span>
-                                            @endif
-                                            <span style="color:#16a34a; margin-left:0.3rem;">{{ is_array($change['new']) ? json_encode($change['new']) : $change['new'] }}</span>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @elseif($log->action === 'created')
-                                <span style="color:var(--text-muted); font-size:0.8rem;">Record created</span>
-                            @elseif($log->action === 'deleted')
-                                <span style="color:var(--danger); font-size:0.8rem;">Record deleted</span>
-                            @else
-                                <span style="color:var(--text-muted);">—</span>
-                            @endif
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" style="padding:2.5rem; text-align:center; color:var(--text-muted);">
-                            No audit log entries found.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
+             <tbody>
+                 @forelse($logs as $log)
+                     <tr>
+                          <td class="mobile-card-header" style="white-space:nowrap;">
+                               <span style="font-weight:600;color:var(--text);">{{ $log->created_at->format('M d, Y') }}</span>
+                          </td>
+                          <td data-label="User" style="font-weight:600;">{{ $log->user_name ?? '—' }}</td>
+                               <td data-label="Module">
+                               <span style="padding:0.2rem 0.6rem; border-radius:999px; font-size:0.75rem; font-weight:700; background:rgba(220,38,38,0.12); color:var(--text);">{{ $log->module }}</span>
+                           </td>
+                          <td data-label="Action">
+                              <span style="padding:0.2rem 0.6rem; border-radius:999px; font-size:0.75rem; font-weight:700; background:rgba(220,38,38,0.12); color:var(--danger);">{{ ucfirst($log->action) }}</span>
+                          </td>
+                         <td data-label="Record" style="font-size:0.88rem;">
+                             <span style="font-weight:600;">{{ $log->record_label ?? '—' }}</span>
+                             @if($log->record_id)
+                                 <span style="color:var(--text-muted); font-size:0.78rem;"> #{{ $log->record_id }}</span>
+                             @endif
+                         </td>
+                          <td data-label="IP Address" class="col-hide-md" style="font-size:0.82rem; color:var(--text-muted);">{{ $log->ip_address ?? '—' }}</td>
+                          <td data-label="Changes" class="col-hide-md" style="font-size:0.82rem;">
+                             @if(!empty($log->changes))
+                                 <div style="display:flex; flex-direction:column; gap:0.3rem;">
+                                     @foreach($log->changes as $field => $change)
+                                         <div>
+                                             <span style="font-weight:600; color:var(--text);">{{ str_replace('_', ' ', $field) }}:</span>
+                                             @if($change['old'] !== null && $change['old'] !== '')
+                                                 <span style="color:var(--danger); text-decoration:line-through; margin-right:0.3rem;">{{ is_array($change['old']) ? json_encode($change['old']) : $change['old'] }}</span>
+                                                 <span style="color:var(--text-muted);">→</span>
+                                             @endif
+                                              <span style="color:var(--success); margin-left:0.3rem;">{{ is_array($change['new']) ? json_encode($change['new']) : $change['new'] }}</span>
+                                         </div>
+                                     @endforeach
+                                 </div>
+                             @elseif($log->action === 'created')
+                                 <span style="color:var(--text-muted); font-size:0.8rem;">Record created</span>
+                             @elseif($log->action === 'deleted')
+                                 <span style="color:var(--danger); font-size:0.8rem;">Record deleted</span>
+                             @else
+                                 <span style="color:var(--text-muted);">—</span>
+                             @endif
+                         </td>
+                     </tr>
+                 @empty
+                     <tr>
+                         <td colspan="5" style="padding:2.5rem; text-align:center; color:var(--text-muted);">
+                             No audit log entries found.
+                         </td>
+                     </tr>
+                 @endforelse
+             </tbody>
         </table>
     </div>
 

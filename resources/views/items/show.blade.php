@@ -100,58 +100,62 @@
         <div class="table-container">
             <table>
                 <thead>
-                    <tr>
-                        <th>Product Code</th>
-                        <th>Location</th>
-                        <th>Current Stock</th>
-                        <th>Unit Cost</th>
-                        <th>Program (SKU)</th>
-                        <th>Supplier</th>
-                        <th>Status</th>
-                        <th>Expiry</th>
-                        <th style="text-align:center;">Actions</th>
-                    </tr>
+                     <tr>
+                         <th>Product Code</th>
+                         <th>Location</th>
+                         <th>Current Stock</th>
+                         <th class="col-hide-md">Unit Cost</th>
+                         <th class="col-hide-md">Program (SKU)</th>
+                         <th>Supplier</th>
+                         <th>Status</th>
+                         <th>Expiry</th>
+                         <th style="text-align:center;">Actions</th>
+                     </tr>
                 </thead>
-                <tbody id="productCodesTableBody">
-                    @forelse($items as $groupedItem)
-                        <tr class="product-code-row"
-                            data-productcode="{{ $groupedItem->item_code }}"
-                            data-location="{{ $groupedItem->location ?? '' }}"
-                            data-status="{{ $groupedItem->status }}">
-                            <td><span style="font-weight:600;">{{ $groupedItem->item_code }}</span></td>
-                            <td style="color:var(--text-muted);">{{ $groupedItem->location ?? '—' }}</td>
-                            <td>
-                                <span style="font-weight:700; color:{{ $groupedItem->quantity_on_hand > 0 ? 'var(--text)' : 'var(--danger)' }};">
-                                    {{ number_format($groupedItem->quantity_on_hand) }}
-                                </span>
-                            </td>
-                            <td>{{ $groupedItem->unit_cost ? number_format($groupedItem->unit_cost, 2) : '0.00' }}</td>
-                            <td style="color:var(--text-muted); font-size:0.9rem;">{{ $groupedItem->stock_keeping_unit ?? '—' }}</td>
-                            <td>
-                                @php
-                                    $stypes = $groupedItem->receivingItems->map(fn($ri) => $ri->receiving?->supplier?->supplier_type)->filter()->unique()->sort()->values();
-                                    $hasDoh = $stypes->contains('DOH');
-                                    $hasGso = $stypes->contains('GSO');
-                                @endphp
-                                @if($hasDoh && $hasGso)
-                                    <span style="padding:0.2rem 0.55rem; border-radius:999px; font-size:0.75rem; font-weight:700; background:linear-gradient(90deg,rgba(37,99,235,0.15),rgba(8,145,178,0.15)); color:var(--primary); border:1px solid rgba(37,99,235,0.2);">DOH-GSO</span>
-                                @elseif($hasDoh)
-                                    <span style="padding:0.2rem 0.55rem; border-radius:999px; font-size:0.75rem; font-weight:700; background:rgba(37,99,235,0.12); color:var(--primary);">DOH</span>
-                                @elseif($hasGso)
-                                    <span style="padding:0.2rem 0.55rem; border-radius:999px; font-size:0.75rem; font-weight:700; background:rgba(8,145,178,0.12); color:#0891b2;">GSO</span>
-                                @else
-                                    <span style="color:var(--text-muted); font-size:0.85rem;">—</span>
-                                @endif
-                            </td>
-                            <td><span class="status-pill {{ $groupedItem->status_class }}">{{ $groupedItem->status }}</span></td>
-                            <td><span class="status-pill {{ $groupedItem->expiry_badge_class }}" style="font-size:0.78rem;">{{ $groupedItem->expiry_label }}</span></td>
-                            <td style="text-align:center;">
-                                <a href="{{ route('items.productcode.show', ['item' => $item, 'productCode' => $groupedItem->item_code]) }}" class="btn btn-secondary" style="min-height:auto; padding:0.35rem 0.85rem; font-size:0.82rem; gap:0.3rem;">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                    View
-                                </a>
-                            </td>
-                        </tr>
+                 <tbody id="productCodesTableBody">
+                     @forelse($items as $groupedItem)
+                         <tr class="product-code-row"
+                             data-productcode="{{ $groupedItem->item_code }}"
+                             data-location="{{ $groupedItem->location ?? '' }}"
+                             data-status="{{ $groupedItem->status }}">
+                              <td class="mobile-card-header">
+                                  <span style="font-weight:600;color:var(--text);">{{ $groupedItem->item_code }}</span>
+                              </td>
+                              <td data-label="Location" style="color:var(--text-muted);">{{ $groupedItem->location ?? '—' }}</td>
+                              <td data-label="Current Stock">
+                                  <span style="font-weight:700; color:{{ $groupedItem->quantity_on_hand > 0 ? 'var(--text)' : 'var(--danger)' }};">
+                                      {{ number_format($groupedItem->quantity_on_hand) }}
+                                  </span>
+                              </td>
+                              <td data-label="Unit Cost" class="col-hide-md">{{ $groupedItem->unit_cost ? number_format($groupedItem->unit_cost, 2) : '0.00' }}</td>
+                              <td data-label="Program (SKU)" class="col-hide-md" style="color:var(--text-muted); font-size:0.9rem;">{{ $groupedItem->stock_keeping_unit ?? '—' }}</td>
+                              <td data-label="Supplier">
+                                  @php
+                                      $stypes = $groupedItem->receivingItems->map(fn($ri) => $ri->receiving?->supplier?->supplier_type)->filter()->unique()->sort()->values();
+                                      $hasDoh = $stypes->contains('DOH');
+                                      $hasGso = $stypes->contains('GSO');
+                                  @endphp
+                                  @if($hasDoh && $hasGso)
+                                      <span style="padding:0.2rem 0.55rem; border-radius:999px; font-size:0.75rem; font-weight:700; background:linear-gradient(90deg,rgba(37,99,235,0.15),rgba(8,145,178,0.15)); color:var(--primary); border:1px solid rgba(37,99,235,0.2);">DOH-GSO</span>
+                                  @elseif($hasDoh)
+                                      <span style="padding:0.2rem 0.55rem; border-radius:999px; font-size:0.75rem; font-weight:700; background:rgba(37,99,235,0.12); color:var(--primary);">DOH</span>
+                                  @elseif($hasGso)
+                                      <span style="padding:0.2rem 0.55rem; border-radius:999px; font-size:0.75rem; font-weight:700; background:rgba(8,145,178,0.12); color:var(--accent);">GSO</span>
+                                  @else
+                                      <span style="color:var(--text-muted); font-size:0.85rem;">—</span>
+                                  @endif
+                              </td>
+                              <td data-label="Status">
+                                  <span class="status-pill {{ $groupedItem->status_class }}">{{ $groupedItem->status }}</span>
+                              </td>
+                              <td data-label="Expiry"><span class="status-pill {{ $groupedItem->expiry_badge_class }}" style="font-size:0.78rem;">{{ $groupedItem->expiry_label }}</span></td>
+                             <td class="mobile-card-actions" style="text-align:center;">
+                                 <a href="{{ route('items.productcode.show', ['item' => $item, 'productCode' => $groupedItem->item_code]) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.35rem 0.85rem;font-size:0.82rem;gap:0.3rem;">
+                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                     View
+                                 </a>
+                             </td>
+                         </tr>
                     @empty
                         <tr>
                             <td colspan="9" style="padding:2.5rem 1.25rem; text-align:center;">

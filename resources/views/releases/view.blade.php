@@ -238,33 +238,35 @@
             <div class="table-container">
                 <table>
                     <thead>
-                        <tr>
-<th style="text-align: left;">Item Description</th>
-                            <th style="text-align: center;">Batch/Lot No.</th>
-                            <th style="text-align: center;">Quantity</th>
-                            <th style="text-align: center;">UOM</th>
-                            <th style="text-align: right;">Unit Cost</th>
-                            <th style="text-align: right;">Total</th>
-                        </tr>
+                         <tr>
+                             <th style="text-align: left;">Item Description</th>
+                             <th style="text-align: center;" class="col-hide-md">Batch/Lot No.</th>
+                             <th style="text-align: center;">Quantity</th>
+                             <th style="text-align: center;">UOM</th>
+                             <th style="text-align: right;">Unit Cost</th>
+                             <th style="text-align: right;">Total</th>
+                         </tr>
                     </thead>
-                    <tbody>
-                        @forelse($release->items as $releaseItem)
-                            <tr>
-                                <td style="text-align: left; font-weight: 500;">{{ $releaseItem->item_description ?? '—' }}</td>
-                                <td style="text-align: center;">{{ $releaseItem->lot_number ?? '—' }}</td>
-                                <td style="text-align: center;">{{ $releaseItem->quantity_released }}</td>
-                                <td style="text-align: center;">{{ $releaseItem->uom ?? '—' }}</td>
-                                <td style="text-align: right;">₱ {{ isset($releaseItem->unit_cost) ? number_format($releaseItem->unit_cost, 2) : '—' }}</td>
-                                <td style="text-align: right; font-weight: 600; color: var(--primary);">₱ {{ isset($releaseItem->unit_cost) && isset($releaseItem->quantity_released) ? number_format($releaseItem->unit_cost * $releaseItem->quantity_released, 2) : '—' }}</td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" style="padding: 2rem; text-align: center;">
-                                    <div class="empty-state">
-                                        <strong style="font-size: 1rem;">No items found</strong>
-                                        <div style="margin-top: 0.5rem; color: var(--text-muted);">This release slip does not contain any released items.</div>
-                                    </div>
-                                </td>
+                     <tbody>
+                         @forelse($release->items as $releaseItem)
+                              <tr>
+                                  <td class="mobile-card-header">
+                                      <span style="font-weight:600;color:var(--text);">{{ $releaseItem->item_description ?? '—' }}</span>
+                                  </td>
+                                  <td data-label="Batch/Lot No." class="col-hide-md" style="text-align:center;">{{ $releaseItem->lot_number ?? '—' }}</td>
+                                  <td data-label="Quantity" style="text-align:center;">{{ $releaseItem->quantity_released }}</td>
+                                  <td data-label="UOM" style="text-align:center;">{{ $releaseItem->uom ?? '—' }}</td>
+                                  <td data-label="Unit Cost" style="text-align:right;">₱ {{ isset($releaseItem->unit_cost) ? number_format($releaseItem->unit_cost, 2) : '—' }}</td>
+                                  <td data-label="Total" style="text-align:right;font-weight:600;color:var(--danger);">₱ {{ isset($releaseItem->unit_cost) ? number_format($releaseItem->unit_cost * $releaseItem->quantity_released, 2) : '—' }}</td>
+                              </tr>
+                         @empty
+                             <tr>
+                                 <td colspan="6" style="padding: 2rem; text-align: center;">
+                                     <div class="empty-state">
+                                         <strong style="font-size: 1rem;">No items found</strong>
+                                         <div style="margin-top: 0.5rem; color: var(--text-muted);">This release slip does not contain any released items.</div>
+                                     </div>
+                                 </td>
                             </tr>
                         @endforelse
                     </tbody>

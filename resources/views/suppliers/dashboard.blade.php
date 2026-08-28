@@ -116,24 +116,24 @@
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        @foreach($topSuppliers as $index => $supplier)
-                            <tr>
-                                <td>{{ $index + 1 }}</td>
-                                <td>
-                                    <a href="{{ route('suppliers.show', $supplier) }}" class="table-link" style="font-weight: 600;">
-                                        {{ $supplier->company_name }}
-                                    </a>
-                                </td>
-                                <td>
-                                    <span class="badge badge-primary">{{ $supplier->receivings_count }}</span>
-                                </td>
-                                <td>
-                                    <a href="{{ route('suppliers.show', $supplier) }}" class="table-link">View Dashboard</a>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
+                     <tbody>
+                         @foreach($topSuppliers as $index => $supplier)
+                             <tr>
+                                 <td class="mobile-card-header">
+                                     <span style="font-weight:700;color:#991B1B;">#{{ $index + 1 }}</span>
+                                     <span class="badge badge-primary">{{ $supplier->receivings_count }} receivings</span>
+                                 </td>
+                                 <td data-label="Company Name">
+                                     <a href="{{ route('suppliers.show', $supplier) }}" class="table-link" style="font-weight:600;color:#991B1B;">
+                                         {{ $supplier->company_name }}
+                                     </a>
+                                 </td>
+                                 <td class="mobile-card-actions">
+                                     <a href="{{ route('suppliers.show', $supplier) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">View Dashboard</a>
+                                 </td>
+                             </tr>
+                         @endforeach
+                     </tbody>
                 </table>
             </div>
         @endif
@@ -166,27 +166,23 @@
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        @foreach($suppliers as $supplier)
-                            <tr>
-                                <td>
-                                    <a href="{{ route('suppliers.show', $supplier) }}" class="table-link" style="font-weight: 600;">
-                                        {{ $supplier->company_name }}
-                                    </a>
-                                </td>
-                                <td>{{ $supplier->contact_person ?? '—' }}</td>
-                                <td>{{ $supplier->phone_number ?? '—' }}</td>
-                                <td>{{ $supplier->email ?? '—' }}</td>
-                                <td>
-                                    <span class="badge badge-primary">{{ $supplier->receivings_count }}</span>
-                                </td>
-                                <td>
-                                    <a href="{{ route('suppliers.show', $supplier) }}" class="table-link">View</a>
-                                    <a href="{{ route('suppliers.edit', $supplier) }}" class="table-link">Edit</a>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
+                     <tbody>
+                         @foreach($suppliers as $supplier)
+                             <tr>
+                                 <td class="mobile-card-header">
+                                     <span style="font-weight:600;color:#991B1B;">{{ $supplier->company_name }}</span>
+                                     <span class="badge badge-primary">{{ $supplier->receivings_count }}</span>
+                                 </td>
+                                 <td data-label="Contact Person">{{ $supplier->contact_person ?? '—' }}</td>
+                                 <td data-label="Phone">{{ $supplier->phone_number ?? '—' }}</td>
+                                 <td data-label="Email">{{ $supplier->email ?? '—' }}</td>
+                                 <td class="mobile-card-actions">
+                                     <a href="{{ route('suppliers.show', $supplier) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">View</a>
+                                     <a href="{{ route('suppliers.edit', $supplier) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">Edit</a>
+                                 </td>
+                             </tr>
+                         @endforeach
+                     </tbody>
                 </table>
             </div>
             <x-pagination.modern :paginator="$suppliers" />

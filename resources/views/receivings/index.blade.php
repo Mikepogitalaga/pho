@@ -73,42 +73,44 @@
                         <th>Item Description</th>
                         <th>Supplier</th>
                         <th>PO No.</th>
-                        <th>Date Received</th>
-                        <th>Received By</th>
+                        <th class="col-hide-md">Date Received</th>
+                        <th class="col-hide-md">Received By</th>
                         <th>Location</th>
-                        <th>Program</th>
+                        <th class="col-hide-md">Program</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($receivings as $receiving)
-                        <tr>
-                            <td>{{ $receiving->ics_ptr_ris ?? '—' }}</td>
-                            <td>
-                                <div class="item-desc-cell">
-                                    <div class="item-desc-primary">{{ $receiving->items->first()?->item_description ?? '—' }}</div>
-                                    @php
-                                        $allDescriptions = $receiving->items->pluck('item_description')->filter()->values();
-                                    @endphp
-                                    @if($allDescriptions->count() > 1)
-                                        <button type="button" class="btn btn-ghost view-items-btn" style="padding:0; min-height:auto; font-size:0.8rem;" data-items='@json($allDescriptions)'>
-                                            View {{ $allDescriptions->count() }} items
-                                        </button>
-                                    @endif
-                                    <div class="items-dropdown" style="display:none;"></div>
-                                </div>
-                            </td>
-                            <td>{{ $receiving->supplier->company_name }}</td>
-                            <td>{{ $receiving->po_number }}</td>
-                            <td>{{ $receiving->date_received->format('M d, Y') }}</td>
-                            <td>{{ $receiving->received_by }}</td>
-                            <td>{{ $receiving->location }}</td>
-                            <td>{{ $receiving->stock_keeping_unit ?? '—' }}</td>
-                            <td>
-                                <a href="{{ route('receivings.view', $receiving) }}" class="table-link" aria-label="View receiving">View</a>
-                            </td>
-                        </tr>
-                    @empty
+                     @forelse ($receivings as $receiving)
+                         <tr>
+                              <td class="mobile-card-header">
+                                  <span>{{ $receiving->ics_ptr_ris ?? '—' }}</span>
+                              </td>
+                              <td data-label="Item Description">
+                                  <div class="item-desc-cell">
+                                      <div class="item-desc-primary">{{ $receiving->items->first()?->item_description ?? '—' }}</div>
+                                      @php
+                                          $allDescriptions = $receiving->items->pluck('item_description')->filter()->values();
+                                      @endphp
+                                      @if($allDescriptions->count() > 1)
+                                          <button type="button" class="btn btn-ghost view-items-btn" style="padding:0; min-height:auto; font-size:0.8rem;" data-items='@json($allDescriptions)'>
+                                              View {{ $allDescriptions->count() }} items
+                                          </button>
+                                      @endif
+                                      <div class="items-dropdown" style="display:none;"></div>
+                                  </div>
+                              </td>
+                              <td data-label="Supplier">{{ $receiving->supplier->company_name }}</td>
+                              <td data-label="PO No.">{{ $receiving->po_number }}</td>
+                              <td data-label="Date Received" class="col-hide-md">{{ $receiving->date_received->format('M d, Y') }}</td>
+                              <td data-label="Received By" class="col-hide-md">{{ $receiving->received_by }}</td>
+                              <td data-label="Location">{{ $receiving->location }}</td>
+                              <td data-label="Program" class="col-hide-md">{{ $receiving->stock_keeping_unit ?? '—' }}</td>
+                             <td class="mobile-card-actions">
+                                 <a href="{{ route('receivings.view', $receiving) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">View</a>
+                             </td>
+                         </tr>
+                     @empty
                         <tr>
                             <td colspan="9" style="padding: 1.25rem;">
                                 <div class="empty-state">
@@ -175,10 +177,10 @@
             top: 100%;
             left: 0;
             z-index: 1050;
-            background: #fff;
+            background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 0.5rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,.15);
+            box-shadow: var(--shadow);
             padding: 0.35rem 0;
             min-width: 260px;
             max-width: 420px;

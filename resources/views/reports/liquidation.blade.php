@@ -166,70 +166,66 @@
         <div class="table-container">
             <table>
                 <thead>
-                    <tr>
-                        <th>PTR Number</th>
-                        <th>Facility / End-user</th>
-                        <th>Date Released</th>
-                        <th>Item Description</th>
-                        <th>Category</th>
-                        <th style="text-align: center;">Quantity</th>
-                        <th style="text-align: center;">UOM</th>
-                        <th style="text-align: right;">Unit Cost</th>
-                        <th style="text-align: right;">Total</th>
-                        <th style="text-align: center;">Status</th>
-                        <th style="text-align: center;">Actions</th>
-                    </tr>
+                     <tr>
+                         <th>PTR Number</th>
+                         <th>Facility / End-user</th>
+                         <th>Date Released</th>
+                         <th>Item Description</th>
+                         <th class="col-hide-md">Category</th>
+                         <th style="text-align: center;">Quantity</th>
+                         <th style="text-align: center;" class="col-hide-md">UOM</th>
+                         <th style="text-align: right;" class="col-hide-md">Unit Cost</th>
+                         <th style="text-align: right;">Total</th>
+                         <th style="text-align: center;">Status</th>
+                         <th style="text-align: center;">Actions</th>
+                     </tr>
                 </thead>
                 <tbody>
-                    @if($releases->count() > 0)
-                        @forelse ($releases as $release)
-                            @php
-                                $filteredItems = $release->items;
-                                if (request('category')) {
-                                    $filteredItems = $filteredItems->where('category', request('category'));
-                                }
-                            @endphp
-                            @if($filteredItems->count() > 0)
-                                @foreach($filteredItems as $item)
-                                    <tr>
-                                        <td>{{ $release->ptr_itr_ris_no ?? $release->release_number }}</td>
-                                        <td>{{ $release->facility_name }}</td>
-                                        <td>{{ optional($release->date_released)->format('M d, Y') ?? '—' }}</td>
-                                        <td>{{ $item->item_description }}</td>
-                                        <td>{{ $item->item?->category ?? '—' }}</td>
-                                        <td style="text-align: center;">{{ $item->quantity_released }}</td>
-                                        <td style="text-align: center;">{{ $item->uom }}</td>
-                                        <td style="text-align: right;">₱ {{ isset($item->unit_cost) ? number_format($item->unit_cost, 2) : '—' }}</td>
-                                        <td style="text-align: right; font-weight: 600; color: var(--primary);">₱ {{ isset($item->unit_cost) ? number_format($item->unit_cost * $item->quantity_released, 2) : '—' }}</td>
-                                        <td style="text-align: center;">
-                                            @php
-                                                $statusClass = match($release->status) {
-                                                    'Released' => 'badge-success',
-                                                    'Released through pass' => 'badge-success',
-                                                    'Unreleased' => 'badge-secondary',
-                                                    'Canceled' => 'badge-danger',
-                                                    'Returned' => 'badge-warning',
-                                                    default => 'badge-secondary',
-                                                };
-                                            @endphp
-                                            <span class="badge {{ $statusClass }}">{{ $release->status }}</span>
-                                        </td>
-                                        <td style="text-align: center;">
-                                            <div class="table-row-actions">
-                                                <a href="{{ route('releases.view', $release->id) }}" class="btn btn-link" title="View details">
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                                </a>
-                                                <a href="{{ route('reports.liquidation.export', ['release' => $release->id] + request()->query()) }}" class="btn btn-link" title="Export this release">
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                                                </a>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            @endif
-                        @empty
-                        @endforelse
-                    @endif
+                     @if($releases->count() > 0)
+                         @forelse ($releases as $release)
+                             @php
+                                 $filteredItems = $release->items;
+                                 if (request('category')) {
+                                     $filteredItems = $filteredItems->where('category', request('category'));
+                                 }
+                             @endphp
+                             @if($filteredItems->count() > 0)
+                                 @foreach($filteredItems as $item)
+                                      <tr>
+                                          <td class="mobile-card-header">
+                                              <span style="font-weight:600;color:var(--text);">{{ $release->ptr_itr_ris_no ?? $release->release_number }}</span>
+                                          </td>
+                                          <td data-label="Facility / End-user">{{ $release->facility_name }}</td>
+                                          <td data-label="Date Released">{{ optional($release->date_released)->format('M d, Y') ?? '—' }}</td>
+                                          <td data-label="Item Description">{{ $item->item_description }}</td>
+                                          <td data-label="Category" class="col-hide-md">{{ $item->item?->category ?? '—' }}</td>
+                                          <td data-label="Quantity" style="text-align:center;">{{ $item->quantity_released }}</td>
+                                          <td data-label="UOM" class="col-hide-md" style="text-align:center;">{{ $item->uom }}</td>
+                                          <td data-label="Unit Cost" class="col-hide-md" style="text-align:right;">₱ {{ isset($item->unit_cost) ? number_format($item->unit_cost, 2) : '—' }}</td>
+                                          <td data-label="Total" style="text-align:right;font-weight:600;color:var(--danger);">₱ {{ isset($item->unit_cost) ? number_format($item->unit_cost * $item->quantity_released, 2) : '—' }}</td>
+                                          <td data-label="Status" style="text-align:center;">
+                                              @php
+                                                  $statusClass = match($release->status) {
+                                                      'Released' => 'badge-success',
+                                                      'Released through pass' => 'badge-success',
+                                                      'Unreleased' => 'badge-secondary',
+                                                      'Canceled' => 'badge-danger',
+                                                      'Returned' => 'badge-warning',
+                                                      default => 'badge-secondary',
+                                                  };
+                                              @endphp
+                                              <span class="badge {{ $statusClass }}">{{ $release->status }}</span>
+                                          </td>
+                                         <td class="mobile-card-actions" style="text-align:center;">
+                                             <a href="{{ route('releases.view', $release->id) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">View</a>
+                                             <a href="{{ route('reports.liquidation.export', ['release' => $release->id] + request()->query()) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">Export</a>
+                                         </td>
+                                     </tr>
+                                 @endforeach
+                             @endif
+                         @empty
+                         @endforelse
+                     @endif
                     @if($releases->count() === 0 || $releases->sum(function($r) { 
                             $items = $r->items;
                             if (request('category')) {

@@ -33,44 +33,46 @@
             <thead>
                 <tr>
                     <th>PAS Number</th>
-                    <th>Date of PASS</th>
+                    <th class="col-hide-md">Date of PASS</th>
                     <th>Date Released</th>
-                    <th>Supplier</th>
+                    <th class="col-hide-md">Supplier</th>
                     <th>Facility / Coordinator</th>
-                    <th>Program</th>
+                    <th class="col-hide-md">Program</th>
                     <th>Purpose / Activity</th>
                     <th>Status</th>
-                    <th>Actions</th>
+                    <th style="text-align:center;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($slips as $slip)
-                    <tr>
-                        <td><strong>{{ $slip->pas_number }}</strong></td>
-                        <td>{{ $slip->date_of_pass?->format('M d, Y') }}</td>
-                        <td>{{ $slip->date_released?->format('M d, Y') ?? '—' }}</td>
-                        <td>{{ $slip->supplier?->company_name ?? '—' }}</td>
-                        <td>{{ $slip->facility_coordinator }}</td>
-                        <td>{{ $slip->program ?? '—' }}</td>
-                        <td>{{ $slip->purpose_activity ?? '—' }}</td>
-                        <td>
-                            @php
-                                $linkedRelease = $slip->release;
-                                $displayStatus = $slip->status;
-                                if ($slip->status === 'Pending' && $linkedRelease) {
-                                    $displayStatus = 'PTR created';
-                                }
-                                $badgeClass = match($displayStatus) {
-                                    'Released' => 'badge-success',
-                                    'Canceled' => 'badge-danger',
-                                    'PTR created' => 'badge-success',
-                                    default    => 'badge-warning',
-                                };
-                            @endphp
-                            <span class="badge {{ $badgeClass }}">{{ $displayStatus }}</span>
-                        </td>
-                        <td>
-                            <a href="{{ route('pas.view', $slip) }}" class="btn btn-sm btn-secondary">View</a>
+                    @php
+                        $linkedRelease = $slip->release;
+                        $displayStatus = $slip->status;
+                        if ($slip->status === 'Pending' && $linkedRelease) {
+                            $displayStatus = 'PTR created';
+                        }
+                        $badgeClass = match($displayStatus) {
+                            'Released' => 'badge-success',
+                            'Canceled' => 'badge-danger',
+                            'PTR created' => 'badge-success',
+                            default    => 'badge-warning',
+                        };
+                    @endphp
+                     <tr>
+                         <td class="mobile-card-header">
+                             <strong>{{ $slip->pas_number }}</strong>
+                         </td>
+                         <td data-label="Date of PASS" class="col-hide-md">{{ $slip->date_of_pass?->format('M d, Y') }}</td>
+                         <td data-label="Date Released">{{ $slip->date_released?->format('M d, Y') ?? '—' }}</td>
+                         <td data-label="Supplier" class="col-hide-md">{{ $slip->supplier?->company_name ?? '—' }}</td>
+                         <td data-label="Facility / Coordinator">{{ $slip->facility_coordinator }}</td>
+                         <td data-label="Program" class="col-hide-md">{{ $slip->program ?? '—' }}</td>
+                         <td data-label="Purpose / Activity">{{ $slip->purpose_activity ?? '—' }}</td>
+                         <td data-label="Status">
+                             <span class="badge {{ $badgeClass }}">{{ $displayStatus }}</span>
+                         </td>
+                        <td class="mobile-card-actions" style="text-align:center;">
+                            <a href="{{ route('pas.view', $slip) }}" class="btn btn-secondary" style="min-height:auto; padding:0.35rem 0.85rem; font-size:0.82rem;">View</a>
                         </td>
                     </tr>
                 @empty

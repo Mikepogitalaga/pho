@@ -23,10 +23,6 @@
                         <h1 class="logo-title">Inventory</h1>
                     </div>
                 </div>
-                <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Collapse sidebar" aria-controls="sidebar" aria-expanded="true">
-                    <svg class="icon-collapse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/><line x1="18" y1="6" x2="18" y2="18" stroke-width="1.5"/></svg>
-                    <svg class="icon-expand" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="display:none"><path d="M9 18l6-6-6-6"/><line x1="6" y1="6" x2="6" y2="18" stroke-width="1.5"/></svg>
-                </button>
             </div>
 
             <nav class="sidebar-nav">
@@ -145,13 +141,17 @@
             </div>
         </aside>
 
-        <div class="main-panel">
-            <header class="app-topbar" role="banner">
-                <div class="app-topbar-start">
-                    <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Open navigation menu" aria-controls="sidebar" aria-expanded="false">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-                    </button>
-                    <div class="app-topbar-titles">
+         <div class="main-panel">
+             <header class="app-topbar" role="banner">
+                 <div class="app-topbar-start">
+                     <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Open navigation menu" aria-controls="sidebar" aria-expanded="false">
+                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                     </button>
+                     <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Collapse sidebar" aria-controls="sidebar" aria-expanded="true">
+                         <svg class="icon-collapse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/><line x1="18" y1="6" x2="18" y2="18" stroke-width="1.5"/></svg>
+                         <svg class="icon-expand" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="display:none"><path d="M9 18l6-6-6-6"/><line x1="6" y1="6" x2="6" y2="18" stroke-width="1.5"/></svg>
+                     </button>
+                     <div class="app-topbar-titles">
                         <h2 class="page-heading">@yield('pageHeading', $title ?? 'PHO Supply Office')</h2>
                         @if(view()->hasSection('pageSubheading'))
                             <p class="page-subheading">@yield('pageSubheading')</p>

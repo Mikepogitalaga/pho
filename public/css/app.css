@@ -174,8 +174,22 @@ button {
     padding-inline: 0;
 }
 
+.sidebar.is-collapsed .sidebar-link {
+    justify-content: center !important;
+    padding: 0.75rem 0 !important;
+    gap: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
 .sidebar.is-collapsed .sidebar-link-icon {
-    margin: 0 auto;
+    margin: 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 2.5rem !important;
+    height: 2.5rem !important;
 }
 
 .icon-collapse,
@@ -1476,6 +1490,32 @@ tbody tr:hover {
     color: var(--text-muted);
 }
 
+html[data-theme='dark'] .badge-success,
+html[data-theme='dark'] .status-pill.badge-success {
+    color: #4ade80;
+}
+
+html[data-theme='dark'] .badge-warning,
+html[data-theme='dark'] .status-pill.badge-warning {
+    color: #fbbf24;
+}
+
+html[data-theme='dark'] .badge-danger,
+html[data-theme='dark'] .status-pill.badge-danger {
+    color: #f87171;
+}
+
+html[data-theme='dark'] .badge-primary,
+html[data-theme='dark'] .status-pill.badge-primary {
+    color: #60a5fa;
+}
+
+html[data-theme='dark'] .badge-secondary,
+html[data-theme='dark'] .status-pill.badge-secondary {
+    background: rgba(100, 116, 139, 0.25);
+    color: #cbd5e1;
+}
+
 .empty-state {
     display: grid;
     gap: 0.25rem;
@@ -2382,5 +2422,127 @@ html[data-theme='dark'] .chart-card .section-card-title { color: #F87171; }
 @media (max-width: 768px) {
     .dashboard-kpi-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+/* ===== MOBILE TABLE CARD LAYOUT ===== */
+@media (max-width: 768px) {
+    .table-container,
+    .table-wrapper {
+        overflow-x: visible !important;
+    }
+    .table-container table,
+    .table-wrapper table,
+    .table-container .data-table,
+    .table-wrapper .data-table {
+        display: block !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+    .table-container table thead,
+    .table-wrapper table thead,
+    .table-container .data-table thead,
+    .table-wrapper .data-table thead {
+        display: none !important;
+    }
+    .table-container table tbody,
+    .table-wrapper table tbody,
+    .table-container .data-table tbody,
+    .table-wrapper .data-table tbody {
+        display: block !important;
+        width: 100% !important;
+    }
+    .table-container table tbody tr,
+    .table-wrapper table tbody tr,
+    .table-wrapper .data-table tbody tr {
+        display: flex !important;
+        flex-direction: column !important;
+        background: var(--surface) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: var(--radius-lg) !important;
+        margin-bottom: 0.75rem !important;
+        padding: 0 !important;
+        box-shadow: var(--shadow-sm) !important;
+        overflow: hidden !important;
+    }
+    .table-container table tbody tr:hover,
+    .table-wrapper table tbody tr:hover {
+        box-shadow: var(--shadow) !important;
+    }
+    .table-container table tbody td.mobile-card-header,
+    .table-wrapper table tbody td.mobile-card-header {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 0.75rem 1rem !important;
+        background: var(--surface-muted) !important;
+        border-bottom: 1px solid var(--border) !important;
+        font-size: 0.85rem !important;
+        font-weight: 600 !important;
+        color: var(--text) !important;
+        width: 100% !important;
+        border-radius: 0 !important;
+        gap: 0.75rem !important;
+    }
+    .table-container table tbody td:not(.mobile-card-header):not(.mobile-card-actions),
+    .table-wrapper table tbody td:not(.mobile-card-header):not(.mobile-card-actions) {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: flex-start !important;
+        padding: 0.5rem 1rem !important;
+        border-bottom: 1px solid var(--border) !important;
+        width: 100% !important;
+        font-size: 0.85rem !important;
+        gap: 1rem !important;
+    }
+    .table-container table tbody td:not(.mobile-card-header):not(.mobile-card-actions)::before,
+    .table-wrapper table tbody td:not(.mobile-card-header):not(.mobile-card-actions)::before {
+        content: attr(data-label);
+        font-weight: 600 !important;
+        font-size: 0.72rem !important;
+        color: var(--text-muted) !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+        flex-shrink: 0 !important;
+        min-width: 80px !important;
+    }
+    .table-container table tbody td:not(.mobile-card-header):not(.mobile-card-actions) > *,
+    .table-wrapper table tbody td:not(.mobile-card-header):not(.mobile-card-actions) > * {
+        text-align: right !important;
+        word-break: break-word !important;
+        flex: 1 !important;
+        white-space: normal !important;
+        overflow-wrap: break-word !important;
+    }
+    .table-container table tbody td.mobile-card-actions,
+    .table-wrapper table tbody td.mobile-card-actions {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 0.5rem !important;
+        padding: 0.75rem 1rem !important;
+        background: var(--surface-muted) !important;
+        border-top: 1px solid var(--border) !important;
+        width: 100% !important;
+        justify-content: center !important;
+        border-radius: 0 !important;
+    }
+    .table-container table tbody td.mobile-card-actions .btn,
+    .table-container table tbody td.mobile-card-actions a,
+    .table-container table tbody td.mobile-card-actions button,
+    .table-wrapper table tbody td.mobile-card-actions .btn,
+    .table-wrapper table tbody td.mobile-card-actions a,
+    .table-wrapper table tbody td.mobile-card-actions button {
+        flex: 1 !important;
+        min-width: 70px !important;
+        justify-content: center !important;
+        min-height: 2.5rem !important;
+        font-size: 0.8rem !important;
+    }
+    .table-container table tbody td[colspan],
+    .table-wrapper table tbody td[colspan] {
+        padding: 2rem 1rem !important;
+        text-align: center !important;
+        display: block !important;
+        width: 100% !important;
     }
 }

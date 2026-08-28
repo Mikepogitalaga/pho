@@ -111,42 +111,41 @@
                             <th style="text-align: center;">Action</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        @forelse($deductionHistory as $record)
-                            <tr>
-                                <td>{{ optional($record['date'])->format('M d, Y') ?? '—' }}</td>
-                                <td>
-                                    @php
-                                        $typeBg = match ($record['type']) {
-                                            'Released' => 'rgba(37, 99, 235, 0.1)',
-                                            'Release' => 'rgba(220, 38, 38, 0.1)',
-                                            'Canceled' => 'rgba(239, 68, 68, 0.1)',
-                                            'Returned' => 'rgba(34, 197, 94, 0.1)',
-                                            default => 'rgba(148, 163, 184, 0.1)',
-                                        };
-                                        $typeColor = match ($record['type']) {
-                                            'Released' => 'var(--primary)',
-                                            'Release' => 'var(--danger)',
-                                            'Canceled' => 'var(--danger)',
-                                            'Returned' => 'var(--success)',
-                                            default => 'var(--text)',
-                                        };
-                                    @endphp
-                                    <span class="badge" style="background: {{ $typeBg }}; color: {{ $typeColor }};">{{ $record['type'] }}</span>
-                                </td>
-                                <td><span style="font-weight:600;">{{ $record['item_code'] }}</span></td>
-                                <td>{{ $record['reference'] }}</td>
-                                <td style="max-width:220px;">
-                                    @if(in_array($record['type'], ['Canceled', 'Returned']))
-                                        {{ $record['reason'] ?? '—' }}
-                                    @else
-                                        —
-                                    @endif
-                                </td>
-                                <td style="text-align: center; font-weight: 600;
-                                    color: {{ ($record['direction'] ?? 'deduct') === 'restore' ? 'var(--success)' : 'var(--danger)' }}">
-                                    {{ ($record['direction'] ?? 'deduct') === 'restore' ? '+' : '−' }}{{ $record['quantity'] }}
-                                </td>
+                     <tbody>
+                         @forelse($deductionHistory as $record)
+                             <tr>
+                                 <td class="mobile-card-header">
+                                     <span style="font-weight:600;color:#991B1B;">{{ optional($record['date'])->format('M d, Y') ?? '—' }}</span>
+                                     @php
+                                         $typeColor = match ($record['type']) {
+                                             'Released' => 'var(--primary)',
+                                             'Release' => 'var(--danger)',
+                                             'Canceled' => 'var(--danger)',
+                                             'Returned' => 'var(--success)',
+                                             default => 'var(--text)',
+                                         };
+                                     @endphp
+                                     <span class="badge" style="background:rgba(220,38,38,0.1);color:#dc2626;">{{ $record['type'] }}</span>
+                                 </td>
+                                 <td data-label="Product Code"><span style="font-weight:600;">{{ $record['item_code'] }}</span></td>
+                                 <td data-label="Reference">{{ $record['reference'] }}</td>
+                                 <td data-label="Reason" style="max-width:220px;">
+                                     @if(in_array($record['type'], ['Canceled', 'Returned']))
+                                         {{ $record['reason'] ?? '—' }}
+                                     @else
+                                         —
+                                     @endif
+                                 </td>
+                                 <td data-label="Quantity" style="text-align:center;font-weight:600;color:{{ ($record['direction'] ?? 'deduct') === 'restore' ? 'var(--success)' : 'var(--danger)' }}">
+                                     {{ ($record['direction'] ?? 'deduct') === 'restore' ? '+' : '−' }}{{ $record['quantity'] }}
+                                 </td>
+                                 <td data-label="Facility / Receiver">{{ $record['facility'] ?? '—' }}</td>
+                                 <td class="mobile-card-actions" style="text-align:center;">
+                                     @if($record['type'] === 'Release' || $record['type'] === 'Released')
+                                         <a href="{{ route('releases.view', $record['release_id']) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">View</a>
+                                     @endif
+                                 </td>
+                             </tr>
                                 <td>{{ $record['facility'] }}</td>
                                 <td>
                                     @php

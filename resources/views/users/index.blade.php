@@ -46,68 +46,61 @@
                 <thead>
                     <tr>
                         <th style="padding-left:1.1rem;">Name</th>
-                        <th>ID No.</th>
+                        <th class="col-hide-md">ID No.</th>
                         <th>Email</th>
-                        <th>Address</th>
-                        <th>Role</th>
+                        <th class="col-hide-md">Address</th>
+                        <th class="col-hide-md">Role</th>
                         <th>Status</th>
                         <th style="text-align:center;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($users as $user)
-                        <tr>
-                            <td style="padding-left:1.1rem;">
-                                <span style="font-weight:600;">{{ $user->name }}</span>
-                                @if($user->id === auth()->id())
-                                    <span style="color:var(--text-muted); font-size:0.78rem;">(you)</span>
-                                @endif
-                            </td>
-                            <td>{{ $user->employee_id ?? '—' }}</td>
-                            <td>{{ $user->email }}</td>
-                            <td style="max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ $user->address }}">{{ $user->address ?? '—' }}</td>
-                            <td>
-                                <span style="font-size:0.78rem; font-weight:700; padding:0.15rem 0.6rem; border-radius:999px; {{ $user->isAdmin() ? 'background:rgba(124,58,237,0.12); color:#7c3aed;' : 'background:rgba(37,99,235,0.1); color:var(--primary);' }}">
-                                    {{ ucfirst($user->role) }}
-                                </span>
-                            </td>
-                            <td>
-                                @if($user->isLocked())
-                                    <span style="font-size:0.78rem; font-weight:700; padding:0.15rem 0.6rem; border-radius:999px; background:rgba(239,68,68,0.12); color:#ef4444;" title="Locked until {{ $user->locked_until->format('M d, Y h:i A') }}">
-                                        Locked ({{ $user->lockMinutesRemaining() }}m left)
-                                    </span>
-                                @elseif($user->is_active)
-                                    <span style="font-size:0.78rem; font-weight:700; padding:0.15rem 0.6rem; border-radius:999px; background:rgba(22,163,74,0.12); color:#16a34a;">Active</span>
-                                @else
-                                    <span style="font-size:0.78rem; font-weight:700; padding:0.15rem 0.6rem; border-radius:999px; background:rgba(100,116,139,0.15); color:#64748b;">Inactive</span>
-                                @endif
-                            </td>
-                            <td style="text-align:center;">
-                                <div style="display:flex; gap:0.35rem; justify-content:center; flex-wrap:wrap;">
-                                    <a href="{{ route('users.edit', $user) }}" class="btn btn-secondary" style="min-height:auto; padding:0.3rem 0.7rem; font-size:0.8rem;">Edit</a>
-                                    @if($user->failed_login_attempts > 0 || $user->locked_until)
-                                        <form method="POST" action="{{ route('users.unlock', $user) }}" style="display:inline;">
-                                            @csrf
-                                            <button type="submit" class="btn btn-secondary" style="min-height:auto; padding:0.3rem 0.7rem; font-size:0.8rem;">Unlock</button>
-                                        </form>
-                                    @endif
-                                    @if($user->id !== auth()->id())
-                                        <form method="POST" action="{{ route('users.toggle-status', $user) }}" style="display:inline;">
-                                            @csrf
-                                            <button type="submit" class="btn btn-secondary" style="min-height:auto; padding:0.3rem 0.7rem; font-size:0.8rem;" onclick="return confirm('{{ $user->is_active ? 'Deactivate' : 'Activate' }} this account?');">
-                                                {{ $user->is_active ? 'Deactivate' : 'Activate' }}
-                                            </button>
-                                        </form>
-                                        <form method="POST" action="{{ route('users.destroy', $user) }}" onsubmit="return confirm('Are you sure you want to delete this user?');" style="display:inline;">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-danger" style="min-height:auto; padding:0.3rem 0.7rem; font-size:0.8rem;">Delete</button>
-                                        </form>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
+                     @forelse($users as $user)
+                         <tr>
+                              <td class="mobile-card-header" style="padding-left:1.1rem;">
+                                  <span style="font-weight:600;color:var(--text);">{{ $user->name }}</span>
+                              </td>
+                              <td data-label="ID No." class="col-hide-md">{{ $user->employee_id ?? '—' }}</td>
+                              <td data-label="Email">{{ $user->email }}</td>
+                              <td data-label="Address" class="col-hide-md" style="max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ $user->address }}">{{ $user->address ?? '—' }}</td>
+                              <td data-label="Role" class="col-hide-md">
+                                  <span style="font-size:0.78rem; font-weight:700; padding:0.15rem 0.6rem; border-radius:999px; {{ $user->isAdmin() ? 'background:rgba(124,58,237,0.12); color:var(--accent);' : 'background:rgba(37,99,235,0.1); color:var(--primary);' }}">
+                                      {{ ucfirst($user->role) }}
+                                  </span>
+                              </td>
+                              <td data-label="Status">
+                                  @if($user->isLocked())
+                                      <span style="font-size:0.78rem; font-weight:700; padding:0.15rem 0.6rem; border-radius:999px; background:var(--danger); color:var(--surface);">Locked</span>
+                                  @elseif($user->is_active)
+                                      <span style="font-size:0.78rem; font-weight:700; padding:0.15rem 0.6rem; border-radius:999px; background:var(--success); color:var(--surface);">Active</span>
+                                  @else
+                                      <span style="font-size:0.78rem; font-weight:700; padding:0.15rem 0.6rem; border-radius:999px; background:rgba(100,116,139,0.18); color:var(--text-muted);">Inactive</span>
+                                  @endif
+                              </td>
+                             <td class="mobile-card-actions" style="text-align:center;">
+                                 <a href="{{ route('users.edit', $user) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">Edit</a>
+                                 @if($user->failed_login_attempts > 0 || $user->locked_until)
+                                     <form method="POST" action="{{ route('users.unlock', $user) }}" style="display:inline;">
+                                         @csrf
+                                         <button type="submit" class="btn btn-secondary" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">Unlock</button>
+                                     </form>
+                                 @endif
+                                 @if($user->id !== auth()->id())
+                                     <form method="POST" action="{{ route('users.toggle-status', $user) }}" style="display:inline;">
+                                         @csrf
+                                         <button type="submit" class="btn btn-secondary" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;" onclick="return confirm('{{ $user->is_active ? 'Deactivate' : 'Activate' }} this account?');">
+                                             {{ $user->is_active ? 'Deactivate' : 'Activate' }}
+                                         </button>
+                                     </form>
+                                     <form method="POST" action="{{ route('users.destroy', $user) }}" onsubmit="return confirm('Are you sure you want to delete this user?');" style="display:inline;">
+                                         @csrf
+                                         @method('DELETE')
+                                         <button type="submit" class="btn btn-danger" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">Delete</button>
+                                     </form>
+                                 @endif
+                             </td>
+                         </tr>
+                     @empty
                         <tr>
                             <td colspan="7" style="padding:2.5rem 1.25rem; text-align:center;">
                                 <div style="display:flex; flex-direction:column; align-items:center; gap:0.75rem; color:var(--text-muted);">

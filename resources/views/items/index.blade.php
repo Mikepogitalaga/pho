@@ -7,10 +7,8 @@
 @section('content')
 
     {{-- Page Header --}}
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1.25rem;">
-       
-        <div style="display: flex; gap: 0.6rem; justify-content: flex-end; width: 100%;">
-    <button type="button" class="btn btn-secondary" onclick="window.print()" style="gap: 0.4rem;">
+    <div style="display:flex; justify-content:flex-end; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:1.25rem;">
+        <button type="button" class="btn btn-secondary" onclick="window.print()" style="gap: 0.4rem;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 6 2 18 2 18 9"/>
             <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
@@ -28,7 +26,6 @@
         Export
     </a>
 </div>
-    </div>
 
     {{-- KPI Cards --}}
     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; margin-bottom:1.25rem;">
@@ -67,7 +64,7 @@
     </div>
 
     {{-- Search & Filter Panel --}}
-    <form method="GET" style="display:grid; grid-template-columns:1.6fr 1fr 1fr 1fr auto; gap:0.75rem; padding:1rem 1.1rem; border:1px solid var(--border); border-radius:1rem; background:var(--surface); box-shadow:var(--shadow-sm); margin-bottom:1.25rem; align-items:end;">
+    <form method="GET" class="filter-panel">
         <div style="display:flex; flex-direction:column; gap:0.3rem;">
             <label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted);">Search</label>
             <div style="position:relative;">
@@ -116,7 +113,7 @@
     </form>
 
     {{-- Table --}}
-    <section class="section-card" style="padding:0; overflow:hidden;">
+    <section class="section-card" style="padding:0;">
         {{-- Table Header Bar --}}
         <div style="display:flex; justify-content:space-between; align-items:center; padding:0.9rem 1.1rem; border-bottom:1px solid var(--border);">
             <div style="display:flex; align-items:center; gap:0.6rem;">
@@ -132,75 +129,77 @@
                     <tr>
                         <th style="padding-left:1.1rem;">Item Description</th>
                         <th>Category</th>
-                        <th>UOM</th>
+                        <th class="col-hide-md">UOM</th>
                         <th>Current Stock</th>
                         <th>Location</th>
                         <th>Supplier</th>
-                        <th>Program</th>
-                        <th>Records</th>
+                        <th class="col-hide-md">Program</th>
+                        <th class="col-hide-md">Records</th>
                         <th>Status</th>
                         <th style="text-align:center;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($items as $item)
-                        <tr style="transition:background 150ms;">
-                            <td style="padding-left:1.1rem;">
-                                <div style="font-weight:600; color:var(--text);">{{ $item->name }}</div>
-                            </td>
-                            <td>
-                                @if($item->category)
-                                    <span style="background:rgba(124,58,237,0.1); color:var(--accent); font-size:0.78rem; font-weight:600; padding:0.2rem 0.55rem; border-radius:999px;">{{ $item->category }}</span>
-                                @else
-                                    <span style="color:var(--text-muted);">—</span>
-                                @endif
-                            </td>
-                            <td style="color:var(--text-muted); font-size:0.9rem;">{{ $item->display_unit }}</td>
-                            <td>
-                                <span style="font-weight:700; font-size:1rem; color:{{ $item->quantity_on_hand > 0 ? 'var(--text)' : 'var(--danger)' }};">
-                                    {{ number_format($item->quantity_on_hand) }}
-                                </span>
-                            </td>
-                            <td style="color:var(--text-muted); font-size:0.9rem;">
-                                @if($item->location)
-                                    <span style="display:inline-flex; align-items:center; gap:0.3rem;">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                                        {{ $item->location }}
-                                    </span>
-                                @else
-                                    —
-                                @endif
-                            </td>
-                            <td>
-                                @php
-                                    $stypes = $item->supplier_types ? array_map('trim', explode(',', $item->supplier_types)) : [];
-                                    $hasDoh = in_array('DOH', $stypes);
-                                    $hasGso = in_array('GSO', $stypes);
-                                @endphp
-                                @if($hasDoh && $hasGso)
-                                    <span style="padding:0.2rem 0.55rem; border-radius:999px; font-size:0.75rem; font-weight:700; background:linear-gradient(90deg,rgba(37,99,235,0.15),rgba(8,145,178,0.15)); color:var(--primary); border:1px solid rgba(37,99,235,0.2);">DOH-GSO</span>
-                                @elseif($hasDoh)
-                                    <span style="padding:0.2rem 0.55rem; border-radius:999px; font-size:0.75rem; font-weight:700; background:rgba(37,99,235,0.12); color:var(--primary);">DOH</span>
-                                @elseif($hasGso)
-                                    <span style="padding:0.2rem 0.55rem; border-radius:999px; font-size:0.75rem; font-weight:700; background:rgba(8,145,178,0.12); color:#0891b2;">GSO</span>
-                                @else
-                                    <span style="color:var(--text-muted);">—</span>
-                                @endif
-                            </td>
-                            <td style="color:var(--text-muted); font-size:0.9rem;">{{ $item->stock_keeping_unit ?? '—' }}</td>
-                            <td>
-                                <span style="background:rgba(37,99,235,0.1); color:var(--primary); font-size:0.8rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:999px;">
-                                    {{ $item->record_count }}
-                                </span>
-                            </td>
-                            <td><span class="status-pill {{ $item->status_class }}">{{ $item->status }}</span></td>
-                            <td style="text-align:center;">
-                                <a href="{{ route('items.show', $item) }}" class="btn btn-secondary" style="min-height:auto; padding:0.35rem 0.85rem; font-size:0.82rem; gap:0.3rem;">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                    View
-                                </a>
-                            </td>
-                        </tr>
+                     @forelse ($items as $item)
+                         <tr style="transition:background 150ms;">
+                              <td class="mobile-card-header" style="padding-left:1.1rem;">
+                                  <span>#{{ $item->id }} &mdash; {{ $item->name }}</span>
+                              </td>
+                              <td data-label="Category">
+                                  @if($item->category)
+                                      <span style="background:rgba(124,58,237,0.1); color:var(--accent); font-size:0.78rem; font-weight:600; padding:0.2rem 0.55rem; border-radius:999px;">{{ $item->category }}</span>
+                                  @else
+                                      <span style="color:var(--text-muted);">—</span>
+                                  @endif
+                              </td>
+                               <td data-label="UOM" class="col-hide-md" style="color:var(--text-muted); font-size:0.9rem;">{{ $item->display_unit }}</td>
+                              <td data-label="Stock">
+                                  <span style="font-weight:700; font-size:1rem; color:{{ $item->quantity_on_hand > 0 ? 'var(--text)' : 'var(--danger)' }};">
+                                      {{ number_format($item->quantity_on_hand) }}
+                                  </span>
+                              </td>
+                              <td data-label="Location" style="color:var(--text-muted); font-size:0.9rem;">
+                                  @if($item->location)
+                                      <span style="display:inline-flex; align-items:center; gap:0.3rem;">
+                                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                          {{ $item->location }}
+                                      </span>
+                                  @else
+                                      —
+                                  @endif
+                              </td>
+                              <td data-label="Supplier">
+                                  @php
+                                      $stypes = $item->supplier_types ? array_map('trim', explode(',', $item->supplier_types)) : [];
+                                      $hasDoh = in_array('DOH', $stypes);
+                                      $hasGso = in_array('GSO', $stypes);
+                                  @endphp
+                                  @if($hasDoh && $hasGso)
+                                      <span style="padding:0.2rem 0.55rem; border-radius:999px; font-size:0.75rem; font-weight:700; background:linear-gradient(90deg,rgba(37,99,235,0.15),rgba(8,145,178,0.15)); color:var(--primary); border:1px solid rgba(37,99,235,0.2);">DOH-GSO</span>
+                                  @elseif($hasDoh)
+                                      <span style="padding:0.2rem 0.55rem; border-radius:999px; font-size:0.75rem; font-weight:700; background:rgba(37,99,235,0.12); color:var(--primary);">DOH</span>
+                                  @elseif($hasGso)
+                                      <span style="padding:0.2rem 0.55rem; border-radius:999px; font-size:0.75rem; font-weight:700; background:rgba(8,145,178,0.12); color:#0891b2;">GSO</span>
+                                  @else
+                                      <span style="color:var(--text-muted);">—</span>
+                                  @endif
+                              </td>
+                              <td data-label="Program" class="col-hide-md" style="color:var(--text-muted); font-size:0.9rem;">{{ $item->stock_keeping_unit ?? '—' }}</td>
+                              <td data-label="Records" class="col-hide-md">
+                                  <span style="background:rgba(37,99,235,0.1); color:var(--primary); font-size:0.8rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:999px;">
+                                      {{ $item->record_count }}
+                                  </span>
+                              </td>
+                              <td data-label="Status">
+                                  <span class="status-pill {{ $item->status_class }}">{{ $item->status }}</span>
+                              </td>
+                             <td class="mobile-card-actions" style="text-align:center;">
+                                 <a href="{{ route('items.show', $item) }}" class="btn btn-secondary" style="min-height:auto; padding:0.35rem 0.85rem; font-size:0.82rem; gap:0.3rem;">
+                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                     View
+                                 </a>
+                             </td>
+                         </tr>
                     @empty
                         <tr>
                             <td colspan="10" style="padding:2.5rem 1.25rem;">
@@ -225,3 +224,36 @@
     <x-pagination.modern :paginator="$items" />
 
 @endsection
+
+@push('styles')
+<style>
+    .filter-panel {
+        display: grid;
+        grid-template-columns: 1.6fr 1fr 1fr 1fr auto;
+        gap: 0.75rem;
+        padding: 1rem 1.1rem;
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1.25rem;
+        align-items: end;
+    }
+
+    @media (max-width: 1024px) {
+        .filter-panel {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .filter-panel {
+            grid-template-columns: 1fr;
+        }
+
+        .filter-panel > div:last-child {
+            flex-direction: row;
+        }
+    }
+</style>
+@endpush

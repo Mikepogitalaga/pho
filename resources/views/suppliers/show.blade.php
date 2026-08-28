@@ -139,20 +139,22 @@
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        @foreach($recentReceivings as $receiving)
-                            <tr>
-                                <td>{{ $receiving->ics_ptr_ris ?? '—' }}</td>
-                                <td>{{ $receiving->po_number ?? '—' }}</td>
-                                <td>{{ $receiving->date_received->format('M d, Y') }}</td>
-                                <td>{{ $receiving->received_by }}</td>
-                                <td>{{ $receiving->items->count() }}</td>
-                                <td>
-                                    <a href="{{ route('receivings.view', $receiving) }}" class="table-link" aria-label="View receiving">View</a>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
+                     <tbody>
+                         @foreach($recentReceivings as $receiving)
+                             <tr>
+                                 <td class="mobile-card-header">
+                                     <span style="font-weight:600;color:#991B1B;">{{ $receiving->ics_ptr_ris ?? '—' }}</span>
+                                     <span style="font-size:0.75rem;color:#64748b;">{{ $receiving->date_received->format('M d, Y') }}</span>
+                                 </td>
+                                 <td data-label="PO No.">{{ $receiving->po_number ?? '—' }}</td>
+                                 <td data-label="Received By">{{ $receiving->received_by }}</td>
+                                 <td data-label="Items">{{ $receiving->items->count() }} item(s)</td>
+                                 <td class="mobile-card-actions">
+                                     <a href="{{ route('receivings.view', $receiving) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">View</a>
+                                 </td>
+                             </tr>
+                         @endforeach
+                     </tbody>
                 </table>
             </div>
         @endif

@@ -47,40 +47,40 @@
                 <thead>
                     <tr>
                         <th style="padding-left:1.1rem;">Full Name</th>
-                        <th>Position</th>
-                        <th>Contact Number</th>
+                        <th class="col-hide-md">Position</th>
+                        <th class="col-hide-md">Contact Number</th>
                         <th>Email</th>
                         <th>Assigned Program(s)</th>
                         <th style="text-align:center;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($coordinators as $coordinator)
-                        <tr>
-                            <td style="padding-left:1.1rem;"><span style="font-weight:600;">{{ $coordinator->full_name }}</span></td>
-                            <td style="color:var(--text-muted);">{{ $coordinator->position ?? '—' }}</td>
-                            <td>{{ $coordinator->contact_number ?? '—' }}</td>
-                            <td>{{ $coordinator->email ?? '—' }}</td>
-                            <td>
-                                @if($coordinator->programs->count() > 0)
-                                    <span style="font-size:0.88rem;">{{ $coordinator->assigned_programs }}</span>
-                                @else
-                                    <span style="color:var(--text-muted);">—</span>
-                                @endif
-                            </td>
-                            <td style="text-align:center;">
-                                <div style="display:flex; gap:0.35rem; justify-content:center;">
-                                    <a href="{{ route('coordinators.show', $coordinator) }}" class="btn btn-secondary" style="min-height:auto; padding:0.3rem 0.7rem; font-size:0.8rem;">View</a>
-                                    <a href="{{ route('coordinators.edit', $coordinator) }}" class="btn btn-secondary" style="min-height:auto; padding:0.3rem 0.7rem; font-size:0.8rem;">Edit</a>
-                                    <form method="POST" action="{{ route('coordinators.destroy', $coordinator) }}" onsubmit="return confirm('Are you sure you want to delete this coordinator?');" style="display:inline;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger" style="min-height:auto; padding:0.3rem 0.7rem; font-size:0.8rem;">Delete</button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
+                     @forelse($coordinators as $coordinator)
+                         <tr>
+                              <td class="mobile-card-header" style="padding-left:1.1rem;">
+                                  <span style="font-weight:600;color:var(--text);">{{ $coordinator->full_name }}</span>
+                              </td>
+                              <td data-label="Position" class="col-hide-md">{{ $coordinator->position ?? '—' }}</td>
+                              <td data-label="Contact Number" class="col-hide-md">{{ $coordinator->contact_number ?? '—' }}</td>
+                              <td data-label="Email">{{ $coordinator->email ?? '—' }}</td>
+                             <td data-label="Assigned Program(s)">
+                                 @if($coordinator->programs->count() > 0)
+                                     <span style="font-size:0.88rem;">{{ $coordinator->assigned_programs }}</span>
+                                 @else
+                                     <span style="color:var(--text-muted);">—</span>
+                                 @endif
+                             </td>
+                             <td class="mobile-card-actions" style="text-align:center;">
+                                 <a href="{{ route('coordinators.show', $coordinator) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">View</a>
+                                 <a href="{{ route('coordinators.edit', $coordinator) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">Edit</a>
+                                 <form method="POST" action="{{ route('coordinators.destroy', $coordinator) }}" onsubmit="return confirm('Are you sure you want to delete this coordinator?');" style="display:inline;">
+                                     @csrf
+                                     @method('DELETE')
+                                     <button type="submit" class="btn btn-danger" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">Delete</button>
+                                 </form>
+                             </td>
+                         </tr>
+                     @empty
                         <tr>
                             <td colspan="6" style="padding:2.5rem 1.25rem; text-align:center;">
                                 <div style="display:flex; flex-direction:column; align-items:center; gap:0.75rem; color:var(--text-muted);">
@@ -89,6 +89,7 @@
                                         <strong style="display:block; color:var(--text); font-size:1rem;">No coordinators found</strong>
                                         <span style="font-size:0.88rem;">Create a coordinator to get started.</span>
                                     </div>
+                                </div>
                             </td>
                         </tr>
                     @endforelse

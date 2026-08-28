@@ -62,40 +62,40 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($programs as $program)
-                    <tr>
-                        <td><strong>{{ $program->name }}</strong></td>
-                        <td style="color:var(--text-muted);font-size:0.875rem;">{{ Str::limit($program->description, 60) ?: '—' }}</td>
-                        <td>
-                            <span class="badge {{ $program->status === 'Active' ? 'badge-success' : 'badge-secondary' }}">
-                                {{ $program->status }}
-                            </span>
-                        </td>
-                        <td>
-                            @if($program->coordinators->count())
-                                <div style="display:flex;flex-wrap:wrap;gap:0.3rem;">
-                                    @foreach($program->coordinators as $c)
-                                        <span class="badge badge-secondary" style="font-weight:400;">{{ $c->full_name }}</span>
-                                    @endforeach
-                                </div>
-                            @else
-                                <span style="color:var(--text-muted);font-size:0.85rem;">None assigned</span>
-                            @endif
-                        </td>
-                        <td style="text-align:right;">
-                            <div style="display:flex;gap:0.4rem;justify-content:flex-end;">
-                                <button type="button" class="btn btn-sm btn-secondary"
-                                    onclick="openEditProgram({{ json_encode(['id'=>$program->id,'name'=>$program->name,'description'=>$program->description,'status'=>$program->status,'coordinators'=>$program->coordinators->pluck('id')]) }})">
-                                    Edit
-                                </button>
-                                <form method="POST" action="{{ route('program-management.programs.destroy', $program) }}"
-                                    onsubmit="return confirm('Delete program {{ addslashes($program->name) }}?')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
+                     @forelse($programs as $program)
+                     <tr>
+                         <td class="mobile-card-header">
+                             <strong style="color:var(--text);">{{ $program->name }}</strong>
+                         </td>
+                         <td data-label="Description" style="color:var(--text-muted);font-size:0.875rem;">{{ Str::limit($program->description, 60) ?: '—' }}</td>
+                         <td data-label="Status">
+                             <span class="badge {{ $program->status === 'Active' ? 'badge-success' : 'badge-secondary' }}">
+                                 {{ $program->status }}
+                             </span>
+                         </td>
+                         <td data-label="Coordinators">
+                             @if($program->coordinators->count())
+                                 <div style="display:flex;flex-wrap:wrap;gap:0.3rem;">
+                                     @foreach($program->coordinators as $c)
+                                         <span class="badge badge-secondary" style="font-weight:400;">{{ $c->full_name }}</span>
+                                     @endforeach
+                                 </div>
+                             @else
+                                 <span style="color:var(--text-muted);font-size:0.85rem;">None assigned</span>
+                             @endif
+                         </td>
+                         <td class="mobile-card-actions" style="text-align:right;">
+                             <button type="button" class="btn btn-sm btn-secondary"
+                                 onclick="openEditProgram({{ json_encode(['id'=>$program->id,'name'=>$program->name,'description'=>$program->description,'status'=>$program->status,'coordinators'=>$program->coordinators->pluck('id')]) }})">
+                                 Edit
+                             </button>
+                             <form method="POST" action="{{ route('program-management.programs.destroy', $program) }}"
+                                 onsubmit="return confirm('Delete program {{ addslashes($program->name) }}?')">
+                                 @csrf @method('DELETE')
+                                 <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                             </form>
+                         </td>
+                     </tr>
                     @empty
                     <tr>
                         <td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted);">
@@ -146,44 +146,42 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($coordinators as $coord)
-                    <tr>
-                        <td>
-                            <div style="display:flex;align-items:center;gap:0.6rem;">
-                                <span style="width:32px;height:32px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;">
-                                    {{ strtoupper(substr($coord->full_name, 0, 2)) }}
-                                </span>
-                                <strong>{{ $coord->full_name }}</strong>
-                            </div>
-                        </td>
-                        <td>{{ $coord->position ?: '—' }}</td>
-                        <td>{{ $coord->contact_number ?: '—' }}</td>
-                        <td>{{ $coord->email ?: '—' }}</td>
-                        <td>
-                            @if($coord->programs->count())
-                                <div style="display:flex;flex-wrap:wrap;gap:0.3rem;">
-                                    @foreach($coord->programs as $p)
-                                        <span class="badge {{ $p->status === 'Active' ? 'badge-success' : 'badge-secondary' }}" style="font-weight:400;">{{ $p->name }}</span>
-                                    @endforeach
-                                </div>
-                            @else
-                                <span style="color:var(--text-muted);font-size:0.85rem;">None assigned</span>
-                            @endif
-                        </td>
-                        <td style="text-align:right;">
-                            <div style="display:flex;gap:0.4rem;justify-content:flex-end;">
-                                <button type="button" class="btn btn-sm btn-secondary"
-                                    onclick="openEditCoord({{ json_encode(['id'=>$coord->id,'full_name'=>$coord->full_name,'position'=>$coord->position,'contact_number'=>$coord->contact_number,'email'=>$coord->email,'programs'=>$coord->programs->pluck('id')]) }})">
-                                    Edit
-                                </button>
-                                <form method="POST" action="{{ route('program-management.coordinators.destroy', $coord) }}"
-                                    onsubmit="return confirm('Delete coordinator {{ addslashes($coord->full_name) }}?')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
+                     @forelse($coordinators as $coord)
+                     <tr>
+                          <td class="mobile-card-header">
+                              <div style="display:flex;align-items:center;gap:0.6rem;">
+                                  <span style="width:32px;height:32px;border-radius:50%;background:var(--danger);color:var(--surface);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;">
+                                      {{ strtoupper(substr($coord->full_name, 0, 2)) }}
+                                  </span>
+                                  <strong style="color:var(--text);">{{ $coord->full_name }}</strong>
+                              </div>
+                          </td>
+                         <td data-label="Position">{{ $coord->position ?: '—' }}</td>
+                         <td data-label="Contact">{{ $coord->contact_number ?: '—' }}</td>
+                         <td data-label="Email">{{ $coord->email ?: '—' }}</td>
+                         <td data-label="Programs">
+                             @if($coord->programs->count())
+                                 <div style="display:flex;flex-wrap:wrap;gap:0.3rem;">
+                                     @foreach($coord->programs as $p)
+                                         <span class="badge {{ $p->status === 'Active' ? 'badge-success' : 'badge-secondary' }}" style="font-weight:400;">{{ $p->name }}</span>
+                                     @endforeach
+                                 </div>
+                             @else
+                                 <span style="color:var(--text-muted);font-size:0.85rem;">None assigned</span>
+                             @endif
+                         </td>
+                         <td class="mobile-card-actions" style="text-align:right;">
+                             <button type="button" class="btn btn-sm btn-secondary"
+                                 onclick="openEditCoord({{ json_encode(['id'=>$coord->id,'full_name'=>$coord->full_name,'position'=>$coord->position,'contact_number'=>$coord->contact_number,'email'=>$coord->email,'programs'=>$coord->programs->pluck('id')]) }})">
+                                 Edit
+                             </button>
+                             <form method="POST" action="{{ route('program-management.coordinators.destroy', $coord) }}"
+                                 onsubmit="return confirm('Delete coordinator {{ addslashes($coord->full_name) }}?')">
+                                 @csrf @method('DELETE')
+                                 <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                             </form>
+                         </td>
+                     </tr>
                     @empty
                     <tr>
                         <td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">

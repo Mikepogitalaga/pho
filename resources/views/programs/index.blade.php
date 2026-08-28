@@ -56,40 +56,40 @@
                 <thead>
                     <tr>
                         <th style="padding-left:1.1rem;">Program Name</th>
-                        <th>Description</th>
-                        <th>Assigned Coordinator</th>
+                        <th class="col-hide-md">Description</th>
+                        <th class="col-hide-md">Assigned Coordinator</th>
                         <th>Status</th>
                         <th style="text-align:center;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($programs as $program)
-                        <tr>
-                            <td style="padding-left:1.1rem;"><span style="font-weight:600;">{{ $program->name }}</span></td>
-                            <td style="color:var(--text-muted); max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ $program->description ?? '—' }}</td>
-                            <td>
-                                @if($program->coordinators->count() > 0)
-                                    <span style="font-size:0.88rem;">{{ $program->assigned_coordinators }}</span>
-                                @else
-                                    <span style="color:var(--text-muted);">—</span>
-                                @endif
-                            </td>
-                            <td>
-                                <span class="status-pill {{ $program->status === 'Active' ? 'badge-success' : 'badge-secondary' }}">{{ $program->status }}</span>
-                            </td>
-                            <td style="text-align:center;">
-                                <div style="display:flex; gap:0.35rem; justify-content:center;">
-                                    <a href="{{ route('programs.show', $program) }}" class="btn btn-secondary" style="min-height:auto; padding:0.3rem 0.7rem; font-size:0.8rem;">View</a>
-                                    <a href="{{ route('programs.edit', $program) }}" class="btn btn-secondary" style="min-height:auto; padding:0.3rem 0.7rem; font-size:0.8rem;">Edit</a>
-                                    <form method="POST" action="{{ route('programs.destroy', $program) }}" onsubmit="return confirm('Are you sure you want to delete this program?');" style="display:inline;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger" style="min-height:auto; padding:0.3rem 0.7rem; font-size:0.8rem;">Delete</button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
+                     @forelse($programs as $program)
+                         <tr>
+                              <td class="mobile-card-header" style="padding-left:1.1rem;">
+                                  <span style="font-weight:600;color:var(--text);">{{ $program->name }}</span>
+                              </td>
+                              <td data-label="Description" class="col-hide-md" style="color:var(--text-muted);max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ $program->description ?? '—' }}</td>
+                              <td data-label="Assigned Coordinator" class="col-hide-md">
+                                  @if($program->coordinators->count() > 0)
+                                      <span style="font-size:0.88rem;">{{ $program->assigned_coordinators }}</span>
+                                  @else
+                                      <span style="color:var(--text-muted);">—</span>
+                                  @endif
+                              </td>
+                              <td data-label="Status">
+                                  <span class="status-pill {{ $program->status === 'Active' ? 'badge-success' : 'badge-secondary' }}">{{ $program->status }}</span>
+                              </td>
+                             <td class="mobile-card-actions" style="text-align:center;">
+                                 <a href="{{ route('programs.show', $program) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">View</a>
+                                 <a href="{{ route('programs.edit', $program) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">Edit</a>
+                                 <form method="POST" action="{{ route('programs.destroy', $program) }}" onsubmit="return confirm('Are you sure you want to delete this program?');" style="display:inline;">
+                                     @csrf
+                                     @method('DELETE')
+                                     <button type="submit" class="btn btn-danger" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">Delete</button>
+                                 </form>
+                             </td>
+                         </tr>
+                     @empty
                         <tr>
                             <td colspan="5" style="padding:2.5rem 1.25rem; text-align:center;">
                                 <div style="display:flex; flex-direction:column; align-items:center; gap:0.75rem; color:var(--text-muted);">
