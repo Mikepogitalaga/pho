@@ -101,7 +101,10 @@
                                     </div>
                                     <div class="form-group">
                                         <label>Category</label>
-                                        <input class="item-category-input" name="items[0][category]" />
+                                        <select class="item-category-input" name="items[0][category]">
+                                            <option value="DM">DM</option>
+                                            <option value="MDL">MDL</option>
+                                        </select>
                                     </div>
                                     <div class="form-group">
                                         <label>UOM</label>
@@ -168,7 +171,10 @@
                                     </div>
                                     <div class="form-group">
                                         <label>Category</label>
-                                        <input class="item-category-input" name="items[{{ $index }}][category]" value="{{ $oldItem['category'] ?? '' }}" />
+                                        <select class="item-category-input" name="items[{{ $index }}][category]">
+                                            <option value="DM" @selected(($oldItem['category'] ?? 'DM') === 'DM')>DM</option>
+                                            <option value="MDL" @selected(($oldItem['category'] ?? '') === 'MDL')>MDL</option>
+                                        </select>
                                     </div>
                                     <div class="form-group">
                                         <label>UOM</label>
@@ -447,7 +453,11 @@
 
             function syncFromSelection(item) {
                 descriptionInput.value = item.name;
-                if (categoryInput) categoryInput.value = item.category || '';
+                if (categoryInput) {
+                    var cat = item.category || 'DM';
+                    if (cat !== 'DM' && cat !== 'MDL') cat = 'DM';
+                    categoryInput.value = cat;
+                }
                 if (uomInput) uomInput.value = item.uom || '';
                 if (unitCostInput) unitCostInput.value = item.cost || '';
             }

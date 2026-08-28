@@ -374,7 +374,7 @@ class ReceivingController extends Controller
             'items' => 'required|array|min:1',
             'items.*.item_code' => 'nullable|string|max:255',
             'items.*.item_description' => 'required|string|max:255',
-            'items.*.category' => 'nullable|string|max:255',
+            'items.*.category' => 'nullable|in:DM,MDL',
             'items.*.uom' => 'nullable|string|max:255',
             'items.*.quantity_received' => 'required|integer|min:1',
             'items.*.lot_number' => 'nullable|string|max:255',

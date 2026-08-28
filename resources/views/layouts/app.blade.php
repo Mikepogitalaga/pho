@@ -42,9 +42,15 @@
                     </a>
                     <a href="{{ route('dashboard.gso') }}" class="sidebar-link {{ request()->routeIs('dashboard.gso') ? 'active' : '' }}">
                         <span class="sidebar-link-icon" aria-hidden="true">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
                         </span>
                         <span class="sidebar-link-text">GSO Dashboard</span>
+                    </a>
+                    <a href="{{ route('analytics.facility-categories') }}" class="sidebar-link {{ request()->routeIs('analytics.*') ? 'active' : '' }}">
+                        <span class="sidebar-link-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                        </span>
+                        <span class="sidebar-link-text">Release Analytics</span>
                     </a>
                 </div>
 

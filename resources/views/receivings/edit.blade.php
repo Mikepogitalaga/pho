@@ -109,7 +109,10 @@
                                     </div>
                                     <div class="form-group">
                                         <label>Category</label>
-                                        <input class="item-category-input" name="items[0][category]" />
+                                        <select class="item-category-input" name="items[0][category]">
+                                            <option value="DM">DM</option>
+                                            <option value="MDL">MDL</option>
+                                        </select>
                                     </div>
                                     <div class="form-group">
                                         <label>UOM</label>
@@ -166,7 +169,10 @@
                                     </div>
                                     <div class="form-group">
                                         <label>Category</label>
-                                        <input class="item-category-input" name="items[{{ $index }}][category]" value="{{ $oi['category'] ?? $ri->category }}" />
+                                        <select class="item-category-input" name="items[{{ $index }}][category]">
+                                            <option value="DM" @selected(($oi['category'] ?? $ri->category ?? 'DM') === 'DM')>DM</option>
+                                            <option value="MDL" @selected(($oi['category'] ?? $ri->category ?? '') === 'MDL')>MDL</option>
+                                        </select>
                                     </div>
                                     <div class="form-group">
                                         <label>UOM</label>
@@ -306,7 +312,11 @@
             function syncItem(item) {
                 descInput.value = item.name;
                 if (codeInput)     codeInput.value     = item.code || '';
-                if (categoryInput) categoryInput.value = item.category || '';
+                if (categoryInput) {
+                    var cat = item.category || 'DM';
+                    if (cat !== 'DM' && cat !== 'MDL') cat = 'DM';
+                    categoryInput.value = cat;
+                }
                 if (uomInput)      uomInput.value      = item.uom || '';
                 if (costInput)     costInput.value     = item.cost || '';
                 if (itemIdHidden)  itemIdHidden.value  = item.id || '';

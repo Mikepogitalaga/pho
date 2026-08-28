@@ -39,49 +39,9 @@
                     </select>
                 </div>
 
-                <div class="form-group" style="display:flex; align-items:flex-end; gap:0.75rem;">
-                    <button type="button" id="openReleaseDetailsModal" class="btn btn-secondary">Edit release details</button>
-                    <span style="color: var(--text-muted); font-size: 0.95rem;">Open modal to enter Date Released and Received By.</span>
-                </div>
-
                 <div class="form-group">
                     <label>PTR/ITR/RIS No.</label>
                     <input type="text" name="ptr_itr_ris_no" value="{{ old('ptr_itr_ris_no', $release->ptr_itr_ris_no ?? '') }}" placeholder="Enter PTR/ITR/RIS No." />
-                </div>
-
-                <div id="releaseDetailsModal" style="display: none; position: fixed; inset: 0; z-index: 1000; align-items: flex-start; justify-content: center; background: rgba(0, 0, 0, 0.45); padding: 1rem 1rem 2rem; overflow-y: auto;">
-                    <div style="background: #fff; border-radius: 1rem; max-width: 520px; width: 100%; padding: 1.5rem; box-shadow: 0 20px 60px rgba(0,0,0,.2); position: relative; margin-top: 1rem;">
-                        <button type="button" id="closeReleaseDetailsModal" style="position: absolute; top: 0.9rem; right: 0.9rem; border: none; background: transparent; font-size: 1.25rem; cursor: pointer;">&times;</button>
-                        <h2 style="margin-top: 0; margin-bottom: 1rem;">Release details</h2>
-                        <div class="form-group" id="releaseDateGroup">
-                            <label>Date Released <span style="color: var(--danger);">*</span></label>
-                            <input type="date" name="date_released" value="{{ old('date_released', isset($release->date_released) ? $release->date_released->toDateString() : '') }}" />
-                            @error('date_released')
-                                <span style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem; display:block;">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        <div class="form-group" id="receivedByGroup">
-                            <label>Received By <span style="color: var(--danger);">*</span></label>
-                            <input type="text" name="received_by" value="{{ old('received_by', $release->received_by ?? '') }}" placeholder="Enter receiver name" />
-                            @error('received_by')
-                                <span style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem; display:block;">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        <div class="form-group" id="statusReasonGroup" style="display:none;">
-                            <label>Reason <span style="color: var(--danger);">*</span></label>
-                            <input type="text" name="status_reason" value="{{ old('status_reason', $release->status_reason ?? '') }}" placeholder="Enter reason" />
-                            @error('status_reason')
-                                <span style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem; display:block;">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
-                            <button type="button" id="cancelReleaseDetailsModal" class="btn btn-ghost">Close</button>
-                            <button type="button" id="saveReleaseDetailsModal" class="btn btn-primary">Save details</button>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="form-group">
@@ -103,6 +63,14 @@
                     <label>Source Docs. PTR/PO No.</label>
                     <input type="text" name="source_docs_ptr_po_no" value="{{ old('source_docs_ptr_po_no', $release->source_docs_ptr_po_no ?? '') }}" placeholder="Enter source docs" />
                 </div>
+
+                <div class="form-group">
+                    <label>Release Details</label>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <button type="button" id="openReleaseDetailsModal" class="btn btn-secondary">Edit release details</button>
+                        <span style="color: var(--text-muted); font-size: 0.875rem;">Date Released & Received By</span>
+                    </div>
+                </div>
             </div>
 
             <div class="form-group">
@@ -114,7 +82,43 @@
                 <button type="submit" class="btn btn-primary">Save Changes</button>
                 <a href="{{ route('releases.view', $release) }}" class="btn btn-ghost">Cancel</a>
             </div>
+
+            <div id="releaseDetailsModal" style="display: none; position: fixed; inset: 0; z-index: 1000; align-items: flex-start; justify-content: center; background: rgba(0, 0, 0, 0.45); padding: 1rem 1rem 2rem; overflow-y: auto;">
+                <div style="background: #fff; border-radius: 1rem; max-width: 520px; width: 100%; padding: 1.5rem; box-shadow: 0 20px 60px rgba(0,0,0,.2); position: relative; margin-top: 1rem;">
+                    <button type="button" id="closeReleaseDetailsModal" style="position: absolute; top: 0.9rem; right: 0.9rem; border: none; background: transparent; font-size: 1.25rem; cursor: pointer;">&times;</button>
+                    <h2 style="margin-top: 0; margin-bottom: 1rem;">Release details</h2>
+                    <div class="form-group" id="releaseDateGroup">
+                        <label>Date Released <span style="color: var(--danger);">*</span></label>
+                        <input type="date" name="date_released" value="{{ old('date_released', isset($release->date_released) ? $release->date_released->toDateString() : '') }}" />
+                        @error('date_released')
+                            <span style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem; display:block;">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div class="form-group" id="receivedByGroup">
+                        <label>Received By <span style="color: var(--danger);">*</span></label>
+                        <input type="text" name="received_by" value="{{ old('received_by', $release->received_by ?? '') }}" placeholder="Enter receiver name" />
+                        @error('received_by')
+                            <span style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem; display:block;">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div class="form-group" id="statusReasonGroup" style="display:none;">
+                        <label>Reason <span style="color: var(--danger);">*</span></label>
+                        <input type="text" name="status_reason" value="{{ old('status_reason', $release->status_reason ?? '') }}" placeholder="Enter reason" />
+                        @error('status_reason')
+                            <span style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem; display:block;">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
+                        <button type="button" id="cancelReleaseDetailsModal" class="btn btn-ghost">Close</button>
+                        <button type="button" id="saveReleaseDetailsModal" class="btn btn-primary">Save details</button>
+                    </div>
+                </div>
+            </div>
         </form>
+
 
         <script>
             document.addEventListener('DOMContentLoaded', function() {

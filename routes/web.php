@@ -8,6 +8,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\ReceivingController;
 use App\Http\Controllers\ReleaseController;
+use App\Http\Controllers\FacilityCategoryAnalyticsController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\ProgramController;
@@ -43,6 +44,10 @@ Route::middleware('web')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/dashboard/doh', [DashboardController::class, 'dohIndex'])->name('dashboard.doh');
         Route::get('/dashboard/gso', [DashboardController::class, 'gsoIndex'])->name('dashboard.gso');
+
+        Route::get('/analytics/facility-categories', [FacilityCategoryAnalyticsController::class, 'index'])->name('analytics.facility-categories');
+        Route::get('/analytics/facility-categories/view', [FacilityCategoryAnalyticsController::class, 'facilityItems'])->name('analytics.facility-categories.view');
+        Route::get('/analytics/facility-categories/{facilityCategory}/{facilityName}', [FacilityCategoryAnalyticsController::class, 'detail'])->name('analytics.facility-categories.detail');
 
         Route::resource('items', ItemController::class)->only(['index', 'show']);
         Route::resource('facilities', FacilityController::class)->only(['index', 'store', 'update', 'destroy']);

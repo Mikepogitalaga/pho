@@ -171,8 +171,8 @@ class ReleaseController extends Controller
             'pho_code'                   => 'nullable|string|max:255',
             'source_docs_ptr_po_no'      => 'nullable|string|max:255',
             'facility_name'              => 'nullable|string|max:255',
-            'received_by'                => 'required|string|max:255',
-            'date_released'              => 'required|date',
+            'received_by'                => 'nullable|string|max:255',
+            'date_released'              => 'nullable|date',
             'status'                     => 'required|string|in:Unreleased,Released,Released through pass,Canceled,Returned',
             'status_reason'              => 'nullable|string|max:1000',
             'notes'                      => 'nullable|string',
@@ -183,11 +183,22 @@ class ReleaseController extends Controller
         $newStatus      = $request->input('status');
 
         DB::transaction(function () use ($request, $release, $previousStatus, $newStatus) {
+            $facilityName = $request->input('facility_name', $release->facility_name);
+            $facilityCategory = $release->facility_category;
+            if ($request->has('facility_name') && $facilityName !== $release->facility_name) {
+                $facility = \App\Models\Facility::where('name', $facilityName)->first();
+                $facilityCategory = $facility ? $facility->category : $request->input('facility_category', $release->facility_category);
+            }
+            if ($request->input('facility_category')) {
+                $facilityCategory = $request->input('facility_category');
+            }
+
             $release->fill($request->only([
                 'pas_number', 'health_program_coordinator', 'ptr_itr_ris_no',
                 'pho_code', 'source_docs_ptr_po_no', 'facility_name',
                 'received_by', 'date_released', 'status', 'status_reason', 'notes',
             ]));
+            $release->facility_category = $facilityCategory;
 
             // Reload items fresh so increment/decrement works on correct records
             $release->load('items');
@@ -291,6 +302,13 @@ class ReleaseController extends Controller
 
         try {
             DB::transaction(function () use ($request) {
+                $facilityName = $request->input('facility_name');
+                $facilityCategory = null;
+                if ($facilityName) {
+                    $facility = \App\Models\Facility::where('name', $facilityName)->first();
+                    $facilityCategory = $facility ? $facility->category : null;
+                }
+
                 $release = Release::create([
                     'release_number' => 'REL-' . strtoupper(Str::random(8)),
                     'pas_number' => $request->input('pas_number'),
@@ -301,7 +319,8 @@ class ReleaseController extends Controller
                     'ptr_itr_ris_no' => $request->input('ptr_itr_ris_no'),
                     'pho_code' => $request->input('pho_code'),
                     'source_docs_ptr_po_no' => $request->input('source_docs_ptr_po_no'),
-                    'facility_name' => $request->input('facility_name'),
+                    'facility_name' => $facilityName,
+                    'facility_category' => $facilityCategory,
                     'received_by' => $request->input('received_by'),
                     'date_released' => $request->input('date_released') ?: null,
                     'notes' => $request->input('notes'),
