@@ -11,65 +11,138 @@
             <a href="{{ route('releases.index') }}" class="btn btn-secondary">Back to Releases</a>
         </div>
 
-        <form action="{{ route('releases.store') }}" method="POST" class="stack">
+        <form action="{{ route('releases.store') }}" method="POST" class="stack" id="releaseForm">
             @csrf
 
             <div class="form-grid-3">
                 <div class="form-group">
-                    <label>PAS No.</label>
-                    <input name="pas_number" value="{{ old('pas_number') }}">
+                    <label>PAS No. <span style="color: var(--danger);">*</span></label>
+                    <input name="pas_number" value="{{ old('pas_number', request('pas_number')) }}" required>
+                    @error('pas_number')
+                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                    @enderror
                 </div>
                 <div class="form-group">
-                    <label>Health Program / Coordinator</label>
-                    <input name="health_program_coordinator" value="{{ old('health_program_coordinator') }}">
+                    <label>Stock Keeping Unit (Program) <span style="color: var(--danger);">*</span></label>
+                    <div style="position:relative;">
+                        <input name="health_program_coordinator" id="releaseProgramInput"
+                            value="{{ old('health_program_coordinator', request('health_program_coordinator')) }}" autocomplete="off" required style="width:100%;">
+                        <div id="releaseProgramDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
+                    </div>
+                    @error('health_program_coordinator')
+                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                    @enderror
                 </div>
                 <div class="form-group">
-                    <label>PTR/ITR/RIS No.</label>
-                    <input name="ptr_itr_ris_no" value="{{ old('ptr_itr_ris_no') }}">
+                    <label>Program Coordinator</label>
+                    <div style="position:relative;">
+                        <input name="release_coordinator" id="releaseCoordinatorInput"
+                            value="{{ old('release_coordinator', request('release_coordinator')) }}" autocomplete="off" style="width:100%;">
+                        <div id="releaseCoordinatorDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
+                    </div>
                 </div>
             </div>
 
             <div class="form-grid-3">
                 <div class="form-group">
-                    <label>PHO Code</label>
-                    <input name="pho_code" value="{{ old('pho_code') }}">
+                    <label>PTR/ITR/RIS No. <span style="color: var(--danger);">*</span></label>
+                    <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+                        <select id="ptrTypeSelect" style="width: auto; min-width: 80px; padding: 0.8rem 0.9rem; border: 1px solid var(--border); border-radius: 0.85rem; background: var(--surface-muted); color: var(--text);">
+                            <option value="PTR">PTR</option>
+                            <option value="ITR">ITR</option>
+                            <option value="RIS">RIS</option>
+                            <option value="ELMIS">ELMIS</option>
+                        </select>
+                        <input name="ptr_itr_ris_no" id="ptrNumberInput" value="{{ old('ptr_itr_ris_no', $ptrNumber ?? '') }}" readonly required style="flex: 1; background: var(--surface-strong); cursor: not-allowed;">
+                    </div>
+                    @error('ptr_itr_ris_no')
+                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                    @enderror
+                    <p style="margin: 0.3rem 0 0; font-size: 0.82rem; color: var(--text-muted);">Auto-generated sequential number. Select type (PTR/ITR/RIS) to regenerate. Select <strong>ELMIS</strong> to enter your own ELMIS No.</p>
                 </div>
                 <div class="form-group">
-                    <label>Source Docs. PTR/PO No.</label>
-                    <input name="source_docs_ptr_po_no" value="{{ old('source_docs_ptr_po_no') }}">
+                    <label>PHO Code <span style="color: var(--danger);">*</span></label>
+                    <input name="pho_code" value="{{ old('pho_code') }}" required>
+                    @error('pho_code')
+                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                    @enderror
                 </div>
                 <div class="form-group">
-                    <label>Name of Facility / End-user</label>
-                    <input name="facility_name" value="{{ old('facility_name') }}">
+                    <label>Source Docs. PTR/PO No. <span style="color: var(--danger);">*</span></label>
+                    <input name="source_docs_ptr_po_no" value="{{ old('source_docs_ptr_po_no') }}" required>
+                    @error('source_docs_ptr_po_no')
+                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                    @enderror
                 </div>
             </div>
+
+            <div class="form-grid-3">
+                <div class="form-group">
+                    <label>Facility Category <span style="color: var(--danger);">*</span></label>
+                    <select id="facilityCategory" required onchange="filterFacilities()">
+                        <option value="">— Select Category —</option>
+                        @foreach(\App\Models\Facility::categories() as $cat)
+                            <option value="{{ $cat }}" {{ old('facility_category', request('facility_category')) === $cat ? 'selected' : '' }}>{{ $cat }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Name of Facility / End-user <span style="color: var(--danger);">*</span></label>
+                    <select name="facility_name" id="facilityName" required disabled>
+                        <option value="">— Select Category First —</option>
+                    </select>
+                    <a href="{{ route('facilities.index') }}" class="section-link" style="font-size:0.78rem;margin-top:0.35rem;display:inline-block;">+ Manage Facilities</a>
+                    @error('facility_name')
+                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                    @enderror
+                </div>
+            </div>
+
+            <script>
+                const allFacilities = @json(\App\Models\Facility::active()->get()->map(fn($f) => ['name' => $f->name, 'category' => $f->category]));
+                const facilityCategory = document.getElementById('facilityCategory');
+                const facilityName = document.getElementById('facilityName');
+                const selectedFacility = '{{ old('facility_name', request('facility_name')) }}';
+
+                function filterFacilities() {
+                    const cat = facilityCategory.value;
+                    facilityName.innerHTML = '<option value="">— Select Facility —</option>';
+                    if (!cat) {
+                        facilityName.disabled = true;
+                        return;
+                    }
+                    facilityName.disabled = false;
+                    const filtered = allFacilities.filter(f => f.category === cat);
+                    filtered.forEach(f => {
+                        const opt = document.createElement('option');
+                        opt.value = f.name;
+                        opt.textContent = f.name;
+                        if (f.name === selectedFacility) opt.selected = true;
+                        facilityName.appendChild(opt);
+                    });
+                }
+
+                // Auto-filter on page load if category is pre-selected
+                if (facilityCategory.value) filterFacilities();
+            </script>
 
             <div class="section-note">
                 Received by, Date, and Status are assigned after saving.
             </div>
-            <input type="hidden" name="received_by" value="{{ old('received_by', '') }}">
-            <input type="hidden" name="date_released" value="{{ old('date_released', now()->toDateString()) }}">
-            <input type="hidden" name="status" value="{{ old('status', 'Pending') }}">
+            <input type="hidden" name="received_by" value="{{ old('received_by', 'Unreleased') }}">
+            <input type="hidden" name="date_released" value="{{ old('date_released') }}">
+            <input type="hidden" name="status" value="{{ old('status', 'Unreleased') }}">
 
             <div>
-                <h2 class="section-title">Released Items</h2>
+                <h2 class="section-title">Released Items <span style="color: var(--danger);">*</span></h2>
+                @error('items')
+                    <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem; display: block;">{{ $message }}</span>
+                @enderror
                 <div id="release-items" class="stack">
-                    <datalist id="item-options">
-                        @foreach($items as $item)
-                            <option value="{{ $item->name }}" data-item-id="{{ $item->id }}" data-category="{{ $item->category }}"></option>
-                        @endforeach
-                    </datalist>
-
                     @php
-                        $oldItems = collect(old('items', []))->values()->all();
+                        $oldItems = collect(old('items', request('items', [])))->values()->all();
                         if (empty($oldItems)) {
-                            $oldItems = [[
-                                'item_description' => '',
-                                'quantity_released' => '',
-                                'uom' => '',
-                                'unit_cost' => '',
-                                'item_id' => '',
-                            ]];
+                            $oldItems = [['item_description' => '', 'quantity_released' => '', 'uom' => '', 'unit_cost' => '', 'item_id' => '']];
                         }
                     @endphp
 
@@ -86,7 +159,10 @@
                                 <div class="form-grid-3">
                                     <div class="form-group">
                                         <label>Item Description</label>
-                                        <input type="text" class="item-description-input" name="items[{{ $index }}][item_description]" value="{{ $oldItem['item_description'] ?? '' }}" autocomplete="off">
+                                        <div style="position:relative; display:flex; align-items:center;">
+                                            <input type="text" class="item-description-input" name="items[{{ $index }}][item_description]" value="{{ $oldItem['item_description'] ?? '' }}" autocomplete="off" style="width:100%; padding-right:2rem;">
+                                            <button type="button" class="item-description-clear" title="Clear" style="position:absolute; right:0.5rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
+                                        </div>
                                     </div>
                                     <div class="form-group">
                                         <label>Quantity</label>
@@ -108,7 +184,10 @@
                                             <option value="">Select product</option>
                                         </select>
                                     </div>
-                                    <div></div>
+                                    <div class="form-group">
+                                        <label>Batch/Lot No.</label>
+                                        <input class="item-lot-input" name="items[{{ $index }}][lot_number]" value="{{ $oldItem['lot_number'] ?? '' }}">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -118,8 +197,8 @@
             </div>
 
             <div class="form-group">
-                <label>Notes</label>
-                <textarea name="notes" rows="3">{{ old('notes') }}</textarea>
+                <label>Purpose / Activity</label>
+                <textarea name="notes" rows="3">{{ old('notes', request('purpose_activity')) }}</textarea>
             </div>
 
             <template id="release-item-template">
@@ -135,7 +214,10 @@
                         <div class="form-grid-3">
                             <div class="form-group">
                                 <label>Item Description</label>
-                                <input type="text" class="item-description-input" name="items[0][item_description]" value="" autocomplete="off">
+                                <div style="position:relative; display:flex; align-items:center;">
+                                    <input type="text" class="item-description-input" name="items[0][item_description]" value="" autocomplete="off" style="width:100%; padding-right:2rem;">
+                                    <button type="button" class="item-description-clear" title="Clear" style="position:absolute; right:0.5rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>Quantity</label>
@@ -157,231 +239,450 @@
                                     <option value="">Select product</option>
                                 </select>
                             </div>
-                            <div></div>
+                            <div class="form-group">
+                                <label>Batch/Lot No.</label>
+                                <input class="item-lot-input" name="items[0][lot_number]" value="">
+                            </div>
                         </div>
                     </div>
                 </div>
             </template>
 
-            <script>
-                const allItemsData = {!! json_encode($items->map(fn($i) => ['id' => $i->id, 'code' => $i->item_code, 'name' => $i->name, 'uom' => $i->unit, 'cost' => $i->unit_cost, 'qty' => $i->quantity_on_hand, 'category' => $i->category])->toArray()) !!};
-
-                document.addEventListener('DOMContentLoaded', function () {
-                    const releaseItems = document.getElementById('release-items');
-                    const addItemButton = document.getElementById('add-item-button');
-                    const itemTemplate = document.getElementById('release-item-template');
-                    const itemOptions = document.getElementById('item-options');
-
-                    const itemsData = Array.from(itemOptions.querySelectorAll('option')).map(option => ({
-                        id: option.dataset.itemId,
-                        name: option.value,
-                        nameLower: option.value.toLowerCase(),
-                        category: option.dataset.category
-                    }));
-
-                    function updateIndexes() {
-                        Array.from(releaseItems.querySelectorAll('.release-item-row')).forEach((row, index) => {
-                            row.dataset.index = index;
-                            row.querySelector('.item-row-title').textContent = 'Item ' + (index + 1);
-                            row.querySelectorAll('input, select').forEach((field) => {
-                                const fieldName = field.name;
-                                const newName = fieldName.replace(/items\[\d+\]/, 'items[' + index + ']');
-                                field.name = newName;
-                            });
-
-                            const deleteButton = row.querySelector('.remove-item-button');
-                            if (index === 0) {
-                                deleteButton.style.display = 'none';
-                            } else {
-                                deleteButton.style.display = '';
-                            }
-                        });
-                    }
-
-                    function createAutocompleteDropdown(descriptionInput) {
-                        let dropdown = descriptionInput.parentElement.querySelector('.autocomplete-dropdown');
-                        if (dropdown) {
-                            dropdown.remove();
-                        }
-
-                        dropdown = document.createElement('div');
-                        dropdown.className = 'autocomplete-dropdown';
-                        dropdown.style.cssText = `
-                            position: absolute;
-                            background: white;
-                            border: 1px solid #ddd;
-                            max-height: 200px;
-                            overflow-y: auto;
-                            width: 100%;
-                            z-index: 1000;
-                            display: none;
-                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                            top: 100%;
-                            left: 0;
-                            margin-top: 4px;
-                        `;
-                        descriptionInput.parentElement.style.position = 'relative';
-                        descriptionInput.parentElement.appendChild(dropdown);
-                        return dropdown;
-                    }
-
-                    function showAutocompleteOptions(descriptionInput, dropdown, searchText, syncCallback) {
-                        dropdown.innerHTML = '';
-                        if (!searchText.trim()) {
-                            dropdown.style.display = 'none';
-                            return;
-                        }
-
-                        const searchLower = searchText.toLowerCase();
-                        const filtered = itemsData.filter(item => item.nameLower.includes(searchLower));
-
-                        if (filtered.length === 0) {
-                            dropdown.style.display = 'none';
-                            return;
-                        }
-
-                        filtered.forEach(item => {
-                            const option = document.createElement('div');
-                            option.className = 'autocomplete-option';
-                            option.style.cssText = `
-                                padding: 10px 12px;
-                                cursor: pointer;
-                                border-bottom: 1px solid #f0f0f0;
-                            `;
-                            option.textContent = item.name;
-                            option.addEventListener('mouseover', () => {
-                                option.style.backgroundColor = '#f5f5f5';
-                            });
-                            option.addEventListener('mouseout', () => {
-                                option.style.backgroundColor = 'transparent';
-                            });
-                            option.addEventListener('click', () => {
-                                descriptionInput.value = item.name;
-                                dropdown.style.display = 'none';
-                                syncCallback();
-                            });
-                            dropdown.appendChild(option);
-                        });
-
-                        dropdown.style.display = 'block';
-                    }
-
-                    function populateProductSelect(select, itemName) {
-                        select.innerHTML = '<option value="">Select product</option>';
-                        const filtered = allItemsData.filter(item => item.name.toLowerCase() === itemName.toLowerCase());
-                        console.log('Filtering by name:', itemName, 'Found:', filtered.length, 'items');
-                        filtered.forEach(item => {
-                            const option = document.createElement('option');
-                            option.value = item.id;
-                            option.textContent = item.code + ' - ' + item.name;
-                            option.dataset.uom = item.uom;
-                            option.dataset.unitCost = item.cost;
-                            option.dataset.quantity = item.qty;
-                            select.appendChild(option);
-                        });
-                    }
-
-                    function bindRowEvents(row) {
-                        const body = row.querySelector('.item-row-body');
-                        const toggleButton = row.querySelector('.item-toggle-button');
-                        const removeButton = row.querySelector('.remove-item-button');
-                        const descriptionInput = row.querySelector('.item-description-input');
-                        const itemIdSelect = row.querySelector('.item-id-select');
-                        const uomInput = row.querySelector('.item-uom-input');
-                        const unitCostInput = row.querySelector('.item-unit-cost-input');
-                        const quantityInput = row.querySelector('.item-quantity-input');
-
-                        if (descriptionInput && itemIdSelect) {
-                            const dropdown = createAutocompleteDropdown(descriptionInput);
-
-                            const syncItemSelection = () => {
-                                const typedText = descriptionInput.value.trim();
-                                const match = itemsData.find(item => item.nameLower === typedText.toLowerCase());
-
-                                if (match) {
-                                    console.log('Matched item:', match.name);
-                                    populateProductSelect(itemIdSelect, match.name);
-                                    itemIdSelect.value = match.id;
-                                    const selectedOption = itemIdSelect.options[itemIdSelect.selectedIndex];
-                                    if (selectedOption && selectedOption.value) {
-                                        if (uomInput) uomInput.value = selectedOption.dataset.uom || '';
-                                        if (unitCostInput) unitCostInput.value = selectedOption.dataset.unitCost || '';
-                                        if (quantityInput) quantityInput.placeholder = 'Available: ' + (selectedOption.dataset.quantity || 0);
-                                    }
-                                }
-                            };
-
-                            descriptionInput.addEventListener('input', (e) => {
-                                showAutocompleteOptions(descriptionInput, dropdown, e.target.value, syncItemSelection);
-                            });
-
-                            descriptionInput.addEventListener('change', syncItemSelection);
-
-                            descriptionInput.addEventListener('blur', () => {
-                                setTimeout(() => {
-                                    dropdown.style.display = 'none';
-                                }, 200);
-                            });
-
-                            descriptionInput.addEventListener('focus', () => {
-                                if (descriptionInput.value.trim()) {
-                                    showAutocompleteOptions(descriptionInput, dropdown, descriptionInput.value, syncItemSelection);
-                                }
-                            });
-                        }
-
-                        if (itemIdSelect) {
-                            itemIdSelect.addEventListener('change', () => {
-                                const selectedOption = itemIdSelect.options[itemIdSelect.selectedIndex];
-                                if (selectedOption && selectedOption.value) {
-                                    if (uomInput) uomInput.value = selectedOption.dataset.uom || '';
-                                    if (unitCostInput) unitCostInput.value = selectedOption.dataset.unitCost || '';
-                                    if (quantityInput) quantityInput.placeholder = 'Available: ' + (selectedOption.dataset.quantity || 0);
-                                }
-                            });
-                        }
-
-                        toggleButton.addEventListener('click', () => {
-                            body.style.display = body.style.display === 'none' ? '' : 'none';
-                            toggleButton.textContent = body.style.display === 'none' ? 'Show' : 'Hide';
-                        });
-
-                        removeButton.addEventListener('click', () => {
-                            row.remove();
-                            updateIndexes();
-                        });
-                    }
-
-                    function addItemRow() {
-                        const clone = itemTemplate.content.cloneNode(true);
-                        const row = clone.querySelector('.release-item-row');
-                        bindRowEvents(row);
-                        releaseItems.appendChild(row);
-                        updateIndexes();
-                    }
-
-                    Array.from(releaseItems.querySelectorAll('.release-item-row')).forEach(bindRowEvents);
-                    updateIndexes();
-
-                    Array.from(releaseItems.querySelectorAll('.release-item-row')).forEach(row => {
-                        const descriptionInput = row.querySelector('.item-description-input');
-                        const itemIdSelect = row.querySelector('.item-id-select');
-                        if (descriptionInput && descriptionInput.value.trim()) {
-                            const match = itemsData.find(item => item.nameLower === descriptionInput.value.trim().toLowerCase());
-                            if (match) {
-                                populateProductSelect(itemIdSelect, match.name);
-                            }
-                        }
-                    });
-
-                    addItemButton.addEventListener('click', addItemRow);
-                });
-            </script>
-
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">Save Release Slip</button>
-                <a href="{{ route('releases.index') }}" class="btn btn-ghost">Cancel</a>
+                <a href="{{ route('releases.index') }}" class="btn btn-ghost" id="cancelBtn">Cancel</a>
             </div>
         </form>
     </section>
+
+    {{-- Autocomplete data sources --}}
+    <datalist id="release-program-options" style="display:none;">
+        @foreach($programs as $program)
+            <option value="{{ $program->name }}"></option>
+        @endforeach
+    </datalist>
+    <datalist id="release-coordinator-options" style="display:none;">
+        @foreach($coordinators as $coordinator)
+            <option value="{{ $coordinator->full_name }}" data-programs="{{ $coordinator->assigned_programs }}"></option>
+        @endforeach
+    </datalist>
+
+@push('scripts')
+<script>
+const allItemsData = {!! json_encode($items->map(fn($i) => [
+    'id'         => $i->id,
+    'code'       => $i->item_code,
+    'name'       => $i->name,
+    'uom'        => $i->unit,
+    'cost'       => $i->unit_cost,
+    'qty'        => $i->quantity_on_hand,
+    'category'   => $i->category,
+    'lot_number' => $itemLotNumbers[$i->id] ?? '',
+])->toArray()) !!};
+
+(function () {
+    // ---- PTR/ITR/RIS/ELMIS Type Switcher ----
+    const ptrTypeSelect  = document.getElementById('ptrTypeSelect');
+    const ptrNumberInput = document.getElementById('ptrNumberInput');
+
+    // ELMIS = manual entry; PTR/ITR/RIS = auto-generated (readonly)
+    function setManualEntry(enabled, focus) {
+        if (enabled) {
+            ptrNumberInput.removeAttribute('readonly');
+            ptrNumberInput.style.background = 'var(--surface)';
+            ptrNumberInput.style.cursor = 'text';
+            ptrNumberInput.placeholder = 'Enter ELMIS No.';
+            if (focus) {
+                ptrNumberInput.value = '';
+                ptrNumberInput.focus();
+            }
+        } else {
+            ptrNumberInput.setAttribute('readonly', 'readonly');
+            ptrNumberInput.style.background = 'var(--surface-strong)';
+            ptrNumberInput.style.cursor = 'not-allowed';
+            ptrNumberInput.placeholder = '';
+        }
+    }
+
+    if (ptrTypeSelect && ptrNumberInput) {
+        ptrTypeSelect.addEventListener('change', function () {
+            if (this.value === 'ELMIS') {
+                // Only ELMIS allows typing into the number field.
+                setManualEntry(true, true);
+                return;
+            }
+
+            // PTR / ITR / RIS — regenerate the sequential number.
+            setManualEntry(false, false);
+            fetch('{{ url('releases/next-ptr-number') }}/' + this.value)
+                .then(r => r.json())
+                .then(d => { if (d.number) ptrNumberInput.value = d.number; })
+                .catch(e => console.error('Failed to fetch PTR number:', e));
+        });
+
+        const initialValue = '{{ old('ptr_itr_ris_no') }}';
+        const initialTransferType = '{{ request('transfer_type', '') }}'.toUpperCase();
+
+        if (initialValue && !/^14538-/i.test(initialValue)) {
+            // Old value is not an auto-generated number → it was a manual
+            // ELMIS entry. Restore the selection and keep the typed value.
+            ptrTypeSelect.value = 'ELMIS';
+            setManualEntry(true, false);
+            ptrNumberInput.value = initialValue;
+        } else if (['PTR', 'ITR', 'RIS'].includes(initialTransferType)) {
+            ptrTypeSelect.value = initialTransferType;
+            ptrTypeSelect.dispatchEvent(new Event('change'));
+        }
+    }
+
+    // ---- Program & Coordinator Autocomplete ----
+    const programsData = Array.from(document.querySelectorAll('#release-program-options option')).map(o => ({
+        name: o.value, nameLower: o.value.toLowerCase()
+    }));
+    const coordinatorsData = Array.from(document.querySelectorAll('#release-coordinator-options option')).map(o => ({
+        name: o.value, nameLower: o.value.toLowerCase(), assignedPrograms: o.dataset.programs || ''
+    }));
+
+    const programInput      = document.getElementById('releaseProgramInput');
+    const coordinatorInput  = document.getElementById('releaseCoordinatorInput');
+    const programDropdown   = document.getElementById('releaseProgramDropdown');
+    const coordinatorDropdown = document.getElementById('releaseCoordinatorDropdown');
+
+    function bindAutocompleteList(input, dataList, dropdown, onSelect) {
+        function showOptions(q) {
+            dropdown.innerHTML = '';
+            const lower = q.toLowerCase().trim();
+            const seen = {};
+            const filtered = (lower ? dataList.filter(i => i.nameLower.includes(lower)) : dataList)
+                .filter(i => { if (seen[i.nameLower]) return false; seen[i.nameLower] = true; return true; });
+            if (!filtered.length) { dropdown.style.display = 'none'; return; }
+            Object.assign(dropdown.style, {
+                background:'var(--surface,#fff)', border:'1px solid var(--border,#ddd)',
+                maxHeight:'200px', overflowY:'auto', boxShadow:'0 4px 6px rgba(0,0,0,.1)', marginTop:'4px'
+            });
+            filtered.forEach(item => {
+                const opt = document.createElement('div');
+                opt.style.cssText = 'padding:10px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;';
+                opt.textContent = item.name;
+                opt.addEventListener('mouseover', () => opt.style.background = '#f5f5f5');
+                opt.addEventListener('mouseout',  () => opt.style.background = 'transparent');
+                opt.addEventListener('click', () => { input.value = item.name; dropdown.style.display = 'none'; if (onSelect) onSelect(item); });
+                dropdown.appendChild(opt);
+            });
+            dropdown.style.display = 'block';
+        }
+        input.addEventListener('input',  e => showOptions(e.target.value));
+        input.addEventListener('focus',  () => showOptions(input.value));
+        input.addEventListener('blur',   () => setTimeout(() => dropdown.style.display = 'none', 200));
+    }
+
+    bindAutocompleteList(programInput, programsData, programDropdown, function (item) {
+        const matched = coordinatorsData.find(c => c.assignedPrograms.toLowerCase().includes(item.nameLower));
+        if (matched && coordinatorInput && !coordinatorInput.value.trim()) coordinatorInput.value = matched.name;
+    });
+
+    bindAutocompleteList(coordinatorInput, coordinatorsData, coordinatorDropdown, function (item) {
+        if (item.assignedPrograms && programInput && !programInput.value.trim()) {
+            programInput.value = item.assignedPrograms.split(', ')[0] || '';
+        }
+    });
+    // ---- End Program & Coordinator Autocomplete ----
+
+    // ---- Items Autocomplete ----
+    const releaseItems  = document.getElementById('release-items');
+    const addItemButton = document.getElementById('add-item-button');
+    const itemTemplate  = document.getElementById('release-item-template');
+
+    const itemsData = allItemsData.map(i => ({
+        id: i.id,
+        name: i.name,
+        nameLower: i.name.toLowerCase(),
+        code: i.code,
+        codeLower: (i.code || '').toLowerCase(),
+        category: i.category,
+    }));
+
+    function updateIndexes() {
+        Array.from(releaseItems.querySelectorAll('.release-item-row')).forEach((row, index) => {
+            row.dataset.index = index;
+            row.querySelector('.item-row-title').textContent = 'Item ' + (index + 1);
+            row.querySelectorAll('input, select').forEach(f => {
+                f.name = f.name.replace(/items\[\d+\]/, 'items[' + index + ']');
+            });
+            row.querySelector('.remove-item-button').style.display = index === 0 ? 'none' : '';
+        });
+    }
+
+    function createDropdown(descInput) {
+        let dd = descInput.parentElement.querySelector('.autocomplete-dropdown');
+        if (dd) dd.remove();
+        dd = document.createElement('div');
+        dd.className = 'autocomplete-dropdown';
+        dd.style.cssText = 'position:absolute;background:white;border:1px solid #ddd;max-height:200px;overflow-y:auto;width:100%;z-index:1000;display:none;box-shadow:0 4px 6px rgba(0,0,0,.1);top:100%;left:0;margin-top:4px;';
+        descInput.parentElement.style.position = 'relative';
+        descInput.parentElement.appendChild(dd);
+        return dd;
+    }
+
+    function showItemOptions(descInput, dd, searchText, syncCb) {
+        dd.innerHTML = '';
+        const lower = searchText.toLowerCase().trim();
+        const seen = new Set();
+        const filtered = (lower ? itemsData.filter(i => i.nameLower.includes(lower)) : itemsData)
+            .filter(i => { if (seen.has(i.nameLower)) return false; seen.add(i.nameLower); return true; });
+        if (!filtered.length) { dd.style.display = 'none'; return; }
+        filtered.forEach(item => {
+            const opt = document.createElement('div');
+            opt.style.cssText = 'padding:10px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;';
+            opt.textContent = item.name;
+            opt.addEventListener('mouseover', () => opt.style.background = '#f5f5f5');
+            opt.addEventListener('mouseout',  () => opt.style.background = 'transparent');
+            opt.addEventListener('click', () => { descInput.value = item.name; dd.style.display = 'none'; syncCb(); });
+            dd.appendChild(opt);
+        });
+        dd.style.display = 'block';
+    }
+
+    function buildProductOptions(select, items = allItemsData) {
+        select.innerHTML = '<option value="">Select product</option>';
+        if (!Array.isArray(items) || !items.length) {
+            return;
+        }
+        items.forEach(i => {
+            const o = document.createElement('option');
+            o.value = i.id;
+            o.textContent = i.code + ' - ' + i.name;
+            o.dataset.uom = i.uom;
+            o.dataset.unitCost = i.cost;
+            o.dataset.quantity = i.qty;
+            o.dataset.lotNumber = i.lot_number || '';
+            select.appendChild(o);
+        });
+    }
+
+    function filterItemsForDescription(text) {
+        const lowerText = (text || '').toLowerCase().trim();
+        if (!lowerText) {
+            return allItemsData;
+        }
+        const filtered = allItemsData.filter(i =>
+            i.name.toLowerCase().includes(lowerText) ||
+            i.code.toLowerCase().includes(lowerText)
+        );
+        return filtered.length ? filtered : allItemsData;
+    }
+
+    function populateProductSelect(select, itemName) {
+        const filteredItems = filterItemsForDescription(itemName);
+        buildProductOptions(select, filteredItems);
+        const lowerName = itemName.toLowerCase().trim();
+        let matchItem = filteredItems.find(i =>
+            i.name.toLowerCase() === lowerName ||
+            i.code.toLowerCase() === lowerName
+        );
+        if (!matchItem) {
+            matchItem = filteredItems.find(i =>
+                i.name.toLowerCase().includes(lowerName) ||
+                i.code.toLowerCase().includes(lowerName)
+            );
+        }
+        if (matchItem) {
+            select.value = matchItem.id;
+        }
+    }
+
+    function bindRowEvents(row) {
+        const body          = row.querySelector('.item-row-body');
+        const toggleButton  = row.querySelector('.item-toggle-button');
+        const removeButton  = row.querySelector('.remove-item-button');
+        const descInput     = row.querySelector('.item-description-input');
+        const itemIdSelect  = row.querySelector('.item-id-select');
+        const uomInput      = row.querySelector('.item-uom-input');
+        const unitCostInput = row.querySelector('.item-unit-cost-input');
+        const quantityInput = row.querySelector('.item-quantity-input');
+        const lotInput      = row.querySelector('.item-lot-input');
+
+        if (descInput && itemIdSelect) {
+            const dd = createDropdown(descInput);
+
+            const syncItemSelection = (preserveExistingSelection = false) => {
+                const typed = descInput.value.trim().toLowerCase();
+                if (!typed) {
+                    return;
+                }
+
+                if (preserveExistingSelection && itemIdSelect.value && itemIdSelect.value !== '') {
+                    const selectedItem = allItemsData.find(i => i.id == itemIdSelect.value);
+                    if (selectedItem && (selectedItem.name.toLowerCase() === typed || selectedItem.code.toLowerCase() === typed)) {
+                        return;
+                    }
+                }
+
+                let match = itemsData.find(i => i.nameLower === typed || i.codeLower === typed || i.id.toString() === typed);
+                if (!match) {
+                    match = itemsData.find(i => i.nameLower.includes(typed) || i.codeLower.includes(typed));
+                }
+                if (match) {
+                    populateProductSelect(itemIdSelect, match.name);
+                    itemIdSelect.value = match.id;
+                    const sel = itemIdSelect.options[itemIdSelect.selectedIndex];
+                    if (sel && sel.value) {
+                        if (uomInput)      uomInput.value      = sel.dataset.uom || '';
+                        if (unitCostInput) unitCostInput.value = sel.dataset.unitCost || '';
+                        if (quantityInput) quantityInput.placeholder = 'Available: ' + (sel.dataset.quantity || 0);
+                    }
+                    const itemData = allItemsData.find(i => i.id == match.id);
+                    if (lotInput && itemData && itemData.lot_number) lotInput.value = itemData.lot_number;
+                    if (descInput) descInput.value = match.name;
+                }
+            };
+
+            descInput.addEventListener('input',  e => showItemOptions(descInput, dd, e.target.value, syncItemSelection));
+            descInput.addEventListener('change', syncItemSelection);
+            descInput.addEventListener('blur',   () => setTimeout(() => dd.style.display = 'none', 200));
+            descInput.addEventListener('focus',  () => showItemOptions(descInput, dd, descInput.value, syncItemSelection));
+
+            const clearBtn = row.querySelector('.item-description-clear');
+            if (clearBtn) {
+                clearBtn.addEventListener('mousedown', e => e.preventDefault());
+                clearBtn.addEventListener('click', () => {
+                    descInput.value = '';
+                    itemIdSelect.innerHTML = '<option value="">Select product</option>';
+                    if (uomInput)      uomInput.value = '';
+                    if (unitCostInput) unitCostInput.value = '';
+                    if (quantityInput) quantityInput.placeholder = 'Available: 0';
+                    if (lotInput)      lotInput.value = '';
+                    dd.style.display = 'none';
+                    descInput.focus();
+                });
+            }
+        }
+
+        if (itemIdSelect) {
+            buildProductOptions(itemIdSelect);
+            itemIdSelect.addEventListener('change', () => {
+                const sel = itemIdSelect.options[itemIdSelect.selectedIndex];
+                if (sel && sel.value) {
+                    if (uomInput)      uomInput.value      = sel.dataset.uom || '';
+                    if (unitCostInput) unitCostInput.value = sel.dataset.unitCost || '';
+                    if (quantityInput) quantityInput.placeholder = 'Available: ' + (sel.dataset.quantity || 0);
+                    const itemData = allItemsData.find(i => i.id == sel.value);
+                    if (lotInput && itemData && itemData.lot_number) lotInput.value = itemData.lot_number;
+                    if (descInput && itemData) descInput.value = itemData.name;
+                }
+            });
+        }
+
+        toggleButton.addEventListener('click', () => {
+            body.style.display = body.style.display === 'none' ? '' : 'none';
+            toggleButton.textContent = body.style.display === 'none' ? 'Show' : 'Hide';
+        });
+        removeButton.addEventListener('click', () => { row.remove(); updateIndexes(); });
+    }
+
+    Array.from(releaseItems.querySelectorAll('.release-item-row')).forEach(row => {
+        bindRowEvents(row);
+        const descInput    = row.querySelector('.item-description-input');
+        const itemIdSelect = row.querySelector('.item-id-select');
+        if (itemIdSelect) {
+            buildProductOptions(itemIdSelect);
+        }
+        if (descInput && descInput.value.trim()) {
+            const match = itemsData.find(i => i.nameLower === descInput.value.trim().toLowerCase());
+            if (match) populateProductSelect(itemIdSelect, match.name);
+        }
+    });
+    updateIndexes();
+
+    addItemButton.addEventListener('click', () => {
+        const clone = itemTemplate.content.cloneNode(true);
+        const row   = clone.querySelector('.release-item-row');
+        bindRowEvents(row);
+        releaseItems.appendChild(row);
+        updateIndexes();
+    });
+
+    function syncRowItemSelection(row) {
+        const descInput = row.querySelector('.item-description-input');
+        const itemIdSelect = row.querySelector('.item-id-select');
+        const uomInput = row.querySelector('.item-uom-input');
+        const unitCostInput = row.querySelector('.item-unit-cost-input');
+        const quantityInput = row.querySelector('.item-quantity-input');
+        const lotInput = row.querySelector('.item-lot-input');
+
+        if (!descInput || !itemIdSelect) {
+            return;
+        }
+
+        buildProductOptions(itemIdSelect);
+
+        if (itemIdSelect.value) {
+            return;
+        }
+
+        const typed = descInput.value.trim().toLowerCase();
+        if (!typed) {
+            return;
+        }
+
+        let match = itemsData.find(i => i.nameLower === typed || i.codeLower === typed || i.id.toString() === typed);
+        if (!match) {
+            match = itemsData.find(i => i.nameLower.includes(typed) || i.codeLower.includes(typed));
+        }
+        if (!match) {
+            return;
+        }
+
+        populateProductSelect(itemIdSelect, match.name);
+        itemIdSelect.value = match.id;
+
+        const sel = itemIdSelect.options[itemIdSelect.selectedIndex];
+        if (sel && sel.value) {
+            if (uomInput)      uomInput.value = sel.dataset.uom || '';
+            if (unitCostInput) unitCostInput.value = sel.dataset.unitCost || '';
+            if (quantityInput) quantityInput.placeholder = 'Available: ' + (sel.dataset.quantity || 0);
+            const itemData = allItemsData.find(i => i.id == match.id);
+            if (lotInput && itemData && itemData.lot_number) lotInput.value = itemData.lot_number;
+            if (descInput) descInput.value = match.name;
+        }
+    }
+
+    // ---- Dirty-form guard ----
+    let formDirty = false;
+    const releaseForm = document.getElementById('releaseForm');
+
+    releaseForm.querySelectorAll('input, select, textarea').forEach(el => {
+        el.addEventListener('input',  () => formDirty = true);
+        el.addEventListener('change', () => formDirty = true);
+    });
+    window.addEventListener('beforeunload', e => { if (formDirty) { e.preventDefault(); e.returnValue = ''; } });
+    document.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', e => {
+            if (formDirty && !confirm('You have unsaved changes. Leaving this page will discard them. Are you sure you want to leave?')) e.preventDefault();
+        });
+    });
+
+    releaseForm.addEventListener('submit', () => {
+        Array.from(releaseItems.querySelectorAll('.release-item-row')).forEach(row => {
+            const itemIdSelect = row.querySelector('.item-id-select');
+            if (itemIdSelect && itemIdSelect.value) {
+                return;
+            }
+            syncRowItemSelection(row);
+        });
+        formDirty = false;
+    });
+
+    new MutationObserver(() => {
+        releaseItems.querySelectorAll('input, select, textarea').forEach(el => {
+            el.removeEventListener('input',  () => formDirty = true);
+            el.removeEventListener('change', () => formDirty = true);
+            el.addEventListener('input',  () => formDirty = true);
+            el.addEventListener('change', () => formDirty = true);
+        });
+    }).observe(releaseItems, { childList: true, subtree: true });
+    // ---- End guard ----
+})();
+</script>
+@endpush
 @endsection

@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Item;
+use App\Models\Program;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ItemController extends Controller
 {
@@ -12,6 +15,7 @@ class ItemController extends Controller
         $search = $request->query('search');
         $status = $request->query('status');
         $category = $request->query('category');
+        $program = $request->query('program');
 
         $query = Item::query();
 
@@ -32,9 +36,6 @@ class ItemController extends Controller
                 $query->where('quantity_on_hand', '>', 0)
                       ->whereColumn('quantity_on_hand', '>', 'reorder_level');
             } elseif ($status === 'low') {
-                // Low stock rule (fallback):
-                // - If reorder_level is set (>0), low if quantity_on_hand <= reorder_level
-                // - Otherwise (null/0), low if quantity_on_hand <= 20
                 $query->where('quantity_on_hand', '>', 0)
                       ->where('quantity_on_hand', '<=', 20)
                       ->where(function ($q) {
@@ -48,16 +49,16 @@ class ItemController extends Controller
                           });
                       });
             } elseif ($status === 'out') {
-
-
-
-
                 $query->where('quantity_on_hand', '<=', 0);
             }
         }
 
         if ($category) {
             $query->where('category', $category);
+        }
+
+        if ($program) {
+            $query->where('stock_keeping_unit', $program);
         }
 
         $categories = Item::select('category')
@@ -67,38 +68,212 @@ class ItemController extends Controller
             ->orderBy('category')
             ->pluck('category');
 
-        $items = $query->with('nextExpiryItem')->orderBy('name')->paginate(15)->withQueryString();
+        $programs = Program::orderBy('name')->get();
 
-        return view('items.index', compact('items', 'search', 'status', 'category', 'categories'));
+        $groupedItems = $query->with('nextExpiryItem', 'receivingItems.receiving.supplier')->orderBy('name')->get()
+            ->groupBy('name')
+            ->map(function ($items) {
+                $item = $items->first();
+                $item->quantity_on_hand = $items->sum('quantity_on_hand');
+                $item->record_count = $items->count();
+
+                $item->supplier_types = $items->flatMap(fn ($i) => $i->receivingItems)
+                    ->map(fn ($ri) => $ri->receiving?->supplier?->supplier_type)
+                    ->filter()
+                    ->unique()
+                    ->sort()
+                    ->values()
+                    ->implode(', ');
+
+                return $item;
+            })
+            ->values();
+
+        $perPageParam = $request->query('per_page', 15);
+
+        if ($perPageParam === 'all') {
+            $perPage = PHP_INT_MAX;
+        } else {
+            $perPage = (int) $perPageParam;
+
+            if ($perPage <= 0) {
+                $perPage = 15;
+            }
+        }
+
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $items = new LengthAwarePaginator(
+            $groupedItems->forPage($currentPage, $perPage)->values(),
+            $groupedItems->count(),
+            $perPage,
+            $currentPage,
+            ['path' => LengthAwarePaginator::resolveCurrentPath()]
+        );
+        $items->withQueryString();
+
+        $supplierStats = DB::table('receivings')
+            ->join('suppliers', 'receivings.supplier_id', '=', 'suppliers.id')
+            ->join('receiving_items', 'receivings.id', '=', 'receiving_items.receiving_id')
+            ->join('items', 'receiving_items.item_id', '=', 'items.id')
+            ->whereIn('suppliers.supplier_type', ['DOH', 'GSO'])
+            ->select(
+                'suppliers.supplier_type',
+                DB::raw('COUNT(DISTINCT items.name) as item_count'),
+                DB::raw('SUM(receiving_items.quantity_received) as units_received')
+            )
+            ->groupBy('suppliers.supplier_type')
+            ->get()
+            ->keyBy('supplier_type');
+
+        foreach (['DOH', 'GSO'] as $supplierType) {
+            $supplierStats->put($supplierType, $supplierStats->get($supplierType, (object) [
+                'item_count' => 0,
+                'units_received' => 0,
+            ]));
+        }
+
+        return view('items.index', compact('items', 'search', 'status', 'category', 'categories', 'supplierStats', 'programs', 'program'));
     }
 
     public function show(Item $item)
     {
-        $item->load('nextExpiryItem', 'releaseItems');
+        $items = Item::where('name', $item->name)
+            ->with('nextExpiryItem', 'receivingItems.receiving.supplier', 'releaseItems.release')
+            ->orderBy('location')
+            ->orderBy('item_code')
+            ->get();
 
-        $totalReleased = $item->releaseItems()->sum('quantity_released');
-        $totalReceived = $item->receivingItems()->sum('quantity_received');
+        $totalReleased = $items->sum(fn ($groupedItem) => $groupedItem->releaseItems
+            ->filter(fn ($ri) => ! in_array($ri->release->status ?? '', ['Canceled', 'Returned'], true))
+            ->sum('quantity_released'));
+        $totalReceived = $items->sum(fn ($groupedItem) => $groupedItem->receivingItems->sum('quantity_received'));
+        $totalStock = $items->sum('quantity_on_hand');
         $deductionPercentage = $totalReceived > 0 ? round(($totalReleased / $totalReceived) * 100) : 0;
+
+        $statsRows = DB::table('receivings')
+            ->join('suppliers', 'receivings.supplier_id', '=', 'suppliers.id')
+            ->join('receiving_items', 'receivings.id', '=', 'receiving_items.receiving_id')
+            ->join('items', 'receiving_items.item_id', '=', 'items.id')
+            ->where('items.name', $item->name)
+            ->whereIn('suppliers.supplier_type', ['DOH', 'GSO'])
+            ->select(
+                'suppliers.supplier_type',
+                DB::raw('SUM(receiving_items.quantity_received) as units_received')
+            )
+            ->groupBy('suppliers.supplier_type')
+            ->get()
+            ->keyBy('supplier_type');
+
+        $supplierStats = collect(['DOH', 'GSO'])->mapWithKeys(fn ($type) => [
+            $type => (object) [
+                'item_count' => $statsRows->has($type) ? 1 : 0,
+                'units_received' => $statsRows->get($type)?->units_received ?? 0,
+            ]
+        ]);
 
         $deductionHistory = [];
 
-        foreach ($item->releaseItems as $releaseItem) {
-            $release = $releaseItem->release;
-            $deductionHistory[] = [
-                'date' => $release->date_released,
-                'type' => 'Release',
-                'reference' => $release->ptr_itr_ris_no ?? $release->release_number,
-                'quantity' => $releaseItem->quantity_released,
-                'facility' => $release->facility_name,
-                'status' => $release->status,
-            ];
+        foreach ($items as $groupedItem) {
+            foreach ($groupedItem->releaseItems as $releaseItem) {
+                $release    = $releaseItem->release;
+                $isInactive = in_array($release->status, ['Canceled', 'Returned'], true);
+
+                $deductionHistory[] = [
+                    'date'      => $release->date_released,
+                    'type'      => 'Release',
+                    'direction' => 'deduct',
+                    'item_code' => $groupedItem->item_code,
+                    'reference' => $release->ptr_itr_ris_no ?? $release->release_number,
+                    'quantity'  => $releaseItem->quantity_released,
+                    'facility'  => $release->facility_name,
+                    'status'    => $release->status,
+                    'reason'    => $release->status_reason ?? null,
+                    'release_id' => $release->id,
+                ];
+
+                if ($isInactive) {
+                    $deductionHistory[] = [
+                        'date'      => $release->updated_at,
+                        'type'      => $release->status,
+                        'direction' => 'restore',
+                        'item_code' => $groupedItem->item_code,
+                        'reference' => $release->ptr_itr_ris_no ?? $release->release_number,
+                        'quantity'  => $releaseItem->quantity_released,
+                        'facility'  => $release->facility_name,
+                        'status'    => $release->status,
+                        'reason'    => $release->status_reason ?? null,
+                        'release_id' => $release->id,
+                    ];
+                }
+            }
         }
 
         usort($deductionHistory, function ($a, $b) {
-            return $b['date']->timestamp - $a['date']->timestamp;
+            $aTimestamp = $a['date']?->timestamp ?? 0;
+            $bTimestamp = $b['date']?->timestamp ?? 0;
+            return $bTimestamp - $aTimestamp;
         });
 
-        return view('items.show', compact('item', 'totalReleased', 'deductionPercentage', 'deductionHistory'));
+        return view('items.show', compact('item', 'items', 'totalStock', 'totalReleased', 'deductionPercentage', 'deductionHistory', 'supplierStats'));
+    }
+
+    public function productCodeShow(Item $item, $productCode)
+    {
+        $product = Item::where('item_code', $productCode)
+            ->with('nextExpiryItem', 'receivingItems.receiving.supplier', 'releaseItems.release')
+            ->firstOrFail();
+
+        $totalReleased = $product->releaseItems
+            ->filter(fn ($ri) => ! in_array($ri->release->status ?? '', ['Canceled', 'Returned'], true))
+            ->sum('quantity_released');
+        $totalReceived = $product->receivingItems->sum('quantity_received');
+        $totalStock = $product->quantity_on_hand;
+        $deductionPercentage = $totalReceived > 0 ? round(($totalReleased / $totalReceived) * 100) : 0;
+
+        $deductionHistory = [];
+        foreach ($product->releaseItems as $releaseItem) {
+            $release = $releaseItem->release;
+
+            $isInactive = in_array($release->status, ['Canceled', 'Returned'], true);
+
+            // Original release row — always shown
+            $deductionHistory[] = [
+                'date'      => $release->date_released,
+                'type'      => 'Release',
+                'direction' => 'deduct',
+                'item_code' => $product->item_code,
+                'reference' => $release->ptr_itr_ris_no ?? $release->release_number,
+                'quantity'  => $releaseItem->quantity_released,
+                'facility'  => $release->facility_name,
+                'status'    => $release->status,
+                'reason'    => $release->status_reason ?? null,
+                'release_id' => $release->id,
+            ];
+
+            // Stock restore row — only when Canceled or Returned
+            if ($isInactive) {
+                $deductionHistory[] = [
+                    'date'      => $release->updated_at,
+                    'type'      => $release->status,
+                    'direction' => 'restore',
+                    'item_code' => $product->item_code,
+                    'reference' => $release->ptr_itr_ris_no ?? $release->release_number,
+                    'quantity'  => $releaseItem->quantity_released,
+                    'facility'  => $release->facility_name,
+                    'status'    => $release->status,
+                    'reason'    => $release->status_reason ?? null,
+                    'release_id' => $release->id,
+                ];
+            }
+        }
+
+        usort($deductionHistory, function ($a, $b) {
+            $aTimestamp = $a['date']?->timestamp ?? 0;
+            $bTimestamp = $b['date']?->timestamp ?? 0;
+            return $bTimestamp - $aTimestamp;
+        });
+
+        return view('items.productcode-show', compact('item', 'product', 'totalStock', 'totalReleased', 'deductionPercentage', 'deductionHistory'));
     }
 
     public function export(Request $request)

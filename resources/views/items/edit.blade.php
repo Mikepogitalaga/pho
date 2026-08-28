@@ -29,7 +29,10 @@
             <div class="form-grid-2">
                 <div class="form-group">
                     <label>Category</label>
-                    <input name="category" value="{{ old('category', $item->category) }}">
+                    <select name="category" required>
+                        <option value="DM" @selected(old('category', $item->category) === 'DM')>DM</option>
+                        <option value="MDL" @selected(old('category', $item->category) === 'MDL')>MDL</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Unit</label>

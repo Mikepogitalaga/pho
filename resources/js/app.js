@@ -65,6 +65,12 @@ import './bootstrap';
         }
         if (sidebarCollapseBtn) {
             sidebarCollapseBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            const collapseIcon = sidebarCollapseBtn.querySelector('.icon-collapse');
+            const expandIcon = sidebarCollapseBtn.querySelector('.icon-expand');
+            if (collapseIcon && expandIcon) {
+                collapseIcon.style.display = expanded ? 'block' : 'none';
+                expandIcon.style.display = expanded ? 'none' : 'block';
+            }
         }
     }
 

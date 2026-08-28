@@ -3,14 +3,43 @@
 namespace App\Http\Controllers;
 
 use App\Models\Item;
+use App\Models\Program;
+use App\Models\Coordinator;
+use App\Models\ReceivingItem;
 use App\Models\Release;
 use App\Models\ReleaseItem;
+use App\Traits\GeneratesCodes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class ReleaseController extends Controller
 {
+    use GeneratesCodes;
+
+    private function applyStatusTransition(Release $release, string $newStatus, ?string $previousStatus = null): void
+    {
+        $previousStatus = $previousStatus ?? $release->getRawOriginal('status') ?? $release->status;
+
+        $wasInactive = in_array($previousStatus, ['Canceled', 'Returned'], true);
+        $isInactive  = in_array($newStatus,      ['Canceled', 'Returned'], true);
+
+        if ($isInactive && ! $wasInactive) {
+            // Active → Canceled/Returned: restore stock
+            foreach ($release->items as $releaseItem) {
+                Item::where('id', $releaseItem->item_id)
+                    ->increment('quantity_on_hand', (int) $releaseItem->quantity_released);
+            }
+        } elseif (! $isInactive && $wasInactive) {
+            // Canceled/Returned → Active: deduct stock again
+            foreach ($release->items as $releaseItem) {
+                Item::where('id', $releaseItem->item_id)
+                    ->decrement('quantity_on_hand', (int) $releaseItem->quantity_released);
+            }
+        }
+    }
+
     public function updateStatus(Request $request, Release $release, string $status)
     {
         $allowed = ['released-through-pass', 'released', 'canceled', 'returned', 'unreleased'];
@@ -18,50 +47,40 @@ class ReleaseController extends Controller
             return redirect()->back()->with('error', 'Invalid status.');
         }
 
-        $previousStatus = $release->status;
+        $previousStatus = $release->getRawOriginal('status') ?? $release->status;
 
         $newStatus = match ($status) {
             'released-through-pass' => 'Released through pass',
-            'released' => 'Released',
-            'canceled' => 'Canceled',
-            'returned' => 'Returned',
-            default => 'Unreleased',
+            'released'              => 'Released',
+            'canceled'              => 'Canceled',
+            'returned'              => 'Returned',
+            default                 => 'Unreleased',
         };
 
         $release->status = $newStatus;
 
-        // For released/released-through-pass we capture receiving metadata.
-        // These fields already exist on the DB as `received_by` and we reuse `date_released` as receiving date.
         if (in_array($newStatus, ['Released', 'Released through pass'], true)) {
-            $release->received_by = $request->input('received_by', $release->received_by);
+            $release->received_by   = $request->input('received_by', $release->received_by);
             $release->date_released = $request->input('date_released', $release->date_released);
-
-            // Also persist PTR/ITR/RIS No. if provided.
             $release->ptr_itr_ris_no = $request->input('ptr_itr_ris_no', $release->ptr_itr_ris_no);
         }
 
-
-        // Inventory adjustments:
-        // - When a release is initially created, item quantity_on_hand is decremented.
-        // - If user marks a release as canceled or returned, we restore quantities.
-        if (in_array($newStatus, ['Canceled', 'Returned'], true) && !in_array($previousStatus, ['Canceled', 'Returned'], true)) {
-            foreach ($release->items as $releaseItem) {
-                $item = Item::find($releaseItem->item_id);
-                if ($item) {
-                    $item->increment('quantity_on_hand', (int) $releaseItem->quantity_released);
-                }
-            }
+        if (in_array($newStatus, ['Canceled', 'Returned'], true)) {
+            $release->status_reason = $request->input('status_reason', $release->status_reason);
         }
 
-        $release->save();
-
+        DB::transaction(function () use ($release, $newStatus, $previousStatus) {
+            $release->load('items');
+            $this->applyStatusTransition($release, $newStatus, $previousStatus);
+            $release->save();
+        });
 
         return redirect()->route('releases.view', $release)->with('success', 'Release status updated.');
     }
 
     public function index(Request $request)
     {
-        $query = Release::query()->latest('date_released');
+        $query = Release::query()->with('items')->latest('date_released');
 
         $search = trim((string) $request->input('search', ''));
         if ($search !== '') {
@@ -90,6 +109,18 @@ class ReleaseController extends Controller
             $query->where('pas_number', 'like', '%' . $pasNumber . '%');
         }
 
+        $program = trim((string) $request->input('program', ''));
+        if ($program !== '') {
+            $query->where('health_program_coordinator', 'like', '%' . $program . '%');
+        }
+
+        $itemId = trim((string) $request->input('item', ''));
+        if ($itemId !== '') {
+            $query->whereHas('items', function ($q) use ($itemId) {
+                $q->where('items.id', $itemId);
+            });
+        }
+
         $status = $request->input('status');
         if (!empty($status)) {
             $newStatus = match ($status) {
@@ -104,116 +135,229 @@ class ReleaseController extends Controller
             $query->where('status', $newStatus);
         }
 
-        $releases = $query->paginate(15);
+        $perPage = (int) $request->query('per_page', 15);
 
-        return view('releases.index', compact('releases'));
+        if ($perPage <= 0) {
+            $perPage = PHP_INT_MAX;
+        }
+
+        $releases = $query->paginate($perPage)->withQueryString();
+
+        $programs = Program::orderBy('name')->get();
+
+        return view('releases.index', compact('releases', 'programs', 'program'));
     }
 
     public function view(Release $release)
     {
-        // Eager-load released items relation (defined on the Release model)
-        $release->load('items');
+        $release->load(['items.item.receivingItems.receiving']);
 
         return view('releases.view', compact('release'));
+    }
+
+    public function print(Release $release)
+    {
+        $release->load(['items.item.receivingItems.receiving']);
+
+        return view('releases.print', compact('release'));
     }
 
     public function update(Request $request, Release $release)
     {
         $request->validate([
-            'pas_number' => 'nullable|string|max:255',
+            'pas_number'                 => 'nullable|string|max:255',
             'health_program_coordinator' => 'nullable|string|max:255',
-            'ptr_itr_ris_no' => 'nullable|string|max:255',
-            'pho_code' => 'nullable|string|max:255',
-            'source_docs_ptr_po_no' => 'nullable|string|max:255',
-            'facility_name' => 'nullable|string|max:255',
-            'received_by' => 'nullable|string|max:255',
-            'date_released' => 'required|date',
-            'status' => 'required|string|in:Unreleased,Released,Released through pass,Canceled,Returned',
-            'notes' => 'nullable|string',
+            'ptr_itr_ris_no'             => 'nullable|string|max:255',
+            'pho_code'                   => 'nullable|string|max:255',
+            'source_docs_ptr_po_no'      => 'nullable|string|max:255',
+            'facility_name'              => 'nullable|string|max:255',
+            'received_by'                => 'nullable|string|max:255',
+            'date_released'              => 'nullable|date',
+            'status'                     => 'required|string|in:Unreleased,Released,Released through pass,Canceled,Returned',
+            'status_reason'              => 'nullable|string|max:1000',
+            'notes'                      => 'nullable|string',
         ]);
 
-        $release->update($request->only([
-            'pas_number',
-            'health_program_coordinator',
-            'ptr_itr_ris_no',
-            'pho_code',
-            'source_docs_ptr_po_no',
-            'facility_name',
-            'received_by',
-            'date_released',
-            'status',
-            'notes',
-        ]));
+        // Capture BEFORE fill() overwrites it — this is critical for the stock transition
+        $previousStatus = $release->getRawOriginal('status') ?? $release->status;
+        $newStatus      = $request->input('status');
 
-        return redirect()->route('releases.view', $release)->with('success', 'Release details updated successfully.');
+        DB::transaction(function () use ($request, $release, $previousStatus, $newStatus) {
+            $facilityName = $request->input('facility_name', $release->facility_name);
+            $facilityCategory = $release->facility_category;
+            if ($request->has('facility_name') && $facilityName !== $release->facility_name) {
+                $facility = \App\Models\Facility::where('name', $facilityName)->first();
+                $facilityCategory = $facility ? $facility->category : $request->input('facility_category', $release->facility_category);
+            }
+            if ($request->input('facility_category')) {
+                $facilityCategory = $request->input('facility_category');
+            }
+
+            $release->fill($request->only([
+                'pas_number', 'health_program_coordinator', 'ptr_itr_ris_no',
+                'pho_code', 'source_docs_ptr_po_no', 'facility_name',
+                'received_by', 'date_released', 'status', 'status_reason', 'notes',
+            ]));
+            $release->facility_category = $facilityCategory;
+
+            // Reload items fresh so increment/decrement works on correct records
+            $release->load('items');
+            $this->applyStatusTransition($release, $newStatus, $previousStatus);
+            $release->save();
+        });
+
+        return redirect()->route('releases.index')->with('success', 'Release details updated successfully.');
     }
 
     public function create()
     {
         $items = Item::orderBy('name')->get();
+        $programs = Program::orderBy('name')->get();
+        $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
 
-        return view('releases.create', compact('items'));
+        // Fetch the latest lot_number for each item from receiving_items
+        $itemLotNumbers = ReceivingItem::select('item_id', 'lot_number')
+            ->whereNotNull('lot_number')
+            ->whereIn('item_id', $items->pluck('id'))
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->groupBy('item_id')
+            ->map(fn($group) => $group->first()->lot_number);
+
+        // Auto-generate PTR/ITR/RIS No. in format: 14538-{TYPE}-yyyy-mm-XXXX
+        $year = now()->format('Y');
+        $month = now()->format('m');
+        $ptrType = 'PTR'; // default type
+        $prefix = "14538-{$ptrType}-{$year}-{$month}-";
+
+        // Get the last sequential number across ALL types (PTR, ITR, RIS) for this year-month
+        $nextSeq = $this->nextYearSequence(Release::class, 'ptr_itr_ris_no', "14538-%-{$year}-{$month}-%");
+
+        $ptrNumber = $prefix . $nextSeq;
+
+        return view('releases.create', compact('items', 'ptrNumber', 'year', 'month', 'itemLotNumbers', 'programs', 'coordinators'));
     }
 
+    public function nextPtrNumber(string $type)
+    {
+        $type = strtoupper($type);
+        if (!in_array($type, ['PTR', 'ITR', 'RIS'])) {
+            return response()->json(['error' => 'Invalid type'], 400);
+        }
+
+        $year = now()->format('Y');
+        $month = now()->format('m');
+        $prefix = "14538-{$type}-{$year}-{$month}-";
+
+        // Get the last sequential number across ALL types (PTR, ITR, RIS) for this year-month
+        $nextSeq = $this->nextYearSequence(Release::class, 'ptr_itr_ris_no', "14538-%-{$year}-{$month}-%");
+
+        return response()->json(['number' => $prefix . $nextSeq]);
+    }
 
     public function store(Request $request)
     {
-        // Status is set automatically after saving.
-        $request->validate([
-            'pas_number' => 'nullable|string|max:255',
-            'health_program_coordinator' => 'nullable|string|max:255',
-            'ptr_itr_ris_no' => 'nullable|string|max:255',
-            'pho_code' => 'nullable|string|max:255',
-            'source_docs_ptr_po_no' => 'nullable|string|max:255',
-            'facility_name' => 'nullable|string|max:255',
-            'received_by' => 'nullable|string|max:255',
-            'date_released' => 'required|date',
-            'status' => 'nullable|string|max:255',
-            'items' => 'required|array|min:1',
-            'items.*.item_id' => 'required|exists:items,id',
-            'items.*.item_description' => 'nullable|string|max:1000',
-            'items.*.quantity_released' => 'required|integer|min:1',
-            'items.*.uom' => 'nullable|string|max:255',
-            'items.*.unit_cost' => 'nullable|numeric|min:0',
-        ]);
+        // Map item descriptions to item IDs if the user entered a matching product name.
+        $items = $request->input('items', []);
+        foreach ($items as $index => $itemData) {
+            if (empty($itemData['item_id']) && !empty($itemData['item_description'])) {
+                $itemDescription = trim($itemData['item_description']);
+                $lowerDescription = Str::lower($itemDescription);
 
-        DB::transaction(function () use ($request) {
-            $release = Release::create([
-                'release_number' => 'REL-' . strtoupper(Str::random(8)),
-                'pas_number' => $request->input('pas_number'),
-                // After saving a new release slip, it starts as "Unreleased".
-                // Status will be updated later via dedicated actions.
-                'status' => 'Unreleased',
-                'health_program_coordinator' => $request->input('health_program_coordinator'),
-                'ptr_itr_ris_no' => $request->input('ptr_itr_ris_no'),
-                'pho_code' => $request->input('pho_code'),
-                'source_docs_ptr_po_no' => $request->input('source_docs_ptr_po_no'),
-                'facility_name' => $request->input('facility_name'),
-                'received_by' => $request->input('received_by'),
-                'date_released' => $request->input('date_released'),
-                'notes' => $request->input('notes'),
-            ]);
+                $matchedItem = Item::whereRaw('LOWER(name) = ?', [$lowerDescription])
+                    ->orWhereRaw('LOWER(item_code) = ?', [$lowerDescription])
+                    ->first();
 
-            foreach ($request->input('items') as $itemData) {
-                $item = Item::find($itemData['item_id']);
-
-                if ($item->quantity_on_hand < $itemData['quantity_released']) {
-                    throw new \Exception("Not enough stock for item {$item->name}.");
+                if (! $matchedItem) {
+                    $matchedItem = Item::whereRaw('LOWER(name) like ?', ["%{$lowerDescription}%"] )
+                        ->orWhereRaw('LOWER(item_code) like ?', ["%{$lowerDescription}%"] )
+                        ->first();
                 }
 
-                ReleaseItem::create([
-                    'release_id' => $release->id,
-                    'item_id' => $itemData['item_id'],
-                    'item_description' => $itemData['item_description'] ?? $item->name,
-                    'quantity_released' => $itemData['quantity_released'],
-                    'uom' => $itemData['uom'] ?? $item->unit,
-                    'unit_cost' => $itemData['unit_cost'] ?? null,
+                if ($matchedItem) {
+                    $items[$index]['item_id'] = $matchedItem->id;
+                }
+            }
+        }
+        $request->merge(['items' => $items]);
+
+        // Status is set automatically after saving.
+        $request->validate([
+            'pas_number' => 'required|string|max:255',
+            'health_program_coordinator' => 'required|string|max:255',
+            'ptr_itr_ris_no' => 'required|string|max:255',
+            'pho_code' => 'required|string|max:255',
+            'source_docs_ptr_po_no' => 'required|string|max:255',
+            'facility_name' => 'required|string|max:255',
+            'received_by' => 'required|string|max:255',
+            'date_released' => 'nullable|date',
+            'status' => 'required|string|max:255',
+            'items' => 'required|array|min:1',
+            'items.*.item_id' => 'required|exists:items,id',
+            'items.*.item_description' => 'required|string|max:1000',
+            'items.*.quantity_released' => 'required|integer|min:1',
+            'items.*.uom' => 'required|string|max:255',
+            'items.*.unit_cost' => 'required|numeric|min:0',
+        ]);
+
+        try {
+            DB::transaction(function () use ($request) {
+                $facilityName = $request->input('facility_name');
+                $facilityCategory = null;
+                if ($facilityName) {
+                    $facility = \App\Models\Facility::where('name', $facilityName)->first();
+                    $facilityCategory = $facility ? $facility->category : null;
+                }
+
+                $release = Release::create([
+                    'release_number' => 'REL-' . strtoupper(Str::random(8)),
+                    'pas_number' => $request->input('pas_number'),
+                    // After saving a new release slip, it starts as "Unreleased".
+                    // Status will be updated later via dedicated actions.
+                    'status' => 'Unreleased',
+                    'health_program_coordinator' => $request->input('health_program_coordinator'),
+                    'ptr_itr_ris_no' => $request->input('ptr_itr_ris_no'),
+                    'pho_code' => $request->input('pho_code'),
+                    'source_docs_ptr_po_no' => $request->input('source_docs_ptr_po_no'),
+                    'facility_name' => $facilityName,
+                    'facility_category' => $facilityCategory,
+                    'received_by' => $request->input('received_by'),
+                    'date_released' => $request->input('date_released') ?: null,
+                    'notes' => $request->input('notes'),
                 ]);
 
-                $item->decrement('quantity_on_hand', $itemData['quantity_released']);
-            }
-        });
+                foreach ($request->input('items') as $itemData) {
+                    $item = Item::find($itemData['item_id']);
 
-        return redirect()->route('releases.index')->with('success', 'Release slip saved and inventory updated.');
+                    if ($item && $item->quantity_on_hand < (int) $itemData['quantity_released']) {
+                        $available = (int) $item->quantity_on_hand;
+                        $requested = (int) $itemData['quantity_released'];
+
+                        throw new \Exception(
+                            "Not enough stock for item {$item->name}. Available: {$available}, Requested: {$requested}."
+                        );
+                    }
+
+                    ReleaseItem::create([
+                        'release_id' => $release->id,
+                        'item_id' => $itemData['item_id'],
+                        'item_description' => $itemData['item_description'] ?? $item->name,
+                        'category' => $item->category,
+                        'quantity_released' => $itemData['quantity_released'],
+                        'uom' => $itemData['uom'] ?? $item->unit,
+                        'lot_number' => $itemData['lot_number'] ?? null,
+                        'unit_cost' => $itemData['unit_cost'] ?? null,
+                    ]);
+
+                    $item->decrement('quantity_on_hand', (int) $itemData['quantity_released']);
+                }
+            });
+
+            return redirect()->route('releases.index')->with('success', 'Release slip saved and inventory updated.');
+        } catch (Throwable $e) {
+            // Show as flash notification (layouts/app.blade.php reads session('error')).
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
+        }
     }
 }
+

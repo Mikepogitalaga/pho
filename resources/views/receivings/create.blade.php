@@ -59,61 +59,638 @@
             <div class="form-grid-2">
                 <div class="form-group">
                     <label>Stock Keeping Unit (Program)</label>
-                    <input name="stock_keeping_unit" value="{{ old('stock_keeping_unit') }}" />
+                    <div style="position:relative;">
+                        <input name="stock_keeping_unit" id="programInput" value="{{ old('stock_keeping_unit') }}" autocomplete="off" style="width:100%;" />
+                        <div id="programDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Program Coordinator</label>
-                    <input name="program_coordinator" value="{{ old('program_coordinator') }}" />
+                    <div style="position:relative;">
+                        <input name="program_coordinator" id="coordinatorInput" value="{{ old('program_coordinator') }}" autocomplete="off" style="width:100%;" />
+                        <div id="coordinatorDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
+                    </div>
                 </div>
             </div>
 
             <div>
-                <h3 class="section-card-title">Received Item</h3>
-                <div class="section-card">
-                    <div class="form-grid-4">
-                        <div class="form-group">
-                            <label>Product Code</label>
-                            <input name="items[0][item_code]" value="{{ old('items.0.item_code') }}" />
+                <h3 class="section-card-title">Received Items <span style="color: var(--danger);">*</span></h3>
+                @error('items')
+                    <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem; display: block;">{{ $message }}</span>
+                @enderror
+                <div id="receiving-items" class="stack">
+                    {{-- Item template for JS cloning --}}
+                    <template id="receiving-item-template">
+                        <div class="section-card receiving-item-row">
+                            <div class="item-row-header">
+                                <div class="item-row-title">Item</div>
+                                <div class="item-row-actions">
+                                    <button type="button" class="btn btn-link item-toggle-button">Hide</button>
+                                    <button type="button" class="btn btn-danger remove-item-button">Delete</button>
+                                </div>
+                            </div>
+                            <div class="item-row-body">
+                                <div class="form-grid-4">
+                                    <div class="form-group" style="position: relative;">
+                                        <label>Product Code</label>
+                                        <input class="item-code-input" name="items[0][item_code]" />
+                                    </div>
+                                    <div class="form-group" style="position: relative;">
+                                        <label>Item Description</label>
+                                        <input class="item-description-input" name="items[0][item_description]" required autocomplete="off" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Category</label>
+                                        <select class="item-category-input" name="items[0][category]">
+                                            <option value="DM">DM</option>
+                                            <option value="MDL">MDL</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>UOM</label>
+                                        <input class="item-uom-input" name="items[0][uom]" />
+                                    </div>
+                                </div>
+                                <div class="form-grid-4">
+                                    <div class="form-group">
+                                        <label>Lot / Batch / Model No.</label>
+                                        <input class="item-lot-input" name="items[0][lot_number]" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Expiry Date / Useful Life</label>
+                                        <input type="date" class="item-expiry-input" name="items[0][expiry_date]" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Quantity Received</label>
+                                        <input type="number" class="item-quantity-input" name="items[0][quantity_received]" min="1" required />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Unit Cost</label>
+                                        <input type="number" step="0.01" class="item-unit-cost-input" name="items[0][unit_cost]" />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Item Description</label>
-                            <input name="items[0][item_description]" value="{{ old('items.0.item_description') }}" required />
+                    </template>
+
+                    {{-- Render initial items from old input or default --}}
+                    @php
+                        $oldReceivedItems = collect(old('items', []))->values()->all();
+                        if (empty($oldReceivedItems)) {
+                            $oldReceivedItems = [[
+                                'item_code' => '',
+                                'item_description' => '',
+                                'category' => '',
+                                'uom' => '',
+                                'lot_number' => '',
+                                'expiry_date' => '',
+                                'quantity_received' => '',
+                                'unit_cost' => '',
+                            ]];
+                        }
+                    @endphp
+
+                    @foreach($oldReceivedItems as $index => $oldItem)
+                        <div class="section-card receiving-item-row" data-index="{{ $index }}">
+                            <div class="item-row-header">
+                                <div class="item-row-title">Item {{ $index + 1 }}</div>
+                                <div class="item-row-actions">
+                                    <button type="button" class="btn btn-link item-toggle-button">Hide</button>
+                                    <button type="button" class="btn btn-danger remove-item-button" @if($index === 0) style="display:none;" @endif>Delete</button>
+                                </div>
+                            </div>
+                            <div class="item-row-body">
+                                <div class="form-grid-4">
+                                    <div class="form-group" style="position: relative;">
+                                        <label>Product Code</label>
+                                        <input class="item-code-input" name="items[{{ $index }}][item_code]" value="{{ $oldItem['item_code'] ?? '' }}" />
+                                    </div>
+                                    <div class="form-group" style="position: relative;">
+                                        <label>Item Description</label>
+                                        <input class="item-description-input" name="items[{{ $index }}][item_description]" value="{{ $oldItem['item_description'] ?? '' }}" required autocomplete="off" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Category</label>
+                                        <select class="item-category-input" name="items[{{ $index }}][category]">
+                                            <option value="DM" @selected(($oldItem['category'] ?? 'DM') === 'DM')>DM</option>
+                                            <option value="MDL" @selected(($oldItem['category'] ?? '') === 'MDL')>MDL</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>UOM</label>
+                                        <input class="item-uom-input" name="items[{{ $index }}][uom]" value="{{ $oldItem['uom'] ?? '' }}" />
+                                    </div>
+                                </div>
+                                <div class="form-grid-4">
+                                    <div class="form-group">
+                                        <label>Lot / Batch / Model No.</label>
+                                        <input class="item-lot-input" name="items[{{ $index }}][lot_number]" value="{{ $oldItem['lot_number'] ?? '' }}" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Expiry Date / Useful Life</label>
+                                        <input type="date" class="item-expiry-input" name="items[{{ $index }}][expiry_date]" value="{{ $oldItem['expiry_date'] ?? '' }}" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Quantity Received</label>
+                                        <input type="number" class="item-quantity-input" name="items[{{ $index }}][quantity_received]" value="{{ $oldItem['quantity_received'] ?? '' }}" min="1" required />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Unit Cost</label>
+                                        <input type="number" step="0.01" class="item-unit-cost-input" name="items[{{ $index }}][unit_cost]" value="{{ $oldItem['unit_cost'] ?? '' }}" />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Category</label>
-                            <input name="items[0][category]" value="{{ old('items.0.category') }}" />
-                        </div>
-                        <div class="form-group">
-                            <label>UOM</label>
-                            <input name="items[0][uom]" value="{{ old('items.0.uom') }}" />
-                        </div>
-                    </div>
-                    <div class="form-grid-4">
-                        <div class="form-group">
-                            <label>Lot / Batch / Model No.</label>
-                            <input name="items[0][lot_number]" value="{{ old('items.0.lot_number') }}" />
-                        </div>
-                        <div class="form-group">
-                            <label>Expiry Date / Useful Life</label>
-                            <input type="date" name="items[0][expiry_date]" value="{{ old('items.0.expiry_date') }}" />
-                        </div>
-                        <div class="form-group">
-                            <label>Quantity Received</label>
-                            <input type="number" name="items[0][quantity_received]" value="{{ old('items.0.quantity_received') }}" min="1" required />
-                        </div>
-                        <div class="form-group">
-                            <label>Unit Cost</label>
-                            <input type="number" step="0.01" name="items[0][unit_cost]" value="{{ old('items.0.unit_cost') }}" />
-                        </div>
-                    </div>
+                    @endforeach
                 </div>
+                <button type="button" id="add-receiving-item-button" class="btn btn-secondary" style="margin-top: 0.75rem;">Add another item</button>
             </div>
 
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">Save Receiving</button>
-                <a href="{{ route('receivings.index') }}" class="btn btn-ghost">Cancel</a>
+                <a href="{{ route('receivings.index') }}" class="btn btn-ghost" id="receivingCancelBtn">Cancel</a>
             </div>
         </form>
     </section>
+
+    {{-- Autocomplete data sources --}}
+    <datalist id="item-options-receiving" style="display:none;">
+        @foreach($items as $item)
+            <option value="{{ $item->name }}" data-code="{{ $item->item_code }}" data-category="{{ $item->category }}" data-uom="{{ $item->unit }}" data-cost="{{ $item->unit_cost }}"></option>
+        @endforeach
+    </datalist>
+
+    <datalist id="program-options" style="display:none;">
+        @foreach($programs as $program)
+            <option value="{{ $program->name }}" data-description="{{ $program->description }}"></option>
+        @endforeach
+    </datalist>
+
+    <datalist id="coordinator-options" style="display:none;">
+        @foreach($coordinators as $coordinator)
+            <option value="{{ $coordinator->full_name }}" data-programs="{{ $coordinator->assigned_programs }}"></option>
+        @endforeach
+    </datalist>
+
+    @push('scripts')
+    <script>
+    (function() {
+        var currentYear = new Date().getFullYear().toString().slice(-2);
+        var currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+        var currentCodePrefix = '';
+        var codeSequences = {};
+        var programSequences = @json($programSequences ?? []);
+
+        var itemsData = Array.from(document.querySelectorAll('#item-options-receiving option')).map(function(opt) {
+            return {
+                name: opt.value,
+                nameLower: opt.value.toLowerCase(),
+                code: opt.dataset.code,
+                category: opt.dataset.category,
+                uom: opt.dataset.uom,
+                cost: opt.dataset.cost,
+            };
+        });
+
+        // ---- Program & Coordinator Autocomplete Data ----
+        var programsData = Array.from(document.querySelectorAll('#program-options option')).map(function(opt) {
+            return {
+                name: opt.value,
+                nameLower: opt.value.toLowerCase(),
+                description: (opt.dataset.description || '').trim(),
+            };
+        });
+
+        var coordinatorsData = Array.from(document.querySelectorAll('#coordinator-options option')).map(function(opt) {
+            return {
+                name: opt.value,
+                nameLower: opt.value.toLowerCase(),
+                assignedPrograms: opt.dataset.programs || '',
+            };
+        });
+
+        function bindAutocompleteList(input, dataList, dropdown, onSelect) {
+            function showOptions(searchText) {
+                dropdown.innerHTML = '';
+                var searchLower = searchText.toLowerCase().trim();
+                var filtered = searchLower
+                    ? dataList.filter(function(item) { return item.nameLower.indexOf(searchLower) !== -1; })
+                    : dataList;
+
+                if (filtered.length === 0) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+
+                // Deduplicate
+                var seen = {};
+                var unique = filtered.filter(function(item) {
+                    var lower = item.nameLower;
+                    if (seen[lower]) return false;
+                    seen[lower] = true;
+                    return true;
+                });
+
+                Object.assign(dropdown.style, {
+                    background: 'var(--surface,#fff)', border: '1px solid var(--border,#ddd)',
+                    maxHeight: '200px', overflowY: 'auto', boxShadow: '0 4px 6px rgba(0,0,0,.1)', marginTop: '4px'
+                });
+
+                unique.forEach(function(item) {
+                    var option = document.createElement('div');
+                    option.style.cssText = [
+                        'padding: 10px 12px; cursor: pointer;',
+                        'border-bottom: 1px solid #f0f0f0;'
+                    ].join('');
+                    option.textContent = item.name;
+                    option.addEventListener('mouseover', function() {
+                        this.style.backgroundColor = '#f5f5f5';
+                    });
+                    option.addEventListener('mouseout', function() {
+                        this.style.backgroundColor = 'transparent';
+                    });
+                    option.addEventListener('click', function() {
+                        input.value = item.name;
+                        dropdown.style.display = 'none';
+                        if (onSelect) onSelect(item);
+                    });
+                    dropdown.appendChild(option);
+                });
+                dropdown.style.display = 'block';
+            }
+
+            input.addEventListener('input', function() {
+                showOptions(this.value);
+            });
+
+            input.addEventListener('blur', function() {
+                setTimeout(function() { dropdown.style.display = 'none'; }, 200);
+            });
+
+            input.addEventListener('focus', function() {
+                showOptions(this.value);
+            });
+        }
+
+        // ---- Program Autocomplete ----
+        var programInput = document.getElementById('programInput');
+        var coordinatorInput = document.getElementById('coordinatorInput');
+        var programDropdown = document.getElementById('programDropdown');
+        var coordinatorDropdown = document.getElementById('coordinatorDropdown');
+
+        if (programInput && programDropdown) {
+            bindAutocompleteList(programInput, programsData, programDropdown, function(item) {
+                currentCodePrefix = item.description || '';
+                var matchedCoordinator = coordinatorsData.find(function(c) {
+                    return c.assignedPrograms.toLowerCase().indexOf(item.nameLower) !== -1;
+                });
+                if (matchedCoordinator && coordinatorInput) {
+                    coordinatorInput.value = matchedCoordinator.name;
+                }
+                refreshAllItemCodes();
+            });
+        }
+
+        if (coordinatorInput && coordinatorDropdown) {
+            bindAutocompleteList(coordinatorInput, coordinatorsData, coordinatorDropdown, function(item) {
+                if (item.assignedPrograms && programInput) {
+                    var programs = item.assignedPrograms.split(', ');
+                    if (programs.length > 0) {
+                        if (!programInput.value.trim() || programsData.some(function(p) { return p.nameLower === programInput.value.trim().toLowerCase(); })) {
+                            programInput.value = programs[0];
+                            var matched = programsData.find(function(p) { return p.nameLower === programs[0].toLowerCase(); });
+                            currentCodePrefix = matched ? matched.description : '';
+                            refreshAllItemCodes();
+                        }
+                    }
+                }
+            });
+        }
+        // ---- End Program & Coordinator Autocomplete ----
+
+        function refreshAllItemCodes() {
+            var container = document.getElementById('receiving-items');
+            var prefix = currentCodePrefix;
+            if (!prefix) return;
+
+            var maxExistingSeq = 0;
+            Array.from(container.querySelectorAll('.item-code-input')).forEach(function(input) {
+                var val = input.value || '';
+                var matchNew = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
+                if (matchNew) {
+                    var seq = parseInt(matchNew[1], 10);
+                    if (seq > maxExistingSeq) maxExistingSeq = seq;
+                }
+            });
+
+            var dbSeq = programSequences[prefix] || 0;
+            var nextSeq = Math.max(dbSeq, maxExistingSeq);
+            codeSequences[prefix] = nextSeq;
+
+            Array.from(container.querySelectorAll('.item-code-input')).forEach(function(input) {
+                var val = input.value || '';
+                var matchNew = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
+
+                if (!matchNew) {
+                    input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(nextSeq).padStart(4, '0');
+                    nextSeq++;
+                }
+            });
+
+            codeSequences[prefix] = nextSeq;
+        }
+
+        function getNextSequence(prefix) {
+            if (!codeSequences[prefix]) {
+                var dbSeq = programSequences[prefix] || 0;
+                var maxExisting = 0;
+                Array.from(document.querySelectorAll('.item-code-input')).forEach(function(input) {
+                    var val = input.value || '';
+                    var match = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
+                    if (match) {
+                        var seq = parseInt(match[1], 10);
+                        if (seq > maxExisting) maxExisting = seq;
+                    }
+                });
+                codeSequences[prefix] = Math.max(dbSeq, maxExisting);
+            }
+            return codeSequences[prefix]++;
+        }
+
+        function generateNextCode() {
+            if (!currentCodePrefix) return '';
+            var seq = getNextSequence(currentCodePrefix);
+            return currentCodePrefix + '-' + currentYear + '-' + currentMonth + '-' + String(seq).padStart(4, '0');
+        }
+
+        function createAutocompleteDropdown(descriptionInput, codeInput, categoryInput, uomInput, unitCostInput) {
+            var dropdown = descriptionInput.parentElement.querySelector('.autocomplete-dropdown');
+            if (dropdown) dropdown.remove();
+
+            dropdown = document.createElement('div');
+            dropdown.className = 'autocomplete-dropdown';
+            dropdown.style.cssText = [
+                'position: absolute; background: white; border: 1px solid #ddd;',
+                'max-height: 200px; overflow-y: auto; width: 100%; z-index: 1000;',
+                'display: none; box-shadow: 0 4px 6px rgba(0,0,0,.1);',
+                'top: 100%; left: 0; margin-top: 4px;'
+            ].join('');
+            descriptionInput.parentElement.style.position = 'relative';
+            descriptionInput.parentElement.appendChild(dropdown);
+            return dropdown;
+        }
+
+        function bindAutocomplete(row) {
+            var descriptionInput = row.querySelector('.item-description-input');
+            var codeInput = row.querySelector('.item-code-input');
+            var categoryInput = row.querySelector('.item-category-input');
+            var uomInput = row.querySelector('.item-uom-input');
+            var unitCostInput = row.querySelector('.item-unit-cost-input');
+
+            if (!descriptionInput) return;
+
+            var dropdown = createAutocompleteDropdown(descriptionInput, codeInput, categoryInput, uomInput, unitCostInput);
+
+            function syncFromSelection(item) {
+                descriptionInput.value = item.name;
+                if (categoryInput) {
+                    var cat = item.category || 'DM';
+                    if (cat !== 'DM' && cat !== 'MDL') cat = 'DM';
+                    categoryInput.value = cat;
+                }
+                if (uomInput) uomInput.value = item.uom || '';
+                if (unitCostInput) unitCostInput.value = item.cost || '';
+            }
+
+            descriptionInput.addEventListener('input', function() {
+                var searchText = this.value.trim();
+                dropdown.innerHTML = '';
+
+                if (!searchText) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+
+                var searchLower = searchText.toLowerCase();
+                var filtered = itemsData.filter(function(item) {
+                    return item.nameLower.indexOf(searchLower) !== -1;
+                });
+
+                if (filtered.length === 0) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+
+                // Deduplicate by name
+                var seen = {};
+                var uniqueFiltered = filtered.filter(function(item) {
+                    var lower = item.nameLower;
+                    if (seen[lower]) return false;
+                    seen[lower] = true;
+                    return true;
+                });
+
+                uniqueFiltered.forEach(function(item) {
+                    var option = document.createElement('div');
+                    option.style.cssText = [
+                        'padding: 10px 12px; cursor: pointer;',
+                        'border-bottom: 1px solid #f0f0f0;'
+                    ].join('');
+                    option.textContent = item.name;
+                    option.addEventListener('mouseover', function() {
+                        this.style.backgroundColor = '#f5f5f5';
+                    });
+                    option.addEventListener('mouseout', function() {
+                        this.style.backgroundColor = 'transparent';
+                    });
+                    option.addEventListener('click', function() {
+                        syncFromSelection(item);
+                        dropdown.style.display = 'none';
+                    });
+                    dropdown.appendChild(option);
+                });
+
+                dropdown.style.display = 'block';
+            });
+
+            descriptionInput.addEventListener('blur', function() {
+                setTimeout(function() { dropdown.style.display = 'none'; }, 200);
+            });
+
+            descriptionInput.addEventListener('focus', function() {
+                if (this.value.trim()) {
+                    this.dispatchEvent(new Event('input'));
+                }
+            });
+        }
+
+        function bindRowActions(row) {
+            var body = row.querySelector('.item-row-body');
+            var toggleButton = row.querySelector('.item-toggle-button');
+            var removeButton = row.querySelector('.remove-item-button');
+            var container = document.getElementById('receiving-items');
+
+            toggleButton.addEventListener('click', function() {
+                if (body.style.display === 'none') {
+                    body.style.display = '';
+                    toggleButton.textContent = 'Hide';
+                } else {
+                    body.style.display = 'none';
+                    toggleButton.textContent = 'Show';
+                }
+            });
+
+            removeButton.addEventListener('click', function() {
+                row.remove();
+                updateIndexes();
+                if (currentCodePrefix) {
+                    renumberAllItemCodes();
+                }
+            });
+        }
+
+        function recalcNextSeq() {
+            var container = document.getElementById('receiving-items');
+            var maxNewSeqs = {};
+            Array.from(container.querySelectorAll('.item-code-input')).forEach(function(input) {
+                var val = input.value || '';
+                var matchNew = val.match(/^([A-Za-z]+)-\d{2}-\d{2}-(\d{4})$/);
+                if (matchNew) {
+                    var prefix = matchNew[1];
+                    var seq = parseInt(matchNew[2], 10);
+                    if (!maxNewSeqs[prefix] || seq > maxNewSeqs[prefix]) {
+                        maxNewSeqs[prefix] = seq;
+                    }
+                }
+            });
+
+            Object.keys(maxNewSeqs).forEach(function(prefix) {
+                codeSequences[prefix] = maxNewSeqs[prefix] + 1;
+            });
+        }
+
+        function renumberAllItemCodes() {
+            var container = document.getElementById('receiving-items');
+            var prefix = currentCodePrefix;
+            if (!prefix) return;
+
+            var inputs = Array.from(container.querySelectorAll('.item-code-input'));
+            var dbSeq = programSequences[prefix] || 0;
+            var seq = dbSeq;
+
+            inputs.forEach(function(input) {
+                input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(seq).padStart(4, '0');
+                seq++;
+            });
+
+            codeSequences[prefix] = seq;
+        }
+
+        function updateIndexes() {
+            var container = document.getElementById('receiving-items');
+            Array.from(container.querySelectorAll('.receiving-item-row')).forEach(function(row, index) {
+                row.dataset.index = index;
+                row.querySelector('.item-row-title').textContent = 'Item ' + (index + 1);
+
+                row.querySelectorAll('input, select').forEach(function(field) {
+                    var fieldName = field.name;
+                    field.name = fieldName.replace(/items\[\d+\]/, 'items[' + index + ']');
+                });
+
+                var deleteButton = row.querySelector('.remove-item-button');
+                if (index === 0) {
+                    deleteButton.style.display = 'none';
+                } else {
+                    deleteButton.style.display = '';
+                }
+            });
+            recalcNextSeq();
+        }
+
+        function addItemRow() {
+            var template = document.getElementById('receiving-item-template');
+            var clone = template.content.cloneNode(true);
+            var row = clone.querySelector('.receiving-item-row');
+            var container = document.getElementById('receiving-items');
+
+            recalcNextSeq();
+
+            var codeInput = row.querySelector('.item-code-input');
+            if (codeInput) codeInput.value = generateNextCode();
+
+            bindAutocomplete(row);
+            bindRowActions(row);
+            container.appendChild(row);
+            updateIndexes();
+        }
+
+        // Initialize existing rows
+        Array.from(document.querySelectorAll('#receiving-items .receiving-item-row')).forEach(function(row) {
+            bindAutocomplete(row);
+            bindRowActions(row);
+        });
+        updateIndexes();
+        recalcNextSeq();
+
+        // If a program is already pre-selected on page load, initialize the code prefix
+        if (programInput && programInput.value.trim()) {
+            var matched = programsData.find(function(p) { return p.nameLower === programInput.value.trim().toLowerCase(); });
+            if (matched) {
+                currentCodePrefix = matched.description || '';
+                refreshAllItemCodes();
+            }
+        }
+
+        // Add item button
+        document.getElementById('add-receiving-item-button').addEventListener('click', addItemRow);
+
+        // ---- Dirty-form / leave-site guard ----
+        var formDirty = false;
+        var isSubmitting = false; // Add this to track submission
+        function markDirty() { formDirty = true; }
+
+        document.querySelector('form').querySelectorAll('input, select, textarea').forEach(function(el) {
+            el.addEventListener('input', markDirty);
+            el.addEventListener('change', markDirty);
+        });
+
+        window.addEventListener('beforeunload', function(e) {
+            // Only show warning if dirty and NOT submitting
+            if (formDirty && !isSubmitting) { 
+                e.preventDefault(); 
+                e.returnValue = ''; 
+            }
+        });
+
+        document.querySelectorAll('a').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                // If submitting, allow navigation without confirmation
+                if (isSubmitting) return; 
+                
+                if (formDirty && !confirm('You have unsaved changes. Leaving this page will discard them. Are you sure you want to leave?')) {
+                    e.preventDefault();
+                }
+            });
+        });
+
+        document.querySelector('form').addEventListener('submit', function() { 
+            isSubmitting = true; 
+            formDirty = false; 
+        });
+
+        var receivingItemsContainer = document.getElementById('receiving-items');
+        new MutationObserver(function() {
+            receivingItemsContainer.querySelectorAll('input, select, textarea').forEach(function(el) {
+                el.removeEventListener('input', markDirty);
+                el.removeEventListener('change', markDirty);
+                el.addEventListener('input', markDirty);
+                el.addEventListener('change', markDirty);
+            });
+        }).observe(receivingItemsContainer, { childList: true, subtree: true });
+        // ---- End guard ----
+    })();
+    </script>
+
+    @endpush
 @endsection
 
