@@ -12,7 +12,7 @@ class Release extends Model
 
     protected $fillable = [
         'release_number', 'pas_number', 'health_program_coordinator',
-        'ptr_itr_ris_no', 'pho_code', 'source_docs_ptr_po_no',
+        'ptr_itr_ris_no', 'source_docs_ptr_po_no',
         'facility_name', 'facility_category', 'transfer_type', 'reason_for_transfer',
         'received_by', 'received_by_designation', 'received_by_date',
         'approved_by', 'approved_by_designation', 'approved_by_date',

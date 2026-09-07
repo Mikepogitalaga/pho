@@ -80,17 +80,19 @@ class ReleaseController extends Controller
 
     public function index(Request $request)
     {
-        $query = Release::query()->with('items')->latest('date_released');
+        $query = Release::query()->with('items.item')->latest('date_released');
 
         $search = trim((string) $request->input('search', ''));
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
                 $q->where('release_number', 'like', '%' . $search . '%')
                     ->orWhere('pas_number', 'like', '%' . $search . '%')
-                    ->orWhere('pho_code', 'like', '%' . $search . '%')
                     ->orWhere('facility_name', 'like', '%' . $search . '%')
                     ->orWhere('ptr_itr_ris_no', 'like', '%' . $search . '%')
-                    ->orWhere('status', 'like', '%' . $search . '%');
+                    ->orWhere('status', 'like', '%' . $search . '%')
+                    ->orWhereHas('items.item', function ($sq) use ($search) {
+                        $sq->where('item_code', 'like', '%' . $search . '%');
+                    });
             });
         }
 
@@ -99,9 +101,11 @@ class ReleaseController extends Controller
             $query->where('facility_name', 'like', '%' . $facility . '%');
         }
 
-        $phoCode = trim((string) $request->input('pho_code', ''));
-        if ($phoCode !== '') {
-            $query->where('pho_code', 'like', '%' . $phoCode . '%');
+        $productCode = trim((string) $request->input('product_code', ''));
+        if ($productCode !== '') {
+            $query->whereHas('items.item', function ($q) use ($productCode) {
+                $q->where('item_code', 'like', '%' . $productCode . '%');
+            });
         }
 
         $pasNumber = trim((string) $request->input('pas_number', ''));
@@ -168,7 +172,6 @@ class ReleaseController extends Controller
             'pas_number'                 => 'nullable|string|max:255',
             'health_program_coordinator' => 'nullable|string|max:255',
             'ptr_itr_ris_no'             => 'nullable|string|max:255',
-            'pho_code'                   => 'nullable|string|max:255',
             'source_docs_ptr_po_no'      => 'nullable|string|max:255',
             'facility_name'              => 'nullable|string|max:255',
             'received_by'                => 'nullable|string|max:255',
@@ -195,7 +198,7 @@ class ReleaseController extends Controller
 
             $release->fill($request->only([
                 'pas_number', 'health_program_coordinator', 'ptr_itr_ris_no',
-                'pho_code', 'source_docs_ptr_po_no', 'facility_name',
+                'source_docs_ptr_po_no', 'facility_name',
                 'received_by', 'date_released', 'status', 'status_reason', 'notes',
             ]));
             $release->facility_category = $facilityCategory;
@@ -286,7 +289,6 @@ class ReleaseController extends Controller
             'pas_number' => 'required|string|max:255',
             'health_program_coordinator' => 'required|string|max:255',
             'ptr_itr_ris_no' => 'required|string|max:255',
-            'pho_code' => 'required|string|max:255',
             'source_docs_ptr_po_no' => 'required|string|max:255',
             'facility_name' => 'required|string|max:255',
             'received_by' => 'required|string|max:255',
@@ -317,7 +319,6 @@ class ReleaseController extends Controller
                     'status' => 'Unreleased',
                     'health_program_coordinator' => $request->input('health_program_coordinator'),
                     'ptr_itr_ris_no' => $request->input('ptr_itr_ris_no'),
-                    'pho_code' => $request->input('pho_code'),
                     'source_docs_ptr_po_no' => $request->input('source_docs_ptr_po_no'),
                     'facility_name' => $facilityName,
                     'facility_category' => $facilityCategory,

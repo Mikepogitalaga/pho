@@ -22,7 +22,7 @@
                 <p class="page-description" style="margin-top: 0.25rem;">Search and filter release records by various criteria.</p>
             </div>
             <div class="table-actions">
-                @if(request()->hasAny(['search','status','facility','pho_code','pas_number','program']))
+                @if(request()->hasAny(['search','status','facility','product_code','pas_number','program']))
                     <a href="{{ route('releases.index') }}" class="btn btn-secondary" style="min-height: 44px;">Clear All</a>
                 @endif
             </div>
@@ -40,8 +40,8 @@
             </div>
 
             <div>
-                <label for="phoCodeFilter" class="sr-only">Filter by PHO Code</label>
-                <input id="phoCodeFilter" type="text" name="pho_code" value="{{ request('pho_code') }}" placeholder="Filter by PHO Code" class="search-input" />
+                <label for="productCodeFilter" class="sr-only">Filter by Product Code</label>
+                <input id="productCodeFilter" type="text" name="product_code" value="{{ request('product_code') }}" placeholder="Filter by Product Code" class="search-input" />
             </div>
 
             <div>
@@ -85,7 +85,7 @@
                     <tr>
                         <th>PTR Number</th>
                         <th>PAS No.</th>
-                        <th class="col-hide-md">PHO Code</th>
+                        <th class="col-hide-md">Product Code</th>
                         <th>Facility / End-user</th>
                         <th class="col-hide-md">Program</th>
                         <th>Item Description</th>
@@ -101,7 +101,7 @@
                                   <span>{{ $release->ptr_itr_ris_no ?? $release->release_number }}</span>
                               </td>
                               <td data-label="PAS No.">{{ $release->pas_number }}</td>
-                              <td data-label="PHO Code" class="col-hide-md">{{ $release->pho_code }}</td>
+                              <td data-label="Product Code" class="col-hide-md">{{ $release->items->first()?->item?->item_code ?? '—' }}</td>
                               <td data-label="Facility / End-user">{{ $release->facility_name }}</td>
                               <td data-label="Program" class="col-hide-md">{{ $release->health_program_coordinator ?? '—' }}</td>
                               <td data-label="Item Description">
@@ -157,7 +157,7 @@
     @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const hasFilters = {{ request()->hasAny(['search','status','facility','pho_code','pas_number','program']) ? 'true' : 'false' }};
+            const hasFilters = {{ request()->hasAny(['search','status','facility','product_code','pas_number','program']) ? 'true' : 'false' }};
             if (hasFilters) {
                 document.getElementById('releasesTable').scrollIntoView({ behavior: 'smooth', block: 'start' });
             }

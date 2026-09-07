@@ -61,13 +61,6 @@
                     <p style="margin: 0.3rem 0 0; font-size: 0.82rem; color: var(--text-muted);">Auto-generated sequential number. Select type (PTR/ITR/RIS) to regenerate. Select <strong>ELMIS</strong> to enter your own ELMIS No.</p>
                 </div>
                 <div class="form-group">
-                    <label>PHO Code <span style="color: var(--danger);">*</span></label>
-                    <input name="pho_code" value="{{ old('pho_code') }}" required>
-                    @error('pho_code')
-                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
-                    @enderror
-                </div>
-                <div class="form-group">
                     <label>Source Docs. PTR/PO No. <span style="color: var(--danger);">*</span></label>
                     <input name="source_docs_ptr_po_no" value="{{ old('source_docs_ptr_po_no') }}" required>
                     @error('source_docs_ptr_po_no')

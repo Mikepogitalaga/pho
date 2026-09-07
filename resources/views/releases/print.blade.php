@@ -354,7 +354,6 @@
         <div class="ptr-annex">PHO-Ap-SCM-form1</div>
         <img class="ptr-logo" src="{{ asset('logo.jpg') }}" alt="Logo">
         <div class="ptr-meta">
-            <div><strong>Commodity Issue No:</strong> {{ $release->pho_code ?? '—' }}</div>
             <div><strong>PTR No:</strong> {{ $release->ptr_itr_ris_no ?? $release->release_number }}</div>
         </div>
 

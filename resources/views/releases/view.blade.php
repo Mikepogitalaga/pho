@@ -9,7 +9,7 @@
         <div class="section-header">
             <div>
                 <h1 class="page-heading">{{ $release->release_number }}</h1>
-                <p class="page-description">PAS: {{ $release->pas_number ?? '—' }} · PHO: {{ $release->pho_code ?? '—' }}</p>
+                <p class="page-description">PAS: {{ $release->pas_number ?? '—' }}</p>
             </div>
             <div style="display:flex;gap:0.5rem;">
                 <a href="{{ route('reports.liquidation.export', ['release' => $release->id]) }}" class="btn btn-secondary">Download Excel</a>
@@ -52,11 +52,6 @@
                 <div class="form-group">
                     <label>PAS No.</label>
                     <input type="text" name="pas_number" value="{{ old('pas_number', $release->pas_number ?? '') }}" placeholder="Enter PAS No." />
-                </div>
-
-                <div class="form-group">
-                    <label>PHO Code</label>
-                    <input type="text" name="pho_code" value="{{ old('pho_code', $release->pho_code ?? '') }}" placeholder="Enter PHO Code" />
                 </div>
 
                 <div class="form-group">
@@ -243,13 +238,14 @@
                 <table>
                     <thead>
                          <tr>
-                             <th style="text-align: left;">Item Description</th>
-                             <th style="text-align: center;" class="col-hide-md">Batch/Lot No.</th>
-                             <th style="text-align: center;">Quantity</th>
-                             <th style="text-align: center;">UOM</th>
-                             <th style="text-align: right;">Unit Cost</th>
-                             <th style="text-align: right;">Total</th>
-                         </tr>
+                              <th style="text-align: left;">Item Description</th>
+                              <th style="text-align: center;" class="col-hide-md">Product Code</th>
+                              <th style="text-align: center;" class="col-hide-md">Batch/Lot No.</th>
+                              <th style="text-align: center;">Quantity</th>
+                              <th style="text-align: center;">UOM</th>
+                              <th style="text-align: right;">Unit Cost</th>
+                              <th style="text-align: right;">Total</th>
+                          </tr>
                     </thead>
                      <tbody>
                          @forelse($release->items as $releaseItem)
@@ -257,15 +253,16 @@
                                   <td class="mobile-card-header">
                                       <span style="font-weight:600;color:var(--text);">{{ $releaseItem->item_description ?? '—' }}</span>
                                   </td>
-                                  <td data-label="Batch/Lot No." class="col-hide-md" style="text-align:center;">{{ $releaseItem->lot_number ?? '—' }}</td>
-                                  <td data-label="Quantity" style="text-align:center;">{{ $releaseItem->quantity_released }}</td>
-                                  <td data-label="UOM" style="text-align:center;">{{ $releaseItem->uom ?? '—' }}</td>
-                                  <td data-label="Unit Cost" style="text-align:right;">₱ {{ isset($releaseItem->unit_cost) ? number_format($releaseItem->unit_cost, 2) : '—' }}</td>
-                                  <td data-label="Total" style="text-align:right;font-weight:600;color:var(--danger);">₱ {{ isset($releaseItem->unit_cost) ? number_format($releaseItem->unit_cost * $releaseItem->quantity_released, 2) : '—' }}</td>
+                                   <td data-label="Product Code" class="col-hide-md" style="text-align:center;">{{ $releaseItem->item?->item_code ?? '—' }}</td>
+                                   <td data-label="Batch/Lot No." class="col-hide-md" style="text-align:center;">{{ $releaseItem->lot_number ?? '—' }}</td>
+                                   <td data-label="Quantity" style="text-align:center;">{{ $releaseItem->quantity_released }}</td>
+                                   <td data-label="UOM" style="text-align:center;">{{ $releaseItem->uom ?? '—' }}</td>
+                                   <td data-label="Unit Cost" style="text-align:right;">₱ {{ isset($releaseItem->unit_cost) ? number_format($releaseItem->unit_cost, 2) : '—' }}</td>
+                                   <td data-label="Total" style="text-align:right;font-weight:600;color:var(--danger);">₱ {{ isset($releaseItem->unit_cost) ? number_format($releaseItem->unit_cost * $releaseItem->quantity_released, 2) : '—' }}</td>
                               </tr>
                          @empty
                              <tr>
-                                 <td colspan="6" style="padding: 2rem; text-align: center;">
+                                  <td colspan="7" style="padding: 2rem; text-align: center;">
                                      <div class="empty-state">
                                          <strong style="font-size: 1rem;">No items found</strong>
                                          <div style="margin-top: 0.5rem; color: var(--text-muted);">This release slip does not contain any released items.</div>
