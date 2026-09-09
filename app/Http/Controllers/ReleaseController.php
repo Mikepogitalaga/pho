@@ -5,13 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\Item;
 use App\Models\Program;
 use App\Models\Coordinator;
+use App\Models\Facility;
 use App\Models\ReceivingItem;
 use App\Models\Release;
 use App\Models\ReleaseItem;
+use App\Exports\ReleaseListExport;
 use App\Traits\GeneratesCodes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 use Throwable;
 
 class ReleaseController extends Controller
@@ -80,7 +83,7 @@ class ReleaseController extends Controller
 
     public function index(Request $request)
     {
-        $query = Release::query()->with('items.item')->latest('date_released');
+        $query = Release::query()->with('items.item.receivingItems.receiving.supplier')->latest('date_released');
 
         $search = trim((string) $request->input('search', ''));
         if ($search !== '') {
@@ -90,8 +93,11 @@ class ReleaseController extends Controller
                     ->orWhere('facility_name', 'like', '%' . $search . '%')
                     ->orWhere('ptr_itr_ris_no', 'like', '%' . $search . '%')
                     ->orWhere('status', 'like', '%' . $search . '%')
-                    ->orWhereHas('items.item', function ($sq) use ($search) {
-                        $sq->where('item_code', 'like', '%' . $search . '%');
+                    ->orWhereHas('items', function ($sq) use ($search) {
+                        $sq->where('item_description', 'like', '%' . $search . '%')
+                            ->orWhereHas('item.receivingItems', function ($receivingQuery) use ($search) {
+                                $receivingQuery->where('item_code', 'like', '%' . $search . '%');
+                            });
                     });
             });
         }
@@ -103,8 +109,31 @@ class ReleaseController extends Controller
 
         $productCode = trim((string) $request->input('product_code', ''));
         if ($productCode !== '') {
-            $query->whereHas('items.item', function ($q) use ($productCode) {
+            $query->whereHas('items.item.receivingItems', function ($q) use ($productCode) {
                 $q->where('item_code', 'like', '%' . $productCode . '%');
+            });
+        }
+
+        $period = $request->input('period', '');
+        if ($period === 'today') {
+            $query->whereDate('date_released', today());
+        } elseif ($period === 'week') {
+            $query->whereBetween('date_released', [now()->startOfWeek(), now()->endOfWeek()]);
+        } elseif ($period === 'month') {
+            $query->whereBetween('date_released', [now()->startOfMonth(), now()->endOfMonth()]);
+        }
+
+        $supplierType = strtoupper(trim((string) $request->input('supplier_type', '')));
+        if (in_array($supplierType, ['GSO', 'DOH'], true)) {
+            $query->whereHas('items.item.receivingItems.receiving.supplier', function ($q) use ($supplierType) {
+                $q->where('supplier_type', $supplierType);
+            });
+        }
+
+        $category = strtoupper(trim((string) $request->input('category', '')));
+        if (in_array($category, ['MDL', 'DM'], true)) {
+            $query->whereHas('items', function ($q) use ($category) {
+                $q->where('category', $category);
             });
         }
 
@@ -149,7 +178,55 @@ class ReleaseController extends Controller
 
         $programs = Program::orderBy('name')->get();
 
-        return view('releases.index', compact('releases', 'programs', 'program'));
+        return view('releases.index', compact('releases', 'programs', 'program', 'period', 'supplierType', 'category'));
+    }
+
+    public function exportList(Request $request)
+    {
+        $releases = $this->releaseListQuery($request)->get();
+
+        return Excel::download(new ReleaseListExport($releases), 'Release_Records_' . now()->format('YmdHis') . '.xlsx');
+    }
+
+    public function printList(Request $request)
+    {
+        $releases = $this->releaseListQuery($request)->get();
+
+        return view('releases.list-print', compact('releases'));
+    }
+
+    private function releaseListQuery(Request $request)
+    {
+        $query = Release::query()->with('items.item.receivingItems.receiving.supplier')->latest('date_released');
+        $search = trim((string) $request->input('search', ''));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('release_number', 'like', '%' . $search . '%')
+                    ->orWhere('pas_number', 'like', '%' . $search . '%')
+                    ->orWhere('facility_name', 'like', '%' . $search . '%')
+                    ->orWhere('ptr_itr_ris_no', 'like', '%' . $search . '%')
+                    ->orWhere('status', 'like', '%' . $search . '%')
+                    ->orWhereHas('items', function ($sq) use ($search) {
+                        $sq->where('item_description', 'like', '%' . $search . '%')
+                            ->orWhereHas('item.receivingItems', fn ($rq) => $rq->where('item_code', 'like', '%' . $search . '%'));
+                    });
+            });
+        }
+        if (($facility = trim((string) $request->input('facility', ''))) !== '') $query->where('facility_name', 'like', "%{$facility}%");
+        if (($productCode = trim((string) $request->input('product_code', ''))) !== '') $query->whereHas('items.item.receivingItems', fn ($q) => $q->where('item_code', 'like', "%{$productCode}%"));
+        if (($pasNumber = trim((string) $request->input('pas_number', ''))) !== '') $query->where('pas_number', 'like', "%{$pasNumber}%");
+        if (($program = trim((string) $request->input('program', ''))) !== '') $query->where('health_program_coordinator', 'like', "%{$program}%");
+        if (($period = $request->input('period', '')) === 'today') $query->whereDate('date_released', today());
+        elseif ($period === 'week') $query->whereBetween('date_released', [now()->startOfWeek(), now()->endOfWeek()]);
+        elseif ($period === 'month') $query->whereBetween('date_released', [now()->startOfMonth(), now()->endOfMonth()]);
+        if (($supplierType = strtoupper(trim((string) $request->input('supplier_type', '')))) && in_array($supplierType, ['GSO', 'DOH'], true)) $query->whereHas('items.item.receivingItems.receiving.supplier', fn ($q) => $q->where('supplier_type', $supplierType));
+        if (($category = strtoupper(trim((string) $request->input('category', '')))) && in_array($category, ['MDL', 'DM'], true)) $query->whereHas('items', fn ($q) => $q->where('category', $category));
+        $status = $request->input('status');
+        if ($status) {
+            $status = match ($status) { 'released-through-pass' => 'Released through pass', 'released' => 'Released', 'canceled' => 'Canceled', 'returned' => 'Returned', 'unreleased' => 'Unreleased', default => $status };
+            $query->where('status', $status);
+        }
+        return $query;
     }
 
     public function view(Release $release)
@@ -214,7 +291,8 @@ class ReleaseController extends Controller
 
     public function create()
     {
-        $items = Item::orderBy('name')->get();
+        $items = Item::with('receivingItems')->orderBy('name')->get();
+        $facilities = Facility::active()->orderBy('category')->orderBy('name')->get(['name', 'category']);
         $programs = Program::orderBy('name')->get();
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
 
@@ -238,7 +316,7 @@ class ReleaseController extends Controller
 
         $ptrNumber = $prefix . $nextSeq;
 
-        return view('releases.create', compact('items', 'ptrNumber', 'year', 'month', 'itemLotNumbers', 'programs', 'coordinators'));
+        return view('releases.create', compact('items', 'ptrNumber', 'year', 'month', 'itemLotNumbers', 'programs', 'coordinators', 'facilities'));
     }
 
     public function nextPtrNumber(string $type)

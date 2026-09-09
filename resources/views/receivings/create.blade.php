@@ -14,6 +14,24 @@
         <form action="{{ route('receivings.store') }}" method="POST" class="stack">
             @csrf
 
+            @if(session('error'))
+                <div style="color:var(--danger);padding:0.8rem 1rem;background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.25);border-radius:0.6rem;">
+                    <strong>Unable to save receiving</strong>
+                    <div style="margin-top:0.25rem;">{{ session('error') }}</div>
+                </div>
+            @endif
+
+            @if($errors->any())
+                <div style="color:var(--danger);padding:0.8rem 1rem;background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.25);border-radius:0.6rem;">
+                    <strong>Please correct the following:</strong>
+                    <ul style="margin:0.35rem 0 0 1.25rem;">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <div class="form-grid-2">
                 <div class="form-group">
                     <label>Purchase Order / Source Document No.</label>
@@ -78,6 +96,15 @@
                 @error('items')
                     <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem; display: block;">{{ $message }}</span>
                 @enderror
+                @if($errors->hasAny(array_map(fn($i) => "items.{$i}.item_code", range(0, 20))))
+                    <div style="color:var(--danger);font-size:0.82rem;margin-top:0.25rem;padding:0.6rem 0.9rem;background:rgba(220,38,38,0.07);border:1px solid rgba(220,38,38,0.2);border-radius:0.6rem;">
+                        @foreach($errors->get('items.*.item_code') as $msgs)
+                            @foreach($msgs as $msg)
+                                <div>{{ $msg }}</div>
+                            @endforeach
+                        @endforeach
+                    </div>
+                @endif
                 <div id="receiving-items" class="stack">
                     {{-- Item template for JS cloning --}}
                     <template id="receiving-item-template">
@@ -94,6 +121,7 @@
                                     <div class="form-group" style="position: relative;">
                                         <label>Product Code</label>
                                         <input class="item-code-input" name="items[0][item_code]" />
+                                        <span class="product-code-error" style="display:none;color:var(--danger);font-size:0.8rem;margin-top:0.2rem;"></span>
                                     </div>
                                     <div class="form-group" style="position: relative;">
                                         <label>Item Description</label>
@@ -164,6 +192,7 @@
                                     <div class="form-group" style="position: relative;">
                                         <label>Product Code</label>
                                         <input class="item-code-input" name="items[{{ $index }}][item_code]" value="{{ $oldItem['item_code'] ?? '' }}" />
+                                        <span class="product-code-error" style="display:none;color:var(--danger);font-size:0.8rem;margin-top:0.2rem;"></span>
                                     </div>
                                     <div class="form-group" style="position: relative;">
                                         <label>Item Description</label>
@@ -216,7 +245,7 @@
     {{-- Autocomplete data sources --}}
     <datalist id="item-options-receiving" style="display:none;">
         @foreach($items as $item)
-            <option value="{{ $item->name }}" data-code="{{ $item->item_code }}" data-category="{{ $item->category }}" data-uom="{{ $item->unit }}" data-cost="{{ $item->unit_cost }}"></option>
+            <option value="{{ $item->name }}" data-category="{{ $item->category }}" data-uom="{{ $item->unit }}" data-cost="{{ $item->unit_cost }}"></option>
         @endforeach
     </datalist>
 
@@ -391,8 +420,9 @@
                 var val = input.value || '';
                 var matchNew = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
 
-                if (!matchNew) {
+                if (!(input.value || '').trim()) {
                     input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(nextSeq).padStart(4, '0');
+                    input.dataset.generated = 'true';
                     nextSeq++;
                 }
             });
@@ -547,6 +577,17 @@
                     renumberAllItemCodes();
                 }
             });
+
+            // Clear duplicate error on input
+            var codeInput = row.querySelector('.item-code-input');
+            if (codeInput) {
+                codeInput.addEventListener('input', function() {
+                    this.dataset.generated = 'false';
+                    this.style.borderColor = '';
+                    var errorSpan = this.parentElement.querySelector('.product-code-error');
+                    if (errorSpan) errorSpan.style.display = 'none';
+                });
+            }
         }
 
         function recalcNextSeq() {
@@ -579,8 +620,10 @@
             var seq = dbSeq;
 
             inputs.forEach(function(input) {
-                input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(seq).padStart(4, '0');
-                seq++;
+                if (input.dataset.generated === 'true') {
+                    input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(seq).padStart(4, '0');
+                    seq++;
+                }
             });
 
             codeSequences[prefix] = seq;
@@ -616,7 +659,10 @@
             recalcNextSeq();
 
             var codeInput = row.querySelector('.item-code-input');
-            if (codeInput) codeInput.value = generateNextCode();
+            if (codeInput) {
+                codeInput.value = generateNextCode();
+                codeInput.dataset.generated = 'true';
+            }
 
             bindAutocomplete(row);
             bindRowActions(row);
@@ -673,9 +719,63 @@
             });
         });
 
-        document.querySelector('form').addEventListener('submit', function() { 
-            isSubmitting = true; 
-            formDirty = false; 
+        document.querySelector('form').addEventListener('submit', function(e) {
+            // Mark the form as submitting immediately so beforeunload does not
+            // warn while the browser is sending a valid save request.
+            isSubmitting = true;
+
+            // Duplicate product code check
+            var codes = [];
+            var hasDuplicate = false;
+
+            document.querySelectorAll('.item-code-input').forEach(function(input) {
+                var errorSpan = input.parentElement.querySelector('.product-code-error');
+                input.style.borderColor = '';
+                if (errorSpan) errorSpan.style.display = 'none';
+            });
+
+            document.querySelectorAll('.item-code-input').forEach(function(input) {
+                var val = input.value.trim();
+                if (val) codes.push({ val: val, input: input });
+            });
+
+            var seen = {};
+            codes.forEach(function(entry) {
+                seen[entry.val] = (seen[entry.val] || 0) + 1;
+            });
+
+            codes.forEach(function(entry) {
+                if (seen[entry.val] > 1) {
+                    hasDuplicate = true;
+                    entry.input.style.borderColor = 'var(--danger)';
+                    var errorSpan = entry.input.parentElement.querySelector('.product-code-error');
+                    if (errorSpan) {
+                        errorSpan.textContent = 'Duplicate product code: "' + entry.val + '"';
+                        errorSpan.style.display = 'block';
+                    }
+                    // Expand the row if it is collapsed
+                    var row = entry.input.closest('.receiving-item-row');
+                    if (row) {
+                        var body = row.querySelector('.item-row-body');
+                        var toggle = row.querySelector('.item-toggle-button');
+                        if (body && body.style.display === 'none') {
+                            body.style.display = '';
+                            if (toggle) toggle.textContent = 'Hide';
+                        }
+                    }
+                }
+            });
+
+            if (hasDuplicate) {
+                isSubmitting = false;
+                e.preventDefault();
+                // Scroll to first error
+                var first = document.querySelector('.product-code-error[style*="block"]');
+                if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
+            formDirty = false;
         });
 
         var receivingItemsContainer = document.getElementById('receiving-items');

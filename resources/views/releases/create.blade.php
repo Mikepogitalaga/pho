@@ -14,11 +14,56 @@
         <form action="{{ route('releases.store') }}" method="POST" class="stack" id="releaseForm">
             @csrf
 
+            {{-- Row 1: Reference Numbers --}}
             <div class="form-grid-3">
                 <div class="form-group">
                     <label>PAS No. <span style="color: var(--danger);">*</span></label>
                     <input name="pas_number" value="{{ old('pas_number', request('pas_number')) }}" required>
                     @error('pas_number')
+                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                    @enderror
+                </div>
+                <div class="form-group">
+                    <label>PTR/ITR/RIS No. <span style="color: var(--danger);">*</span></label>
+                    <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+                        <select id="ptrTypeSelect" style="width: auto; min-width: 80px; padding: 0.8rem 0.9rem; border: 1px solid var(--border); border-radius: 0.85rem; background: var(--surface-muted); color: var(--text);">
+                            <option value="PTR">PTR</option>
+                            <option value="ITR">ITR</option>
+                            <option value="RIS">RIS</option>
+                            <option value="ELMIS">ELMIS</option>
+                        </select>
+                        <input name="ptr_itr_ris_no" id="ptrNumberInput" value="{{ old('ptr_itr_ris_no', $ptrNumber ?? '') }}" readonly required style="flex: 1; background: var(--surface-strong); cursor: not-allowed;">
+                    </div>
+                    @error('ptr_itr_ris_no')
+                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                    @enderror
+                    <p style="margin: 0.3rem 0 0; font-size: 0.82rem; color: var(--text-muted);">Auto-generated. Select <strong>ELMIS</strong> to enter manually.</p>
+                </div>
+                <div class="form-group">
+                    <label>Source Docs. PTR/PO No. <span style="color: var(--danger);">*</span></label>
+                    <input name="source_docs_ptr_po_no" value="{{ old('source_docs_ptr_po_no') }}" required>
+                    @error('source_docs_ptr_po_no')
+                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                    @enderror
+                </div>
+            </div>
+
+            {{-- Row 2: Facility & Program --}}
+            <div class="form-grid-3">
+                <div class="form-group">
+                    <label>Name of Facility / End-user <span style="color: var(--danger);">*</span></label>
+                    <select name="facility_name" id="facilityName" required>
+                        <option value="">— Select Facility —</option>
+                        @foreach($facilities->groupBy('category') as $cat => $group)
+                            <optgroup label="{{ $cat ?: 'Other' }}">
+                                @foreach($group as $f)
+                                    <option value="{{ $f->name }}" {{ old('facility_name', request('facility_name')) === $f->name ? 'selected' : '' }}>{{ $f->name }}</option>
+                                @endforeach
+                            </optgroup>
+                        @endforeach
+                    </select>
+                    <a href="{{ route('facilities.index') }}" class="section-link" style="font-size:0.78rem;margin-top:0.35rem;display:inline-block;">+ Manage Facilities</a>
+                    @error('facility_name')
                         <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
                     @enderror
                 </div>
@@ -42,82 +87,6 @@
                     </div>
                 </div>
             </div>
-
-            <div class="form-grid-3">
-                <div class="form-group">
-                    <label>PTR/ITR/RIS No. <span style="color: var(--danger);">*</span></label>
-                    <div style="display: flex; gap: 0.5rem; align-items: stretch;">
-                        <select id="ptrTypeSelect" style="width: auto; min-width: 80px; padding: 0.8rem 0.9rem; border: 1px solid var(--border); border-radius: 0.85rem; background: var(--surface-muted); color: var(--text);">
-                            <option value="PTR">PTR</option>
-                            <option value="ITR">ITR</option>
-                            <option value="RIS">RIS</option>
-                            <option value="ELMIS">ELMIS</option>
-                        </select>
-                        <input name="ptr_itr_ris_no" id="ptrNumberInput" value="{{ old('ptr_itr_ris_no', $ptrNumber ?? '') }}" readonly required style="flex: 1; background: var(--surface-strong); cursor: not-allowed;">
-                    </div>
-                    @error('ptr_itr_ris_no')
-                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
-                    @enderror
-                    <p style="margin: 0.3rem 0 0; font-size: 0.82rem; color: var(--text-muted);">Auto-generated sequential number. Select type (PTR/ITR/RIS) to regenerate. Select <strong>ELMIS</strong> to enter your own ELMIS No.</p>
-                </div>
-                <div class="form-group">
-                    <label>Source Docs. PTR/PO No. <span style="color: var(--danger);">*</span></label>
-                    <input name="source_docs_ptr_po_no" value="{{ old('source_docs_ptr_po_no') }}" required>
-                    @error('source_docs_ptr_po_no')
-                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
-                    @enderror
-                </div>
-            </div>
-
-            <div class="form-grid-3">
-                <div class="form-group">
-                    <label>Facility Category <span style="color: var(--danger);">*</span></label>
-                    <select id="facilityCategory" required onchange="filterFacilities()">
-                        <option value="">— Select Category —</option>
-                        @foreach(\App\Models\Facility::categories() as $cat)
-                            <option value="{{ $cat }}" {{ old('facility_category', request('facility_category')) === $cat ? 'selected' : '' }}>{{ $cat }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Name of Facility / End-user <span style="color: var(--danger);">*</span></label>
-                    <select name="facility_name" id="facilityName" required disabled>
-                        <option value="">— Select Category First —</option>
-                    </select>
-                    <a href="{{ route('facilities.index') }}" class="section-link" style="font-size:0.78rem;margin-top:0.35rem;display:inline-block;">+ Manage Facilities</a>
-                    @error('facility_name')
-                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
-                    @enderror
-                </div>
-            </div>
-
-            <script>
-                const allFacilities = @json(\App\Models\Facility::active()->get()->map(fn($f) => ['name' => $f->name, 'category' => $f->category]));
-                const facilityCategory = document.getElementById('facilityCategory');
-                const facilityName = document.getElementById('facilityName');
-                const selectedFacility = '{{ old('facility_name', request('facility_name')) }}';
-
-                function filterFacilities() {
-                    const cat = facilityCategory.value;
-                    facilityName.innerHTML = '<option value="">— Select Facility —</option>';
-                    if (!cat) {
-                        facilityName.disabled = true;
-                        return;
-                    }
-                    facilityName.disabled = false;
-                    const filtered = allFacilities.filter(f => f.category === cat);
-                    filtered.forEach(f => {
-                        const opt = document.createElement('option');
-                        opt.value = f.name;
-                        opt.textContent = f.name;
-                        if (f.name === selectedFacility) opt.selected = true;
-                        facilityName.appendChild(opt);
-                    });
-                }
-
-                // Auto-filter on page load if category is pre-selected
-                if (facilityCategory.value) filterFacilities();
-            </script>
 
             <div class="section-note">
                 Received by, Date, and Status are assigned after saving.
@@ -262,16 +231,17 @@
 
 @push('scripts')
 <script>
-const allItemsData = {!! json_encode($items->map(fn($i) => [
+const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItems->map(fn($receivingItem) => [
     'id'         => $i->id,
-    'code'       => $i->item_code,
+    'code'       => $receivingItem->item_code,
     'name'       => $i->name,
-    'uom'        => $i->unit,
-    'cost'       => $i->unit_cost,
-    'qty'        => $i->quantity_on_hand,
-    'category'   => $i->category,
-    'lot_number' => $itemLotNumbers[$i->id] ?? '',
-])->toArray()) !!};
+    'uom'        => $receivingItem->uom ?: $i->unit,
+    'cost'       => $receivingItem->unit_cost ?? $i->unit_cost,
+    'qty'        => $receivingItem->quantity_received,
+    'category'   => $receivingItem->category ?: $i->category,
+    'lot_number' => $receivingItem->lot_number,
+    'expiry'     => $receivingItem->expiry_date?->format('Y-m-d'),
+]))->filter(fn($item) => filled($item['code']))->values()->toArray()) !!};
 
 (function () {
     // ---- PTR/ITR/RIS/ELMIS Type Switcher ----
@@ -449,6 +419,7 @@ const allItemsData = {!! json_encode($items->map(fn($i) => [
             o.dataset.unitCost = i.cost;
             o.dataset.quantity = i.qty;
             o.dataset.lotNumber = i.lot_number || '';
+            o.dataset.expiry = i.expiry || '';
             select.appendChild(o);
         });
     }
@@ -559,6 +530,7 @@ const allItemsData = {!! json_encode($items->map(fn($i) => [
                     if (uomInput)      uomInput.value      = sel.dataset.uom || '';
                     if (unitCostInput) unitCostInput.value = sel.dataset.unitCost || '';
                     if (quantityInput) quantityInput.placeholder = 'Available: ' + (sel.dataset.quantity || 0);
+                    if (row.querySelector('.item-expiry-input')) row.querySelector('.item-expiry-input').value = sel.dataset.expiry || '';
                     const itemData = allItemsData.find(i => i.id == sel.value);
                     if (lotInput && itemData && itemData.lot_number) lotInput.value = itemData.lot_number;
                     if (descInput && itemData) descInput.value = itemData.name;
@@ -634,6 +606,7 @@ const allItemsData = {!! json_encode($items->map(fn($i) => [
             if (uomInput)      uomInput.value = sel.dataset.uom || '';
             if (unitCostInput) unitCostInput.value = sel.dataset.unitCost || '';
             if (quantityInput) quantityInput.placeholder = 'Available: ' + (sel.dataset.quantity || 0);
+            if (row.querySelector('.item-expiry-input')) row.querySelector('.item-expiry-input').value = sel.dataset.expiry || '';
             const itemData = allItemsData.find(i => i.id == match.id);
             if (lotInput && itemData && itemData.lot_number) lotInput.value = itemData.lot_number;
             if (descInput) descInput.value = match.name;

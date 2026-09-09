@@ -19,6 +19,21 @@ class Facility extends Model
         'is_active' => 'boolean',
     ];
 
+    public function getCategoryAttribute($value): string
+    {
+        return trim((string) $value);
+    }
+
+    public function setCategoryAttribute($value): void
+    {
+        $this->attributes['category'] = trim((string) $value);
+    }
+
+    public function setNameAttribute($value): void
+    {
+        $this->attributes['name'] = trim((string) $value);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);

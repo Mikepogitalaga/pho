@@ -8,7 +8,7 @@
     <div class="section-card">
         <div class="section-header">
             <div>
-                <h1 class="page-heading">{{ $receiving->receiving_number }}</h1>
+                <h1 class="page-heading">Receiving Details</h1>
                 <p class="page-description">PO: {{ $receiving->po_number ?? '—' }} · Supplier: {{ $receiving->supplier->company_name ?? '—' }}</p>
             </div>
             <a href="{{ route('receivings.edit', $receiving) }}" class="btn btn-primary">Edit</a>
@@ -75,6 +75,7 @@
                 <table>
                     <thead>
                      <tr>
+                         <th style="text-align: left;" class="col-hide-md">Product Code</th>
                          <th style="text-align: left;">Item Description</th>
                          <th style="text-align: left;" class="col-hide-md">Category</th>
                          <th style="text-align: center;">Quantity</th>
@@ -89,6 +90,7 @@
                      <tbody>
                          @forelse($receiving->items as $receivingItem)
                               <tr>
+                                  <td data-label="Product Code" class="col-hide-md" style="font-size:0.82rem; color:var(--text-muted); font-family:monospace;">{{ $receivingItem->item_code ?? '—' }}</td>
                                   <td class="mobile-card-header">
                                       <span style="font-weight:600;color:var(--text);">{{ $receivingItem->item_description ?? $receivingItem->item?->name ?? '—' }}</span>
                                   </td>
@@ -109,7 +111,7 @@
                              </tr>
                          @empty
                              <tr>
-                                <td colspan="9" style="padding: 2rem; text-align: center;">
+                                <td colspan="10" style="padding: 2rem; text-align: center;">
                                     <div class="empty-state">
                                         <strong style="font-size: 1rem;">No items found</strong>
                                         <div style="margin-top: 0.5rem; color: var(--text-muted);">This receiving slip does not contain any received items.</div>

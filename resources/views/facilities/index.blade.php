@@ -64,91 +64,102 @@
             @endforeach
         @endif
     </section>
-
-     {{-- ===== ADD / EDIT MODAL ===== --}}
-     <div id="facilityModal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
-         <div style="background:var(--surface);border-radius:1rem;width:min(500px,92vw);max-height:90vh;overflow-y:auto;box-shadow:var(--shadow);">
-             <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-                 <h3 id="modalTitle" style="margin:0;font-size:1.1rem;font-weight:700;color:var(--text);">Add New Facility</h3>
-                 <button type="button" onclick="closeModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);line-height:1;">&times;</button>
-             </div>
-             <form id="facilityForm" method="POST" action="{{ route('facilities.store') }}" style="padding:1.5rem;">
-                 @csrf
-                 <input type="hidden" id="modalMethod" name="_method" value="POST">
-                 <input type="hidden" id="modalId" name="" value="">
-                 <div class="form-group" style="margin-bottom:1rem;">
-                     <label for="modalName">Facility Name <span style="color:var(--danger);">*</span></label>
-                     <input type="text" id="modalName" name="name" required placeholder="Enter facility name" style="width:100%;">
-                 </div>
-                 <div class="form-group" style="margin-bottom:1rem;">
-                     <label for="modalCategory">Category <span style="color:var(--danger);">*</span></label>
-                     <select id="modalCategory" name="category" required style="width:100%;">
-                         @foreach(\App\Models\Facility::categories() as $cat)
-                             <option value="{{ $cat }}">{{ $cat }}</option>
-                         @endforeach
-                     </select>
-                 </div>
-                 <div class="form-group" style="margin-bottom:1rem;">
-                     <label for="modalAddress">Address</label>
-                     <input type="text" id="modalAddress" name="address" placeholder="Enter address" style="width:100%;">
-                 </div>
-                 <div class="form-group" style="margin-bottom:1rem;">
-                     <label for="modalContact">Contact Person</label>
-                     <input type="text" id="modalContact" name="contact_person" placeholder="Enter contact person" style="width:100%;">
-                 </div>
-                 <div class="form-group" style="margin-bottom:1.25rem;">
-                     <label for="modalPhone">Phone Number</label>
-                     <input type="text" id="modalPhone" name="phone_number" placeholder="Enter phone number" style="width:100%;">
-                 </div>
-                 <div style="display:flex;gap:0.75rem;justify-content:flex-end;">
-                     <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-                     <button type="submit" class="btn btn-primary" id="modalSubmitBtn">Add Facility</button>
-                 </div>
-             </form>
-         </div>
-     </div>
 @endsection
 
 @push('scripts')
+{{-- ===== ADD / EDIT MODAL ===== --}}
+<div id="facilityModal" style="display:none;position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,0.58);align-items:center;justify-content:center;padding:1rem;box-sizing:border-box;">
+    <div style="position:relative;background:var(--surface);border-radius:1rem;width:min(500px,92vw);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+            <h3 id="modalTitle" style="margin:0;font-size:1.1rem;font-weight:700;color:var(--text);">Add New Facility</h3>
+            <button type="button" onclick="closeModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);line-height:1;">&times;</button>
+        </div>
+        <form id="facilityForm" method="POST" action="{{ route('facilities.store') }}" style="padding:1.5rem;">
+            @csrf
+            <input type="hidden" id="modalMethod" name="_method" value="POST">
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label for="modalName">Facility Name <span style="color:var(--danger);">*</span></label>
+                <input type="text" id="modalName" name="name" required placeholder="Enter facility name" style="width:100%;">
+            </div>
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label for="modalCategory">Category <span style="color:var(--danger);">*</span></label>
+                <select id="modalCategory" name="category" required style="width:100%;">
+                    @foreach(\App\Models\Facility::categories() as $cat)
+                        <option value="{{ $cat }}">{{ $cat }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label for="modalAddress">Address</label>
+                <input type="text" id="modalAddress" name="address" placeholder="Enter address" style="width:100%;">
+            </div>
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label for="modalContact">Contact Person</label>
+                <input type="text" id="modalContact" name="contact_person" placeholder="Enter contact person" style="width:100%;">
+            </div>
+            <div class="form-group" style="margin-bottom:1.25rem;">
+                <label for="modalPhone">Phone Number</label>
+                <input type="text" id="modalPhone" name="phone_number" placeholder="Enter phone number" style="width:100%;">
+            </div>
+            <div style="display:flex;gap:0.75rem;justify-content:flex-end;">
+                <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="modalSubmitBtn">Add Facility</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
-     const modal = document.getElementById('facilityModal');
-     const form = document.getElementById('facilityForm');
-     const title = document.getElementById('modalTitle');
-     const methodInput = document.getElementById('modalMethod');
-     const submitBtn = document.getElementById('modalSubmitBtn');
+    const modal = document.getElementById('facilityModal');
+    const facilityForm = document.getElementById('facilityForm');
+    const title = document.getElementById('modalTitle');
+    const methodInput = document.getElementById('modalMethod');
+    const submitBtn = document.getElementById('modalSubmitBtn');
+    const categoryInput = document.getElementById('modalCategory');
+    const categories = @json($categories);
 
-     function openAddModal() {
-         title.textContent = 'Add New Facility';
-         form.action = '{{ route('facilities.store') }}';
-         methodInput.value = 'POST';
-         document.getElementById('modalName').value = '';
-         document.getElementById('modalCategory').value = 'Hospitals';
-         document.getElementById('modalAddress').value = '';
-         document.getElementById('modalContact').value = '';
-         document.getElementById('modalPhone').value = '';
-         submitBtn.textContent = 'Add Facility';
-         modal.style.display = 'flex';
-     }
+    function setModalOpen(isOpen) {
+        modal.style.display = isOpen ? 'flex' : 'none';
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+        if (isOpen) document.getElementById('modalName').focus();
+    }
 
-     function openEditModal(facility) {
-         title.textContent = 'Edit Facility';
-         form.action = '{{ route('facilities.update', ['facility' => '__ID__']) }}'.replace('__ID__', facility.id);
-         methodInput.value = 'PUT';
-         document.getElementById('modalName').value = facility.name;
-         document.getElementById('modalCategory').value = facility.category;
-         document.getElementById('modalAddress').value = facility.address || '';
-         document.getElementById('modalContact').value = facility.contact_person || '';
-         document.getElementById('modalPhone').value = facility.phone_number || '';
-         submitBtn.textContent = 'Save Changes';
-         modal.style.display = 'flex';
-     }
+    function openAddModal() {
+        title.textContent = 'Add New Facility';
+        facilityForm.action = '{{ route('facilities.store') }}';
+        methodInput.value = 'POST';
+        document.getElementById('modalName').value = '';
+        categoryInput.value = categories[0] || '';
+        document.getElementById('modalAddress').value = '';
+        document.getElementById('modalContact').value = '';
+        document.getElementById('modalPhone').value = '';
+        submitBtn.textContent = 'Add Facility';
+        setModalOpen(true);
+    }
 
-     function closeModal() {
-         modal.style.display = 'none';
-     }
+    function openEditModal(facility) {
+        title.textContent = 'Edit Facility';
+        facilityForm.action = '{{ route('facilities.update', ['facility' => '__ID__']) }}'.replace('__ID__', facility.id);
+        methodInput.value = 'PUT';
+        document.getElementById('modalName').value = facility.name;
+        document.getElementById('modalCategory').value = facility.category;
+        document.getElementById('modalAddress').value = facility.address || '';
+        document.getElementById('modalContact').value = facility.contact_person || '';
+        document.getElementById('modalPhone').value = facility.phone_number || '';
+        submitBtn.textContent = 'Save Changes';
+        setModalOpen(true);
+    }
 
-     modal.addEventListener('click', function(e) {
-         if (e.target === modal) closeModal();
-     });
+    function closeModal() {
+        setModalOpen(false);
+    }
+
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) closeModal();
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal.style.display !== 'none') closeModal();
+    });
 </script>
 @endpush

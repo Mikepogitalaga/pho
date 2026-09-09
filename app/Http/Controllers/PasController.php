@@ -51,14 +51,10 @@ class PasController extends Controller
 
     public function create()
     {
-        $items       = Item::orderBy('name')->get();
-        $suppliers   = Supplier::orderBy('company_name')->get();
+        $items       = Item::with('receivingItems')->orderBy('name')->get();
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
         $programs    = Program::orderBy('name')->get();
-        $pasFacilities  = Pas::whereNotNull('facility_name')->where('facility_name', '<>', '')
-            ->distinct()->orderBy('facility_name')->pluck('facility_name');
-        $dbFacilities = \App\Models\Facility::active()->orderBy('name')->pluck('name');
-        $facilities = $pasFacilities->merge($dbFacilities)->unique()->sort()->values();
+        $facilities  = \App\Models\Facility::active()->orderBy('category')->orderBy('name')->get(['name', 'category']);
 
         $itemLotNumbers = ReceivingItem::select('item_id', 'lot_number', 'expiry_date')
             ->whereNotNull('lot_number')
@@ -76,7 +72,7 @@ class PasController extends Controller
         $nextSeq   = $this->nextYearSequence(Pas::class, 'pas_number', "PAS-{$year}-{$month}-%");
         $pasNumber = "PAS-{$year}-{$month}-{$nextSeq}";
 
-        return view('pas.create', compact('items', 'suppliers', 'coordinators', 'programs', 'pasNumber', 'itemLotNumbers', 'facilities'));
+        return view('pas.create', compact('items', 'coordinators', 'programs', 'pasNumber', 'itemLotNumbers', 'facilities'));
     }
 
     public function store(Request $request)
@@ -157,13 +153,7 @@ class PasController extends Controller
         $suppliers = Supplier::orderBy('company_name')->get();
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
         $programs = Program::orderBy('name')->get();
-        $pasFacilities = Pas::whereNotNull('facility_name')
-            ->where('facility_name', '<>', '')
-            ->distinct()
-            ->orderBy('facility_name')
-            ->pluck('facility_name');
-        $dbFacilities = \App\Models\Facility::active()->orderBy('name')->pluck('name');
-        $facilities = $pasFacilities->merge($dbFacilities)->unique()->sort()->values();
+        $facilities = \App\Models\Facility::active()->orderBy('category')->orderBy('name')->get(['name', 'category']);
 
         $itemLotNumbers = ReceivingItem::select('item_id', 'lot_number', 'expiry_date')
             ->whereNotNull('lot_number')

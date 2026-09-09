@@ -88,7 +88,7 @@ it('renders the PAS edit add-item script so the row button can append another it
         'coordinators' => collect([$coordinator]),
         'programs' => collect([new Program(['name' => 'STI/HIV AIDS PREVENTION AND CONTROL PROGRAM (NASPCP)'])]),
         'itemLotNumbers' => collect(),
-        'facilities' => collect(['Apayao State College']),
+        'facilities' => collect([(object) ['name' => 'Apayao State College', 'category' => 'Hospitals']]),
     ])->render();
 
     expect($html)->toContain('id="add-pas-item"');

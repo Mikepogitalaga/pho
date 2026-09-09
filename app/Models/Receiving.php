@@ -11,7 +11,6 @@ class Receiving extends Model
     use HasFactory, Auditable;
 
     protected $fillable = [
-        'receiving_number',
         'po_number',
         'source_document_number',
         'ics_ptr_ris',

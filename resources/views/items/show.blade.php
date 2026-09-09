@@ -115,11 +115,15 @@
                  <tbody id="productCodesTableBody">
                      @forelse($items as $groupedItem)
                          <tr class="product-code-row"
-                             data-productcode="{{ $groupedItem->item_code }}"
+                             data-productcode="{{ $groupedItem->receivingItems->pluck('item_code')->filter()->implode(' ') }}"
                              data-location="{{ $groupedItem->location ?? '' }}"
                              data-status="{{ $groupedItem->status }}">
                               <td class="mobile-card-header">
-                                  <span style="font-weight:600;color:var(--text);">{{ $groupedItem->item_code }}</span>
+                                  @forelse($groupedItem->receivingItems->pluck('item_code')->filter()->unique() as $productCode)
+                                      <a href="{{ route('items.productcode.show', ['item' => $item, 'productCode' => $productCode]) }}" style="display:block;font-weight:600;color:var(--text);font-family:monospace;">{{ $productCode }}</a>
+                                  @empty
+                                      <span style="color:var(--text-muted);">—</span>
+                                  @endforelse
                               </td>
                               <td data-label="Location" style="color:var(--text-muted);">{{ $groupedItem->location ?? '—' }}</td>
                               <td data-label="Current Stock">
@@ -150,10 +154,14 @@
                               </td>
                               <td data-label="Expiry"><span class="status-pill {{ $groupedItem->expiry_badge_class }}" style="font-size:0.78rem;">{{ $groupedItem->expiry_label }}</span></td>
                              <td class="mobile-card-actions" style="text-align:center;">
+                                 @if($groupedItem->item_code)
                                  <a href="{{ route('items.productcode.show', ['item' => $item, 'productCode' => $groupedItem->item_code]) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.35rem 0.85rem;font-size:0.82rem;gap:0.3rem;">
                                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                                      View
                                  </a>
+                                 @else
+                                     <span style="color:var(--text-muted);">—</span>
+                                 @endif
                              </td>
                          </tr>
                     @empty

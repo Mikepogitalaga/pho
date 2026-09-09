@@ -12,7 +12,6 @@ class Item extends Model
     use HasFactory, Auditable;
 
     protected $fillable = [
-        'item_code',
         'name',
         'category',
         'unit',
@@ -32,6 +31,15 @@ class Item extends Model
     public function receivingItems()
     {
         return $this->hasMany(ReceivingItem::class);
+    }
+
+    public function getProductCodesAttribute()
+    {
+        if (! $this->relationLoaded('receivingItems')) {
+            $this->load('receivingItems');
+        }
+
+        return $this->receivingItems->pluck('item_code')->filter()->unique()->values();
     }
 
     public function nextExpiryItem()

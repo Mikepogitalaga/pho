@@ -12,8 +12,10 @@ class ReceivingItem extends Model
     protected $fillable = [
         'receiving_id',
         'item_id',
+        'item_code',
         'item_description',
         'category',
+        'purchase_source',
         'quantity_received',
         'uom',
         'lot_number',

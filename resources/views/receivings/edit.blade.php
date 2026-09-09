@@ -110,6 +110,9 @@
                                     <div class="form-group">
                                         <label>Category</label>
                                         <select class="item-category-input" name="items[0][category]">
+                                            <option value="GSO">GSO</option>
+                                            <option value="ACP">ACP</option>
+                                            <option value="DOH">DOH</option>
                                             <option value="DM">DM</option>
                                             <option value="MDL">MDL</option>
                                         </select>
@@ -161,7 +164,7 @@
                                 <div class="form-grid-4">
                                     <div class="form-group" style="position:relative;">
                                         <label>Product Code</label>
-                                        <input class="item-code-input" name="items[{{ $index }}][item_code]" value="{{ $oi['item_code'] ?? $ri->item?->item_code }}" readonly style="background:var(--surface-strong);cursor:not-allowed;" />
+                                        <input class="item-code-input" name="items[{{ $index }}][item_code]" value="{{ $oi['item_code'] ?? $ri->item_code }}" readonly style="background:var(--surface-strong);cursor:not-allowed;" />
                                     </div>
                                     <div class="form-group" style="position:relative;">
                                         <label>Item Description</label>
@@ -170,6 +173,9 @@
                                     <div class="form-group">
                                         <label>Category</label>
                                         <select class="item-category-input" name="items[{{ $index }}][category]">
+                                            <option value="GSO" @selected(($oi['category'] ?? $ri->category ?? '') === 'GSO')>GSO</option>
+                                            <option value="ACP" @selected(($oi['category'] ?? $ri->category ?? '') === 'ACP')>ACP</option>
+                                            <option value="DOH" @selected(($oi['category'] ?? $ri->category ?? '') === 'DOH')>DOH</option>
                                             <option value="DM" @selected(($oi['category'] ?? $ri->category ?? 'DM') === 'DM')>DM</option>
                                             <option value="MDL" @selected(($oi['category'] ?? $ri->category ?? '') === 'MDL')>MDL</option>
                                         </select>
@@ -213,7 +219,7 @@
 
     <datalist id="item-options-receiving" style="display:none;">
         @foreach($items as $item)
-            <option value="{{ $item->name }}" data-code="{{ $item->item_code }}" data-id="{{ $item->id }}" data-category="{{ $item->category }}" data-uom="{{ $item->unit }}" data-cost="{{ $item->unit_cost }}"></option>
+            <option value="{{ $item->name }}" data-id="{{ $item->id }}" data-category="{{ $item->category }}" data-uom="{{ $item->unit }}" data-cost="{{ $item->unit_cost }}"></option>
         @endforeach
     </datalist>
     <datalist id="program-options" style="display:none;">

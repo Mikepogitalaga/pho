@@ -16,7 +16,7 @@
     <form action="{{ route('pas.store') }}" method="POST" class="stack" id="pasForm">
         @csrf
 
-        {{-- Header Fields --}}
+        {{-- Row 1: Identification & Dates --}}
         <div class="form-grid-3">
             <div class="form-group">
                 <label>PAS Number <span style="color:var(--danger)">*</span></label>
@@ -35,52 +35,19 @@
             </div>
         </div>
 
+        {{-- Row 2: Facility Info --}}
         <div class="form-grid-3">
-            <div class="form-group">
-                <label>Supplier</label>
-                <select name="supplier_id">
-                    <option value="">— Select Supplier —</option>
-                    @foreach($suppliers as $supplier)
-                        <option value="{{ $supplier->id }}" {{ old('supplier_id') == $supplier->id ? 'selected' : '' }}>
-                            {{ $supplier->company_name }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('supplier_id')<span class="field-error">{{ $message }}</span>@enderror
-            </div>
-            <div class="form-group">
-                <label>Stock Keeping Unit (Program)</label>
-                <div style="position:relative;">
-                    <input name="program" id="pasProgramInput" value="{{ old('program') }}" autocomplete="off" style="width:100%;">
-                    <div id="pasProgramDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
-                </div>
-                @error('program')<span class="field-error">{{ $message }}</span>@enderror
-            </div>
-            <div class="form-group">
-                <label>Preferred Transfer Type</label>
-                <select name="transfer_type" id="pasTransferTypeSelect">
-                    <option value="PTR" {{ old('transfer_type', 'PTR') === 'PTR' ? 'selected' : '' }}>PTR</option>
-                    <option value="ITR" {{ old('transfer_type') === 'ITR' ? 'selected' : '' }}>ITR</option>
-                    <option value="RIS" {{ old('transfer_type') === 'RIS' ? 'selected' : '' }}>RIS</option>
-                </select>
-                @error('transfer_type')<span class="field-error">{{ $message }}</span>@enderror
-            </div>
-        </div>
-
-        <div class="form-grid-3">
-            <div class="form-group">
-                <label>Facility Category <span style="color:var(--danger)">*</span></label>
-                <select id="facilityCategory" required onchange="filterFacilities()">
-                    <option value="">— Select Category —</option>
-                    @foreach(\App\Models\Facility::categories() as $cat)
-                        <option value="{{ $cat }}" {{ old('facility_category') === $cat ? 'selected' : '' }}>{{ $cat }}</option>
-                    @endforeach
-                </select>
-            </div>
             <div class="form-group">
                 <label>Facility / End-user <span style="color:var(--danger)">*</span></label>
-                <select name="facility_name" id="facilityName" required disabled>
-                    <option value="">— Select Category First —</option>
+                <select name="facility_name" id="facilityName" required>
+                    <option value="">— Select Facility —</option>
+                    @foreach($facilities->groupBy('category') as $cat => $group)
+                        <optgroup label="{{ $cat ?: 'Other' }}">
+                            @foreach($group as $f)
+                                <option value="{{ $f->name }}" {{ old('facility_name') === $f->name ? 'selected' : '' }}>{{ $f->name }}</option>
+                            @endforeach
+                        </optgroup>
+                    @endforeach
                 </select>
                 <a href="{{ route('facilities.index') }}" class="section-link" style="font-size:0.78rem;margin-top:0.35rem;display:inline-block;">+ Manage Facilities</a>
                 @error('facility_name')<span class="field-error">{{ $message }}</span>@enderror
@@ -95,6 +62,27 @@
                 @error('facility_coordinator')<span class="field-error">{{ $message }}</span>@enderror
             </div>
             <div class="form-group">
+                <label>Transfer Type <span style="color:var(--danger)">*</span></label>
+                <select name="transfer_type" id="pasTransferTypeSelect">
+                    <option value="PTR" {{ old('transfer_type', 'PTR') === 'PTR' ? 'selected' : '' }}>PTR</option>
+                    <option value="ITR" {{ old('transfer_type') === 'ITR' ? 'selected' : '' }}>ITR</option>
+                    <option value="RIS" {{ old('transfer_type') === 'RIS' ? 'selected' : '' }}>RIS</option>
+                </select>
+                @error('transfer_type')<span class="field-error">{{ $message }}</span>@enderror
+            </div>
+        </div>
+
+        {{-- Row 3: Program & Purpose --}}
+        <div class="form-grid-3">
+            <div class="form-group">
+                <label>Stock Keeping Unit (Program)</label>
+                <div style="position:relative;">
+                    <input name="program" id="pasProgramInput" value="{{ old('program') }}" autocomplete="off" style="width:100%;">
+                    <div id="pasProgramDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
+                </div>
+                @error('program')<span class="field-error">{{ $message }}</span>@enderror
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
                 <label>Purpose / Activity</label>
                 <input name="purpose_activity" value="{{ old('purpose_activity') }}" placeholder="e.g. Immunization Drive, Health Program Distribution">
                 @error('purpose_activity')<span class="field-error">{{ $message }}</span>@enderror
@@ -205,7 +193,7 @@
 </datalist>
 <datalist id="pas-facility-options" style="display:none;">
     @foreach($facilities as $f)
-        <option value="{{ $f }}"></option>
+        <option value="{{ $f->name }}"></option>
     @endforeach
 </datalist>
 
@@ -269,44 +257,18 @@
 </template>
 
 @push('scripts')
-<script>
-    // Double dropdown for facilities
-    const allFacilities = @json(\App\Models\Facility::active()->get()->map(fn($f) => ['name' => $f->name, 'category' => $f->category]));
-    const facilityCategory = document.getElementById('facilityCategory');
-    const facilityName = document.getElementById('facilityName');
-    const selectedFacility = '{{ old('facility_name') }}';
 
-    function filterFacilities() {
-        const cat = facilityCategory.value;
-        facilityName.innerHTML = '<option value="">— Select Facility —</option>';
-        if (!cat) {
-            facilityName.disabled = true;
-            return;
-        }
-        facilityName.disabled = false;
-        const filtered = allFacilities.filter(f => f.category === cat);
-        filtered.forEach(f => {
-            const opt = document.createElement('option');
-            opt.value = f.name;
-            opt.textContent = f.name;
-            if (f.name === selectedFacility) opt.selected = true;
-            facilityName.appendChild(opt);
-        });
-    }
-
-    if (facilityCategory.value) filterFacilities();
-</script>
 <script>
-const pasAllItems = {!! json_encode($items->map(fn($i) => [
+const pasAllItems = {!! json_encode($items->flatMap(fn($i) => $i->receivingItems->map(fn($receivingItem) => [
     'id'         => $i->id,
-    'code'       => $i->item_code,
+    'code'       => $receivingItem->item_code,
     'name'       => $i->name,
-    'unit'       => $i->unit,
-    'cost'       => $i->unit_cost,
-    'qty'        => $i->quantity_on_hand,
-    'lot_number' => $itemLotNumbers[$i->id]['lot_number'] ?? '',
-    'expiry'     => $itemLotNumbers[$i->id]['expiry_date'] ?? '',
-])->values()->toArray()) !!};
+    'unit'       => $receivingItem->uom ?: $i->unit,
+    'cost'       => $receivingItem->unit_cost ?? $i->unit_cost,
+    'qty'        => $receivingItem->quantity_received,
+    'lot_number' => $receivingItem->lot_number,
+    'expiry'     => $receivingItem->expiry_date?->format('Y-m-d'),
+]))->filter(fn($item) => filled($item['code']))->values()->toArray()) !!};
 
 document.addEventListener('DOMContentLoaded', function () {
     // ---- Program & Coordinator Autocomplete ----

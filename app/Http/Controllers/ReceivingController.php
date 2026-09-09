@@ -13,7 +13,7 @@ use App\Models\Supplier;
 use App\Traits\GeneratesCodes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class ReceivingController extends Controller
 {
@@ -138,7 +138,7 @@ class ReceivingController extends Controller
 
     public function view(Receiving $receiving)
     {
-        $receiving->load('items');
+        $receiving->load('items.item');
 
         return view('receivings.view', compact('receiving'));
     }
@@ -223,9 +223,10 @@ class ReceivingController extends Controller
                     ]);
                 } else {
                     $item->fill([
-                        'name'                => $itemData['item_description'],
+                        'name'                => $itemData['item_description'] ?? $item->name,
                         'category'            => $itemData['category'] ?? $item->category,
                         'unit'                => $itemData['uom'] ?? $item->unit,
+                        'description'         => $itemData['item_description'] ?? $item->description,
                         'location'            => $request->input('location') ?? $item->location,
                         'stock_keeping_unit'  => $request->input('stock_keeping_unit') ?? $item->stock_keeping_unit,
                         'program_coordinator' => $request->input('program_coordinator') ?? $item->program_coordinator,
@@ -247,8 +248,10 @@ class ReceivingController extends Controller
 
                     $existingRow->update([
                         'item_id'           => $item->id,
+                        'item_code'         => $itemData['item_code'] ?? null,
                         'item_description'  => $itemData['item_description'],
                         'category'          => $itemData['category'] ?? null,
+                        'purchase_source'   => $itemData['purchase_source'] ?? null,
                         'uom'               => $itemData['uom'] ?? null,
                         'lot_number'        => $itemData['lot_number'] ?? null,
                         'expiry_date'       => !empty($itemData['expiry_date']) ? $itemData['expiry_date'] : null,
@@ -276,8 +279,10 @@ class ReceivingController extends Controller
                     ReceivingItem::create([
                         'receiving_id'      => $receiving->id,
                         'item_id'           => $item->id,
+                        'item_code'         => $itemData['item_code'] ?? null,
                         'item_description'  => $itemData['item_description'],
                         'category'          => $itemData['category'] ?? null,
+                        'purchase_source'   => $itemData['purchase_source'] ?? null,
                         'uom'               => $itemData['uom'] ?? null,
                         'lot_number'        => $itemData['lot_number'] ?? null,
                         'expiry_date'       => !empty($itemData['expiry_date']) ? $itemData['expiry_date'] : null,
@@ -338,7 +343,7 @@ class ReceivingController extends Controller
             if ($program->description) {
                 $prefix = $program->description;
                 $pattern = "{$prefix}-{$yy}-{$mm}%";
-                $programSequences[$prefix] = (int) $this->nextYearSequence(Item::class, 'item_code', $pattern);
+                $programSequences[$prefix] = (int) $this->nextYearSequence(ReceivingItem::class, 'item_code', $pattern);
             }
         }
 
@@ -349,14 +354,7 @@ class ReceivingController extends Controller
 
     private function nextReceivingNumber(): string
     {
-        $prefix = 'REC-' . now()->format('Y-m') . '-';
-        $last   = Receiving::where('receiving_number', 'like', $prefix . '%')
-            ->orderByRaw('CAST(SUBSTRING_INDEX(receiving_number, "-", -1) AS UNSIGNED) DESC')
-            ->value('receiving_number');
-
-        $seq = $last ? str_pad((int) substr(strrchr($last, '-'), 1) + 1, 4, '0', STR_PAD_LEFT) : '0001';
-
-        return $prefix . $seq;
+        return 'REC-' . now()->format('Y-m') . '-0001';
     }
 
     public function store(Request $request)
@@ -372,7 +370,19 @@ class ReceivingController extends Controller
             'stock_keeping_unit' => 'nullable|string|max:255',
             'program_coordinator' => 'nullable|string|max:255',
             'items' => 'required|array|min:1',
-            'items.*.item_code' => 'nullable|string|max:255',
+            'items.*.item_code' => [
+                'nullable', 'string', 'max:255',
+                function ($attribute, $value, $fail) use ($request) {
+                    if (empty($value)) return;
+                    $codes = array_filter(array_column($request->input('items', []), 'item_code'));
+                    if (count($codes) !== count(array_unique($codes))) {
+                        $duplicates = array_filter(array_count_values($codes), fn($c) => $c > 1);
+                        if (isset($duplicates[$value])) {
+                            $fail("Product code '{$value}' is entered more than once in this form.");
+                        }
+                    }
+                },
+            ],
             'items.*.item_description' => 'required|string|max:255',
             'items.*.category' => 'nullable|in:DM,MDL',
             'items.*.uom' => 'nullable|string|max:255',
@@ -382,11 +392,11 @@ class ReceivingController extends Controller
             'items.*.unit_cost' => 'nullable|numeric|min:0',
         ]);
 
-        DB::transaction(function () use ($request) {
-            $documentNumber = $request->input('po_number') ?? $request->input('source_document_number');
+        try {
+            DB::transaction(function () use ($request) {
+                $documentNumber = $request->input('po_number') ?? $request->input('source_document_number');
 
-            $receiving = Receiving::create([
-                'receiving_number' => 'REC-' . strtoupper(Str::random(8)),
+                $receiving = Receiving::create([
                 'po_number' => $documentNumber,
                 'source_document_number' => $documentNumber,
                 'ics_ptr_ris' => $request->input('ics_ptr_ris'),
@@ -398,22 +408,21 @@ class ReceivingController extends Controller
                 'stock_keeping_unit' => $request->input('stock_keeping_unit'),
                 'program_coordinator' => $request->input('program_coordinator'),
                 'notes' => $request->input('notes'),
-            ]);
+                ]);
 
-            foreach ($request->input('items') as $itemData) {
-                $itemQuery = Item::query();
-
-                if (!empty($itemData['item_code'])) {
-                    $itemQuery->where('item_code', $itemData['item_code']);
-                } else {
-                    $itemQuery->where('name', $itemData['item_description']);
+                foreach ($request->input('items') as $itemData) {
+                // Product codes belong to receiving rows, so resolve the shared
+                // inventory item by id or description instead.
+                $item = null;
+                if (!empty($itemData['item_id'])) {
+                    $item = Item::find((int) $itemData['item_id']);
                 }
-
-                $item = $itemQuery->first();
+                if (!$item) {
+                    $item = Item::where('name', $itemData['item_description'])->first();
+                }
 
                 if (!$item) {
                     $item = Item::create([
-                        'item_code' => $itemData['item_code'] ?? null,
                         'name' => $itemData['item_description'],
                         'category' => $itemData['category'] ?? null,
                         'unit' => $itemData['uom'] ?? null,
@@ -426,12 +435,12 @@ class ReceivingController extends Controller
                     ]);
                 } else {
                     $item->fill([
-                        'name' => $itemData['item_description'] ?? $item->name,
-                        'category' => $itemData['category'] ?? $item->category,
-                        'unit' => $itemData['uom'] ?? $item->unit,
-                        'description' => $itemData['item_description'] ?? $item->description,
-                        'location' => $request->input('location') ?? $item->location,
-                        'stock_keeping_unit' => $request->input('stock_keeping_unit') ?? $item->stock_keeping_unit,
+                        'name'                => $itemData['item_description'] ?? $item->name,
+                        'category'            => $itemData['category'] ?? $item->category,
+                        'unit'                => $itemData['uom'] ?? $item->unit,
+                        'description'         => $itemData['item_description'] ?? $item->description,
+                        'location'            => $request->input('location') ?? $item->location,
+                        'stock_keeping_unit'  => $request->input('stock_keeping_unit') ?? $item->stock_keeping_unit,
                         'program_coordinator' => $request->input('program_coordinator') ?? $item->program_coordinator,
                     ]);
 
@@ -443,20 +452,31 @@ class ReceivingController extends Controller
                 }
 
                 ReceivingItem::create([
-                    'receiving_id' => $receiving->id,
-                    'item_id' => $item->id,
-                    'category' => $itemData['category'] ?? null,
+                    'receiving_id'     => $receiving->id,
+                    'item_id'          => $item->id,
+                    'item_code'        => $itemData['item_code'] ?? null,
+                    'category'         => $itemData['category'] ?? null,
                     'item_description' => $itemData['item_description'],
-                    'quantity_received' => $itemData['quantity_received'],
-                    'uom' => $itemData['uom'] ?? null,
-                    'lot_number' => $itemData['lot_number'] ?? null,
-                    'expiry_date' => $itemData['expiry_date'] ?? null,
-                    'unit_cost' => $itemData['unit_cost'] ?? null,
+                    'quantity_received'=> $itemData['quantity_received'],
+                    'uom'              => $itemData['uom'] ?? null,
+                    'lot_number'       => $itemData['lot_number'] ?? null,
+                    'expiry_date'      => $itemData['expiry_date'] ?? null,
+                    'unit_cost'        => $itemData['unit_cost'] ?? null,
                 ]);
 
                 $item->increment('quantity_on_hand', $itemData['quantity_received']);
-            }
-        });
+                }
+            });
+        } catch (\Throwable $exception) {
+            Log::error('Receiving save failed.', [
+                'user_id' => auth()->id(),
+                'exception' => $exception,
+            ]);
+
+            return back()
+                ->withInput()
+                ->with('error', 'Receiving could not be saved: ' . $exception->getMessage());
+        }
 
         return redirect()->route('receivings.index')->with('success', 'Receiving recorded and inventory updated.');
     }

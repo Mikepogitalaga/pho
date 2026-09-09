@@ -11,6 +11,8 @@
             <p class="page-description">Track outgoing supplies and distribution status.</p>
         </div>
         <div class="table-actions">
+            <a href="{{ route('releases.print-list', request()->query()) }}" target="_blank" class="btn btn-secondary">Print</a>
+            <a href="{{ route('releases.export', request()->query()) }}" class="btn btn-secondary">Download Excel</a>
             <a href="{{ route('releases.create') }}" class="btn btn-primary">New Release Slip</a>
         </div>
     </div>
@@ -22,7 +24,7 @@
                 <p class="page-description" style="margin-top: 0.25rem;">Search and filter release records by various criteria.</p>
             </div>
             <div class="table-actions">
-                @if(request()->hasAny(['search','status','facility','product_code','pas_number','program']))
+                @if(request()->hasAny(['search','status','facility','product_code','pas_number','program','period','supplier_type','category']))
                     <a href="{{ route('releases.index') }}" class="btn btn-secondary" style="min-height: 44px;">Clear All</a>
                 @endif
             </div>
@@ -58,6 +60,34 @@
                     <option value="released-through-pass" @selected(request('status') === 'released-through-pass')>Released through pass</option>
                     <option value="canceled" @selected(request('status') === 'canceled')>Canceled</option>
                     <option value="returned" @selected(request('status') === 'returned')>Returned</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="releasePeriod" class="sr-only">Filter by release period</label>
+                <select id="releasePeriod" name="period" class="search-input">
+                    <option value="">All release dates</option>
+                    <option value="today" @selected(request('period') === 'today')>Released today</option>
+                    <option value="week" @selected(request('period') === 'week')>Released this week</option>
+                    <option value="month" @selected(request('period') === 'month')>Released this month</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="supplierTypeFilter" class="sr-only">Filter by supplier type</label>
+                <select id="supplierTypeFilter" name="supplier_type" class="search-input">
+                    <option value="">All supplier types</option>
+                    <option value="GSO" @selected(request('supplier_type') === 'GSO')>GSO</option>
+                    <option value="DOH" @selected(request('supplier_type') === 'DOH')>DOH</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="categoryFilter" class="sr-only">Filter by item category</label>
+                <select id="categoryFilter" name="category" class="search-input">
+                    <option value="">All item categories</option>
+                    <option value="MDL" @selected(request('category') === 'MDL')>MDL</option>
+                    <option value="DM" @selected(request('category') === 'DM')>DM</option>
                 </select>
             </div>
 
@@ -101,7 +131,9 @@
                                   <span>{{ $release->ptr_itr_ris_no ?? $release->release_number }}</span>
                               </td>
                               <td data-label="PAS No.">{{ $release->pas_number }}</td>
-                              <td data-label="Product Code" class="col-hide-md">{{ $release->items->first()?->item?->item_code ?? '—' }}</td>
+                              <td data-label="Product Code" class="col-hide-md">
+                                  {{ $release->items->flatMap(fn($releaseItem) => $releaseItem->item?->receivingItems ?? collect())->pluck('item_code')->filter()->unique()->implode(', ') ?: '—' }}
+                              </td>
                               <td data-label="Facility / End-user">{{ $release->facility_name }}</td>
                               <td data-label="Program" class="col-hide-md">{{ $release->health_program_coordinator ?? '—' }}</td>
                               <td data-label="Item Description">
@@ -157,7 +189,7 @@
     @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const hasFilters = {{ request()->hasAny(['search','status','facility','product_code','pas_number','program']) ? 'true' : 'false' }};
+            const hasFilters = {{ request()->hasAny(['search','status','facility','product_code','pas_number','program','period','supplier_type','category']) ? 'true' : 'false' }};
             if (hasFilters) {
                 document.getElementById('releasesTable').scrollIntoView({ behavior: 'smooth', block: 'start' });
             }

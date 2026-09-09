@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ItemsExport;
 use App\Models\Item;
 use App\Models\Program;
+use App\Models\ReceivingItem;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ItemController extends Controller
 {
@@ -17,12 +20,14 @@ class ItemController extends Controller
         $category = $request->query('category');
         $program = $request->query('program');
 
-        $query = Item::query();
+        $query = Item::query()->whereHas('receivingItems');
 
         if ($search) {
             $query->where(function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('item_code', 'like', "%{$search}%")
+                    ->orWhereHas('receivingItems', function ($receivingQuery) use ($search) {
+                        $receivingQuery->where('item_code', 'like', "%{$search}%");
+                    })
                     ->orWhere('category', 'like', "%{$search}%")
                     ->orWhere('unit', 'like', "%{$search}%")
                     ->orWhere('location', 'like', "%{$search}%")
@@ -75,7 +80,12 @@ class ItemController extends Controller
             ->map(function ($items) {
                 $item = $items->first();
                 $item->quantity_on_hand = $items->sum('quantity_on_hand');
-                $item->record_count = $items->count();
+                $item->product_codes = $items->flatMap(fn ($i) => $i->receivingItems)
+                    ->pluck('item_code')
+                    ->filter()
+                    ->unique()
+                    ->values();
+                $item->record_count = $item->product_codes->count() ?: $items->count();
 
                 $item->supplier_types = $items->flatMap(fn ($i) => $i->receivingItems)
                     ->map(fn ($ri) => $ri->receiving?->supplier?->supplier_type)
@@ -84,6 +94,7 @@ class ItemController extends Controller
                     ->sort()
                     ->values()
                     ->implode(', ');
+                $item->item_code = $item->product_codes->first();
 
                 return $item;
             })
@@ -137,18 +148,53 @@ class ItemController extends Controller
 
     public function show(Item $item)
     {
-        $items = Item::where('name', $item->name)
-            ->with('nextExpiryItem', 'receivingItems.receiving.supplier', 'releaseItems.release')
+        $itemGroups = Item::where('name', $item->name)
+            ->with([
+                'nextExpiryItem',
+                'receivingItems' => fn ($query) => $query->with('receiving.supplier')->orderBy('item_code'),
+                'releaseItems.release',
+            ])
             ->orderBy('location')
-            ->orderBy('item_code')
             ->get();
 
-        $totalReleased = $items->sum(fn ($groupedItem) => $groupedItem->releaseItems
+        $totalReleased = $itemGroups->sum(fn ($groupedItem) => $groupedItem->releaseItems
             ->filter(fn ($ri) => ! in_array($ri->release->status ?? '', ['Canceled', 'Returned'], true))
             ->sum('quantity_released'));
-        $totalReceived = $items->sum(fn ($groupedItem) => $groupedItem->receivingItems->sum('quantity_received'));
-        $totalStock = $items->sum('quantity_on_hand');
+        $totalReceived = $itemGroups->sum(fn ($groupedItem) => $groupedItem->receivingItems->sum('quantity_received'));
+        $totalStock = $itemGroups->sum('quantity_on_hand');
         $deductionPercentage = $totalReceived > 0 ? round(($totalReleased / $totalReceived) * 100) : 0;
+
+        $items = $itemGroups->flatMap(function ($groupedItem) {
+            $receivingByCode = $groupedItem->receivingItems
+                ->filter(fn ($receivingItem) => filled($receivingItem->item_code))
+                ->groupBy('item_code');
+
+            if ($receivingByCode->isEmpty()) {
+                $receivingByCode = collect(['' => collect()]);
+            }
+
+            return $receivingByCode->map(function ($receivingItems, $productCode) use ($groupedItem) {
+                $row = clone $groupedItem;
+                $source = $receivingItems->sortByDesc('created_at')->first();
+                $receiving = $source?->receiving;
+                $row->item_code = $productCode ?: null;
+                $row->receivingItems = $receivingItems;
+                $row->quantity_on_hand = $receivingItems->isNotEmpty()
+                    ? $receivingItems->sum('quantity_received')
+                    : $groupedItem->quantity_on_hand;
+                if ($source) {
+                    $row->category = $source->category ?: $row->category;
+                    $row->unit = $source->uom ?: $row->unit;
+                    $row->unit_cost = $source->unit_cost ?? $row->unit_cost;
+                    $row->location = $receiving?->location ?: $row->location;
+                    $row->stock_keeping_unit = $receiving?->stock_keeping_unit ?: $row->stock_keeping_unit;
+                    $row->program_coordinator = $receiving?->program_coordinator ?: $row->program_coordinator;
+                }
+                $row->setRelation('nextExpiryItem', $receivingItems->sortBy('expiry_date')->first());
+
+                return $row;
+            });
+        })->values();
 
         $statsRows = DB::table('receivings')
             ->join('suppliers', 'receivings.supplier_id', '=', 'suppliers.id')
@@ -173,7 +219,7 @@ class ItemController extends Controller
 
         $deductionHistory = [];
 
-        foreach ($items as $groupedItem) {
+        foreach ($itemGroups as $groupedItem) {
             foreach ($groupedItem->releaseItems as $releaseItem) {
                 $release    = $releaseItem->release;
                 $isInactive = in_array($release->status, ['Canceled', 'Returned'], true);
@@ -219,9 +265,13 @@ class ItemController extends Controller
 
     public function productCodeShow(Item $item, $productCode)
     {
-        $product = Item::where('item_code', $productCode)
-            ->with('nextExpiryItem', 'receivingItems.receiving.supplier', 'releaseItems.release')
+        $receivingItem = ReceivingItem::where('item_id', $item->id)
+            ->where('item_code', $productCode)
+            ->with('receiving.supplier')
             ->firstOrFail();
+
+        $product = $item->load('nextExpiryItem', 'releaseItems.release');
+        $product->item_code = $receivingItem->item_code;
 
         $totalReleased = $product->releaseItems
             ->filter(fn ($ri) => ! in_array($ri->release->status ?? '', ['Canceled', 'Returned'], true))
@@ -278,95 +328,82 @@ class ItemController extends Controller
 
     public function export(Request $request)
     {
-        $search = $request->query('search');
-        $status = $request->query('status');
-        $category = $request->query('category');
+        [$items, $title] = $this->filteredItems($request);
+        $filename = 'Items_' . preg_replace('/[^A-Za-z0-9\-]/', '_', $title) . '.xlsx';
 
-        $query = Item::query();
+        return Excel::download(new ItemsExport($items, $title), $filename);
+    }
+
+    public function printView(Request $request)
+    {
+        [$items, $title] = $this->filteredItems($request);
+
+        return view('items.print', compact('items', 'title'));
+    }
+
+    private function filteredItems(Request $request): array
+    {
+        $search   = trim((string) $request->query('search', ''));
+        $status   = $request->query('status', '');
+        $category = trim((string) $request->query('category', ''));
+        $program  = trim((string) $request->query('program', ''));
+
+        $query = Item::query()->whereHas('receivingItems');
 
         if ($search) {
-            $query->where(function ($query) use ($search) {
-                $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('item_code', 'like', "%{$search}%")
-                    ->orWhere('category', 'like', "%{$search}%")
-                    ->orWhere('unit', 'like', "%{$search}%")
-                    ->orWhere('location', 'like', "%{$search}%")
-                    ->orWhere('stock_keeping_unit', 'like', "%{$search}%")
-                    ->orWhere('program_coordinator', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                                    ->orWhereHas('receivingItems', function ($receivingQuery) use ($search) {
+                                            $receivingQuery->where('item_code', 'like', "%{$search}%");
+                                    })
+                  ->orWhere('category', 'like', "%{$search}%")
+                  ->orWhere('unit', 'like', "%{$search}%")
+                  ->orWhere('location', 'like', "%{$search}%")
+                  ->orWhere('stock_keeping_unit', 'like', "%{$search}%")
+                  ->orWhere('program_coordinator', 'like', "%{$search}%");
             });
         }
 
-        if ($status) {
-            if ($status === 'available') {
-                $query->where('quantity_on_hand', '>', 0)
-                      ->whereColumn('quantity_on_hand', '>', 'reorder_level');
-            } elseif ($status === 'low') {
-                // Export uses same low-stock fallback rule
-                $query->where('quantity_on_hand', '>', 0)
-                      ->where('quantity_on_hand', '<=', 20)
-                      ->where(function ($q) {
-                          $q->where(function ($q2) {
-                              $q2->whereNotNull('reorder_level')
-                                 ->where('reorder_level', '>', 0)
-                                 ->whereColumn('quantity_on_hand', '<=', 'reorder_level');
-                          })->orWhere(function ($q2) {
-                              $q2->whereNull('reorder_level')
-                                 ->orWhere('reorder_level', 0);
-                          });
+        if ($status === 'available') {
+            $query->where('quantity_on_hand', '>', 0)->whereColumn('quantity_on_hand', '>', 'reorder_level');
+        } elseif ($status === 'low') {
+            $query->where('quantity_on_hand', '>', 0)->where('quantity_on_hand', '<=', 20)
+                  ->where(function ($q) {
+                      $q->where(function ($q2) {
+                          $q2->whereNotNull('reorder_level')->where('reorder_level', '>', 0)->whereColumn('quantity_on_hand', '<=', 'reorder_level');
+                      })->orWhere(function ($q2) {
+                          $q2->whereNull('reorder_level')->orWhere('reorder_level', 0);
                       });
-
-            } elseif ($status === 'out') {
-
-
-                $query->where('quantity_on_hand', '<=', 0);
-            }
+                  });
+        } elseif ($status === 'out') {
+            $query->where('quantity_on_hand', '<=', 0);
         }
 
         if ($category) {
             $query->where('category', $category);
         }
 
-        $items = $query->orderBy('name')->get();
-        $filename = 'items-export-' . now()->format('YmdHis') . '.csv';
+        if ($program) {
+            $query->where('stock_keeping_unit', $program);
+        }
 
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ];
+        $items = $query->with('receivingItems')->orderBy('name')->get()->map(function ($item) {
+            $item->product_codes = $item->receivingItems->pluck('item_code')->filter()->unique()->values();
+            $item->item_code = $item->product_codes->first();
 
-        $callback = function () use ($items) {
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, [
-                'Product Code',
-                'Item Description',
-                'Category',
-                'UOM',
-                'Current Stock',
-                'Unit Cost',
-                'Location',
-                'Stock Keeping Unit',
-                'Program Coordinator',
-                'Status',
-            ]);
+            return $item;
+        });
 
-            foreach ($items as $item) {
-                fputcsv($handle, [
-                    $item->item_code,
-                    $item->name,
-                    $item->category,
-                    $item->unit,
-                    $item->quantity_on_hand,
-                    $item->unit_cost,
-                    $item->location,
-                    $item->stock_keeping_unit,
-                    $item->program_coordinator,
-                    $item->status,
-                ]);
-            }
+        // Build a human-readable title based on active filters
+        $parts = [];
+        if ($status === 'low')           $parts[] = 'Low Stock';
+        elseif ($status === 'out')       $parts[] = 'Out of Stock';
+        elseif ($status === 'available') $parts[] = 'Available';
+        if ($category) $parts[] = $category;
+        if ($program)  $parts[] = $program;
+        if ($search)   $parts[] = '"' . $search . '"';
+        $title = $parts ? implode(' · ', $parts) . ' Items' : 'All Items';
 
-            fclose($handle);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return [$items, $title];
     }
 }

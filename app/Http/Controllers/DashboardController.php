@@ -103,9 +103,9 @@ class DashboardController extends Controller
     public function index()
     {
         // ── KPI Data ──────────────────────────────────────────────────
-        $totalItems = Item::count();
+        $totalItems = Item::whereHas('receivingItems')->count();
         $totalSuppliers = Supplier::count();
-        $currentStock = Item::sum('quantity_on_hand');
+        $currentStock = Item::whereHas('receivingItems')->sum('quantity_on_hand');
         $totalReceived = ReceivingItem::sum('quantity_received');
         $totalReleased = ReleaseItem::whereHas('release', function ($q) {
             $q->whereIn('status', ['Released', 'Released through pass']);
@@ -113,6 +113,7 @@ class DashboardController extends Controller
 
         // Low Stock items (qty <= reorder_level or <= 20 if no reorder)
         $lowStockItems = Item::query()
+            ->whereHas('receivingItems')
             ->where('quantity_on_hand', '>', 0)
             ->where(function ($q) {
                 $q->where(function ($q2) {
@@ -145,7 +146,8 @@ class DashboardController extends Controller
             ->get();
 
         // Inventory Value
-        $inventoryValue = Item::selectRaw('SUM(quantity_on_hand * COALESCE(unit_cost, 0)) as total_value')
+        $inventoryValue = Item::whereHas('receivingItems')
+            ->selectRaw('SUM(quantity_on_hand * COALESCE(unit_cost, 0)) as total_value')
             ->value('total_value') ?? 0;
 
         // ── Chart Data ────────────────────────────────────────────────
@@ -174,7 +176,8 @@ class DashboardController extends Controller
         }
 
         // 2. Inventory by Category
-        $inventoryByCategory = Item::select('category', DB::raw('COUNT(*) as count'))
+        $inventoryByCategory = Item::whereHas('receivingItems')
+            ->select('category', DB::raw('COUNT(*) as count'))
             ->whereNotNull('category')
             ->groupBy('category')
             ->orderByDesc('count')
@@ -246,9 +249,9 @@ class DashboardController extends Controller
             });
 
         // 6. Stock Status Distribution
-        $totalItemCount = Item::count();
-        $outOfStockCount = Item::where('quantity_on_hand', '<=', 0)->count();
-        $availableCount = Item::where('quantity_on_hand', '>', 0)->count();
+        $totalItemCount = Item::whereHas('receivingItems')->count();
+        $outOfStockCount = Item::whereHas('receivingItems')->where('quantity_on_hand', '<=', 0)->count();
+        $availableCount = Item::whereHas('receivingItems')->where('quantity_on_hand', '>', 0)->count();
         $lowStockCount = $lowStockItems->count();
 
         // ── Recent Records ────────────────────────────────────────────
@@ -259,9 +262,10 @@ class DashboardController extends Controller
         $notifications = collect();
 
         foreach ($lowStockItems as $item) {
+            $productCode = $item->receivingItems()->whereNotNull('item_code')->value('item_code');
             $notifications->push([
                 'type' => 'warning',
-                'message' => "Low stock: {$item->item_code} · {$item->name} ({$item->quantity_on_hand} on hand)",
+                'message' => 'Low stock: ' . ($productCode ?: 'No code') . " · {$item->name} ({$item->quantity_on_hand} on hand)",
                 'href' => route('items.show', $item),
             ]);
         }
@@ -269,7 +273,7 @@ class DashboardController extends Controller
         foreach ($upcomingExpiries as $expiry) {
             $notifications->push([
                 'type' => 'danger',
-                'message' => "Expiring soon: {$expiry->item->item_code} · {$expiry->item->name} on {$expiry->expiry_date->format('M d, Y')}",
+                'message' => 'Expiring soon: ' . ($expiry->item_code ?: 'No code') . " · {$expiry->item->name} on {$expiry->expiry_date->format('M d, Y')}",
                 'href' => route('items.show', $expiry->item),
             ]);
         }
@@ -420,6 +424,7 @@ class DashboardController extends Controller
         $typeItemIds = $this->getItemIdsBySupplierType($type);
         if (!empty($typeItemIds)) {
             $lowStockItems = Item::whereIn('id', $typeItemIds)
+                ->whereHas('receivingItems')
                 ->where('quantity_on_hand', '>', 0)
                 ->where(function ($q) {
                     $q->where(function ($q2) {
@@ -437,9 +442,10 @@ class DashboardController extends Controller
                 ->get();
 
             foreach ($lowStockItems as $item) {
+                $productCode = $item->receivingItems()->whereNotNull('item_code')->value('item_code');
                 $notifications->push([
                     'type' => 'warning',
-                    'message' => "Low stock: {$item->item_code} · {$item->name} ({$item->quantity_on_hand} on hand)",
+                    'message' => 'Low stock: ' . ($productCode ?: 'No code') . " · {$item->name} ({$item->quantity_on_hand} on hand)",
                     'href' => route('items.show', $item),
                 ]);
             }
@@ -456,7 +462,7 @@ class DashboardController extends Controller
             foreach ($upcomingExpiries as $expiry) {
                 $notifications->push([
                     'type' => 'danger',
-                    'message' => "Expiring soon: {$expiry->item->item_code} · {$expiry->item->name} on {$expiry->expiry_date->format('M d, Y')}",
+                    'message' => 'Expiring soon: ' . ($expiry->item_code ?: 'No code') . " · {$expiry->item->name} on {$expiry->expiry_date->format('M d, Y')}",
                     'href' => route('items.show', $expiry->item),
                 ]);
             }

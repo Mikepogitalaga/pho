@@ -49,12 +49,12 @@ Route::middleware('web')->group(function () {
         Route::get('/analytics/facility-categories/view', [FacilityCategoryAnalyticsController::class, 'facilityItems'])->name('analytics.facility-categories.view');
         Route::get('/analytics/facility-categories/{facilityCategory}/{facilityName}', [FacilityCategoryAnalyticsController::class, 'detail'])->name('analytics.facility-categories.detail');
 
+        Route::get('items/export', [ItemController::class, 'export'])->name('items.export');
+        Route::get('items/print', [ItemController::class, 'printView'])->name('items.print');
         Route::resource('items', ItemController::class)->only(['index', 'show']);
         Route::resource('facilities', FacilityController::class)->only(['index', 'store', 'update', 'destroy']);
 
         Route::get('items/{item}/{productCode}', [ItemController::class, 'productCodeShow'])->name('items.productcode.show');
-
-        Route::get('items/export', [ItemController::class, 'export'])->name('items.export');
         Route::resource('suppliers', SupplierController::class)->except(['show']);
         Route::get('suppliers/{supplier}', [SupplierController::class, 'show'])->name('suppliers.show');
         Route::get('doh-dashboard/{supplier}', [SupplierController::class, 'dohDashboard'])->name('doh.dashboard');
@@ -69,6 +69,8 @@ Route::middleware('web')->group(function () {
         Route::post('receivings', [ReceivingController::class, 'store'])->name('receivings.store');
 
         Route::get('releases', [ReleaseController::class, 'index'])->name('releases.index');
+        Route::get('releases/export', [ReleaseController::class, 'exportList'])->name('releases.export');
+        Route::get('releases/print', [ReleaseController::class, 'printList'])->name('releases.print-list');
         Route::get('releases/create', [ReleaseController::class, 'create'])->name('releases.create');
         Route::get('releases/next-ptr-number/{type}', [ReleaseController::class, 'nextPtrNumber'])->name('releases.next-ptr');
         Route::post('releases', [ReleaseController::class, 'store'])->name('releases.store');
@@ -81,6 +83,8 @@ Route::middleware('web')->group(function () {
 
         Route::get('reports/liquidation', [ReportController::class, 'liquidation'])->name('reports.liquidation');
         Route::get('reports/liquidation/export', [ReportController::class, 'export'])->name('reports.liquidation.export');
+        Route::get('reports/master-file', [ReportController::class, 'masterFile'])->name('reports.master-file');
+        Route::get('reports/master-file/export', [ReportController::class, 'masterFileExport'])->name('reports.master-file.export');
 
         Route::get('audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');
 
