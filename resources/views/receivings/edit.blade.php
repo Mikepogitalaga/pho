@@ -42,7 +42,7 @@
                 </div>
             </div>
 
-            <div class="form-grid-3">
+            <div class="form-grid-2">
                 <div class="form-group">
                     <label>Date Received</label>
                     <input type="date" name="date_received" value="{{ old('date_received', $receiving->date_received->toDateString()) }}" required />
@@ -50,10 +50,6 @@
                 <div class="form-group">
                     <label>Received By</label>
                     <input name="received_by" value="{{ old('received_by', $receiving->received_by) }}" />
-                </div>
-                <div class="form-group">
-                    <label>Location</label>
-                    <input name="location" value="{{ old('location', $receiving->location) }}" />
                 </div>
             </div>
 
@@ -101,7 +97,8 @@
                                 <div class="form-grid-4">
                                     <div class="form-group" style="position:relative;">
                                         <label>Product Code</label>
-                                        <input class="item-code-input" name="items[0][item_code]" readonly style="background:var(--surface-strong);cursor:not-allowed;" />
+                                        <input class="item-code-input" name="items[0][item_code]" />
+                                        <span class="product-code-error" style="display:none;color:var(--danger);font-size:0.8rem;margin-top:0.2rem;"></span>
                                     </div>
                                     <div class="form-group" style="position:relative;">
                                         <label>Item Description</label>
@@ -110,9 +107,6 @@
                                     <div class="form-group">
                                         <label>Category</label>
                                         <select class="item-category-input" name="items[0][category]">
-                                            <option value="GSO">GSO</option>
-                                            <option value="ACP">ACP</option>
-                                            <option value="DOH">DOH</option>
                                             <option value="DM">DM</option>
                                             <option value="MDL">MDL</option>
                                         </select>
@@ -138,6 +132,12 @@
                                     <div class="form-group">
                                         <label>Unit Cost</label>
                                         <input type="number" step="0.01" class="item-unit-cost-input" name="items[0][unit_cost]" />
+                                    </div>
+                                </div>
+                                <div class="form-grid-4">
+                                    <div class="form-group">
+                                        <label>Location</label>
+                                        <input class="item-location-input" name="items[0][location]" />
                                     </div>
                                 </div>
                             </div>
@@ -203,6 +203,12 @@
                                         <input type="number" step="0.01" class="item-unit-cost-input" name="items[{{ $index }}][unit_cost]" value="{{ $oi['unit_cost'] ?? $ri->unit_cost }}" />
                                     </div>
                                 </div>
+                                <div class="form-grid-4">
+                                    <div class="form-group">
+                                        <label>Location</label>
+                                        <input class="item-location-input" name="items[{{ $index }}][location]" value="{{ $oi['location'] ?? $ri->location ?? $receiving->location }}" />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     @endforeach
@@ -224,7 +230,7 @@
     </datalist>
     <datalist id="program-options" style="display:none;">
         @foreach($programs as $program)
-            <option value="{{ $program->name }}"></option>
+            <option value="{{ $program->name }}" data-description="{{ $program->description }}"></option>
         @endforeach
     </datalist>
     <datalist id="coordinator-options" style="display:none;">
@@ -236,6 +242,12 @@
     @push('scripts')
     <script>
     (function() {
+        var currentYear = new Date().getFullYear().toString().slice(-2);
+        var currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+        var currentCodePrefix = '';
+        var codeSequences = {};
+        var programSequences = @json($programSequences ?? []);
+
         var itemsData = Array.from(document.querySelectorAll('#item-options-receiving option')).map(function(opt) {
             return {
                 id: opt.dataset.id,
@@ -249,7 +261,11 @@
         });
 
         var programsData = Array.from(document.querySelectorAll('#program-options option')).map(function(opt) {
-            return { name: opt.value, nameLower: opt.value.toLowerCase() };
+            return {
+                name: opt.value,
+                nameLower: opt.value.toLowerCase(),
+                description: (opt.dataset.description || '').trim(),
+            };
         });
         var coordinatorsData = Array.from(document.querySelectorAll('#coordinator-options option')).map(function(opt) {
             return { name: opt.value, nameLower: opt.value.toLowerCase(), assignedPrograms: opt.dataset.programs || '' };
@@ -287,16 +303,73 @@
 
         if (programInput && programDropdown) {
             bindAutocompleteList(programInput, programsData, programDropdown, function(item) {
+                currentCodePrefix = item.description || '';
                 var matched = coordinatorsData.find(function(c) { return c.assignedPrograms.toLowerCase().indexOf(item.nameLower) !== -1; });
                 if (matched && coordinatorInput && !coordinatorInput.value.trim()) coordinatorInput.value = matched.name;
+                refreshAllNewItemCodes();
             });
         }
         if (coordinatorInput && coordinatorDropdown) {
             bindAutocompleteList(coordinatorInput, coordinatorsData, coordinatorDropdown, function(item) {
                 if (item.assignedPrograms && programInput && !programInput.value.trim()) {
-                    programInput.value = item.assignedPrograms.split(', ')[0] || '';
+                    var prog = item.assignedPrograms.split(', ')[0] || '';
+                    programInput.value = prog;
+                    var matched = programsData.find(function(p) { return p.nameLower === prog.toLowerCase(); });
+                    currentCodePrefix = matched ? matched.description : '';
+                    refreshAllNewItemCodes();
                 }
             });
+        }
+
+        // Init prefix from existing program value
+        if (programInput && programInput.value.trim()) {
+            var matched = programsData.find(function(p) { return p.nameLower === programInput.value.trim().toLowerCase(); });
+            if (matched) currentCodePrefix = matched.description || '';
+        }
+
+        function getNextSequence(prefix) {
+            if (!codeSequences[prefix]) {
+                var dbSeq = programSequences[prefix] || 0;
+                var maxExisting = 0;
+                Array.from(document.querySelectorAll('.item-code-input')).forEach(function(input) {
+                    if (input.readOnly) return;
+                    var val = input.value || '';
+                    var match = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
+                    if (match) { var seq = parseInt(match[1], 10); if (seq > maxExisting) maxExisting = seq; }
+                });
+                codeSequences[prefix] = Math.max(dbSeq, maxExisting);
+            }
+            return codeSequences[prefix]++;
+        }
+
+        function generateNextCode() {
+            if (!currentCodePrefix) return '';
+            var seq = getNextSequence(currentCodePrefix);
+            return currentCodePrefix + '-' + currentYear + '-' + currentMonth + '-' + String(seq).padStart(4, '0');
+        }
+
+        function refreshAllNewItemCodes() {
+            var prefix = currentCodePrefix;
+            if (!prefix) return;
+            var dbSeq = programSequences[prefix] || 0;
+            var maxExisting = 0;
+            Array.from(document.querySelectorAll('.item-code-input')).forEach(function(input) {
+                if (input.readOnly) return;
+                var val = input.value || '';
+                var match = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
+                if (match) { var seq = parseInt(match[1], 10); if (seq > maxExisting) maxExisting = seq; }
+            });
+            var nextSeq = Math.max(dbSeq, maxExisting);
+            codeSequences[prefix] = nextSeq;
+            Array.from(document.querySelectorAll('.item-code-input')).forEach(function(input) {
+                if (input.readOnly) return;
+                if (!(input.value || '').trim()) {
+                    input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(nextSeq).padStart(4, '0');
+                    input.dataset.generated = 'true';
+                    nextSeq++;
+                }
+            });
+            codeSequences[prefix] = nextSeq;
         }
 
         function bindItemAutocomplete(row) {
@@ -317,15 +390,15 @@
 
             function syncItem(item) {
                 descInput.value = item.name;
-                if (codeInput)     codeInput.value     = item.code || '';
+                if (codeInput && !codeInput.readOnly) codeInput.value = item.code || '';
                 if (categoryInput) {
                     var cat = item.category || 'DM';
                     if (cat !== 'DM' && cat !== 'MDL') cat = 'DM';
                     categoryInput.value = cat;
                 }
-                if (uomInput)      uomInput.value      = item.uom || '';
-                if (costInput)     costInput.value     = item.cost || '';
-                if (itemIdHidden)  itemIdHidden.value  = item.id || '';
+                if (uomInput)     uomInput.value     = item.uom || '';
+                if (costInput)    costInput.value    = item.cost || '';
+                if (itemIdHidden) itemIdHidden.value = item.id || '';
             }
 
             function showOptions(q) {
@@ -351,6 +424,16 @@
             descInput.addEventListener('input', function() { showOptions(this.value); });
             descInput.addEventListener('focus', function() { showOptions(this.value); });
             descInput.addEventListener('blur',  function() { setTimeout(function() { dd.style.display = 'none'; }, 200); });
+
+            // Clear duplicate error on manual code edit (new rows only)
+            if (codeInput && !codeInput.readOnly) {
+                codeInput.addEventListener('input', function() {
+                    this.dataset.generated = 'false';
+                    this.style.borderColor = '';
+                    var errorSpan = this.parentElement.querySelector('.product-code-error');
+                    if (errorSpan) errorSpan.style.display = 'none';
+                });
+            }
         }
 
         function bindRowActions(row) {
@@ -389,6 +472,11 @@
             var template = document.getElementById('receiving-item-template');
             var clone    = template.content.cloneNode(true);
             var row      = clone.querySelector('.receiving-item-row');
+            var codeInput = row.querySelector('.item-code-input');
+            if (codeInput) {
+                codeInput.value = generateNextCode();
+                codeInput.dataset.generated = 'true';
+            }
             bindItemAutocomplete(row);
             bindRowActions(row);
             document.getElementById('receiving-items').appendChild(row);
@@ -403,8 +491,8 @@
             el.addEventListener('input',  function() { formDirty = true; });
             el.addEventListener('change', function() { formDirty = true; });
         });
-        window.addEventListener('beforeunload', function(e) { 
-            if (formDirty && !isSubmitting) { e.preventDefault(); e.returnValue = ''; } 
+        window.addEventListener('beforeunload', function(e) {
+            if (formDirty && !isSubmitting) { e.preventDefault(); e.returnValue = ''; }
         });
         document.querySelectorAll('a').forEach(function(link) {
             link.addEventListener('click', function(e) {
@@ -412,7 +500,57 @@
                 if (formDirty && !confirm('You have unsaved changes. Leaving this page will discard them. Are you sure?')) e.preventDefault();
             });
         });
-        form.addEventListener('submit', function() { isSubmitting = true; formDirty = false; });
+
+        form.addEventListener('submit', function(e) {
+            isSubmitting = true;
+
+            // Duplicate product code check (new rows only — existing are readonly)
+            var codes = [];
+            var hasDuplicate = false;
+
+            document.querySelectorAll('.item-code-input').forEach(function(input) {
+                if (input.readOnly) return;
+                var errorSpan = input.parentElement.querySelector('.product-code-error');
+                input.style.borderColor = '';
+                if (errorSpan) errorSpan.style.display = 'none';
+            });
+
+            document.querySelectorAll('.item-code-input').forEach(function(input) {
+                var val = input.value.trim();
+                if (val) codes.push({ val: val, input: input, isNew: !input.readOnly });
+            });
+
+            var seen = {};
+            codes.forEach(function(entry) { seen[entry.val] = (seen[entry.val] || 0) + 1; });
+
+            codes.forEach(function(entry) {
+                if (seen[entry.val] > 1 && entry.isNew) {
+                    hasDuplicate = true;
+                    entry.input.style.borderColor = 'var(--danger)';
+                    var errorSpan = entry.input.parentElement.querySelector('.product-code-error');
+                    if (errorSpan) {
+                        errorSpan.textContent = 'Duplicate product code: "' + entry.val + '"';
+                        errorSpan.style.display = 'block';
+                    }
+                    var row = entry.input.closest('.receiving-item-row');
+                    if (row) {
+                        var body = row.querySelector('.item-row-body');
+                        var toggle = row.querySelector('.item-toggle-button');
+                        if (body && body.style.display === 'none') { body.style.display = ''; if (toggle) toggle.textContent = 'Hide'; }
+                    }
+                }
+            });
+
+            if (hasDuplicate) {
+                isSubmitting = false;
+                e.preventDefault();
+                var first = document.querySelector('.product-code-error[style*="block"]');
+                if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
+            formDirty = false;
+        });
 
         new MutationObserver(function() {
             document.querySelectorAll('#receiving-items input, #receiving-items select, #receiving-items textarea').forEach(function(el) {

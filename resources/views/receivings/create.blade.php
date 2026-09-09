@@ -59,7 +59,7 @@
                 </div>
             </div>
 
-            <div class="form-grid-3">
+            <div class="form-grid-2">
                 <div class="form-group">
                     <label>Date Received</label>
                     <input type="date" name="date_received" value="{{ old('date_received', now()->toDateString()) }}" required />
@@ -67,10 +67,6 @@
                 <div class="form-group">
                     <label>Received By</label>
                     <input name="received_by" value="{{ old('received_by') }}" />
-                </div>
-                <div class="form-group">
-                    <label>Location</label>
-                    <input name="location" value="{{ old('location') }}" />
                 </div>
             </div>
 
@@ -157,6 +153,12 @@
                                         <input type="number" step="0.01" class="item-unit-cost-input" name="items[0][unit_cost]" />
                                     </div>
                                 </div>
+                                <div class="form-grid-4">
+                                    <div class="form-group">
+                                        <label>Location</label>
+                                        <input class="item-location-input" name="items[0][location]" />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </template>
@@ -174,6 +176,7 @@
                                 'expiry_date' => '',
                                 'quantity_received' => '',
                                 'unit_cost' => '',
+                                'location' => '',
                             ]];
                         }
                     @endphp
@@ -226,6 +229,12 @@
                                     <div class="form-group">
                                         <label>Unit Cost</label>
                                         <input type="number" step="0.01" class="item-unit-cost-input" name="items[{{ $index }}][unit_cost]" value="{{ $oldItem['unit_cost'] ?? '' }}" />
+                                    </div>
+                                </div>
+                                <div class="form-grid-4">
+                                    <div class="form-group">
+                                        <label>Location</label>
+                                        <input class="item-location-input" name="items[{{ $index }}][location]" value="{{ $oldItem['location'] ?? '' }}" />
                                     </div>
                                 </div>
                             </div>

@@ -151,7 +151,19 @@ class ReceivingController extends Controller
         $programs     = Program::orderBy('name')->get();
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
 
-        return view('receivings.edit', compact('receiving', 'suppliers', 'items', 'programs', 'coordinators'));
+        $yy = now()->format('y');
+        $mm = now()->format('m');
+
+        $programSequences = [];
+        foreach ($programs as $program) {
+            if ($program->description) {
+                $prefix = $program->description;
+                $pattern = "{$prefix}-{$yy}-{$mm}%";
+                $programSequences[$prefix] = (int) $this->nextYearSequence(ReceivingItem::class, 'item_code', $pattern);
+            }
+        }
+
+        return view('receivings.edit', compact('receiving', 'suppliers', 'items', 'programs', 'coordinators', 'programSequences'));
     }
 
     public function update(Request $request, Receiving $receiving)
@@ -404,7 +416,7 @@ class ReceivingController extends Controller
                 'supplier_id' => $request->input('supplier_id'),
                 'date_received' => $request->input('date_received'),
                 'received_by' => $request->input('received_by'),
-                'location' => $request->input('location'),
+                'location' => null,
                 'stock_keeping_unit' => $request->input('stock_keeping_unit'),
                 'program_coordinator' => $request->input('program_coordinator'),
                 'notes' => $request->input('notes'),
@@ -427,7 +439,7 @@ class ReceivingController extends Controller
                         'category' => $itemData['category'] ?? null,
                         'unit' => $itemData['uom'] ?? null,
                         'description' => $itemData['item_description'],
-                        'location' => $request->input('location'),
+                        'location' => $itemData['location'] ?? null,
                         'stock_keeping_unit' => $request->input('stock_keeping_unit'),
                         'program_coordinator' => $request->input('program_coordinator'),
                         'unit_cost' => $itemData['unit_cost'] ?? null,
@@ -439,7 +451,7 @@ class ReceivingController extends Controller
                         'category'            => $itemData['category'] ?? $item->category,
                         'unit'                => $itemData['uom'] ?? $item->unit,
                         'description'         => $itemData['item_description'] ?? $item->description,
-                        'location'            => $request->input('location') ?? $item->location,
+                        'location'            => $itemData['location'] ?? $item->location,
                         'stock_keeping_unit'  => $request->input('stock_keeping_unit') ?? $item->stock_keeping_unit,
                         'program_coordinator' => $request->input('program_coordinator') ?? $item->program_coordinator,
                     ]);
@@ -462,6 +474,7 @@ class ReceivingController extends Controller
                     'lot_number'       => $itemData['lot_number'] ?? null,
                     'expiry_date'      => $itemData['expiry_date'] ?? null,
                     'unit_cost'        => $itemData['unit_cost'] ?? null,
+                    'location'         => $itemData['location'] ?? null,
                 ]);
 
                 $item->increment('quantity_on_hand', $itemData['quantity_received']);
