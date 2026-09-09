@@ -18,6 +18,7 @@ class ReleaseItem extends Model
         'uom',
         'lot_number',
         'unit_cost',
+        'expiry_date',
     ];
 
     public function release()

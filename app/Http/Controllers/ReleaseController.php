@@ -378,6 +378,7 @@ class ReleaseController extends Controller
             'items.*.quantity_released' => 'required|integer|min:1',
             'items.*.uom' => 'required|string|max:255',
             'items.*.unit_cost' => 'required|numeric|min:0',
+            'items.*.expiry_date' => 'nullable|date',
         ]);
 
         try {
@@ -426,6 +427,7 @@ class ReleaseController extends Controller
                         'uom' => $itemData['uom'] ?? $item->unit,
                         'lot_number' => $itemData['lot_number'] ?? null,
                         'unit_cost' => $itemData['unit_cost'] ?? null,
+                        'expiry_date' => !empty($itemData['expiry_date']) ? $itemData['expiry_date'] : null,
                     ]);
 
                     $item->decrement('quantity_on_hand', (int) $itemData['quantity_released']);

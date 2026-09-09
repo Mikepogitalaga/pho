@@ -258,7 +258,7 @@ class ReceivingController extends Controller
                     $delta       = $newQty - $oldQty;
                     $oldLot      = $existingRow->lot_number; // lot the releases were made from
 
-                    $existingRow->update([
+                     $existingRow->update([
                         'item_id'           => $item->id,
                         'item_code'         => $itemData['item_code'] ?? null,
                         'item_description'  => $itemData['item_description'],
@@ -269,6 +269,7 @@ class ReceivingController extends Controller
                         'expiry_date'       => !empty($itemData['expiry_date']) ? $itemData['expiry_date'] : null,
                         'quantity_received' => $newQty,
                         'unit_cost'         => $itemData['unit_cost'] ?? null,
+                        'location'          => $itemData['location'] ?? null,
                     ]);
 
                     if ($delta !== 0) {
@@ -300,6 +301,7 @@ class ReceivingController extends Controller
                         'expiry_date'       => !empty($itemData['expiry_date']) ? $itemData['expiry_date'] : null,
                         'quantity_received' => $newQty,
                         'unit_cost'         => $itemData['unit_cost'] ?? null,
+                        'location'          => $itemData['location'] ?? null,
                     ]);
                     $item->increment('quantity_on_hand', $newQty);
                 }

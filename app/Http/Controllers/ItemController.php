@@ -85,7 +85,7 @@ class ItemController extends Controller
                     ->filter()
                     ->unique()
                     ->values();
-                $item->record_count = $item->product_codes->count() ?: $items->count();
+                $item->record_count = $items->flatMap(fn ($i) => $i->receivingItems)->count();
 
                 $item->supplier_types = $items->flatMap(fn ($i) => $i->receivingItems)
                     ->map(fn ($ri) => $ri->receiving?->supplier?->supplier_type)

@@ -11,8 +11,10 @@
                 <h1 class="page-heading">Receiving Details</h1>
                 <p class="page-description">PO: {{ $receiving->po_number ?? '—' }} · Supplier: {{ $receiving->supplier->company_name ?? '—' }}</p>
             </div>
-            <a href="{{ route('receivings.edit', $receiving) }}" class="btn btn-primary">Edit</a>
-            <a href="{{ route('receivings.index') }}" class="btn btn-secondary">Back to Receivings</a>
+            <div style="display:flex; gap:0.5rem; align-items:center; margin-left:auto;">
+                <a href="{{ route('receivings.edit', $receiving) }}" class="btn btn-primary">Edit</a>
+                <a href="{{ route('receivings.index') }}" class="btn btn-secondary">Back to Receivings</a>
+            </div>
         </div>
 
         <div class="form-grid-2">
@@ -36,10 +38,8 @@
                 <p>{{ $receiving->received_by ?? '—' }}</p>
             </div>
 
-            <div class="form-group">
-                <label>Location</label>
-                <p>{{ $receiving->location ?? '—' }}</p>
-            </div>
+           
+
 
             <div class="form-group">
                 <label>ICS/PTR/RIS</label>
@@ -83,6 +83,7 @@
                          <th style="text-align: center;" class="col-hide-md">Lot Number</th>
                          <th style="text-align: center;" class="col-hide-md">Expiry Date</th>
                          <th style="text-align: right;">Unit Cost</th>
+                         <th style="text-align: left;" class="col-hide-md">Location</th>
                          <th style="text-align: right;">Total</th>
                          <th>Action</th>
                      </tr>
@@ -99,8 +100,9 @@
                                   <td data-label="UOM" style="text-align:center;">{{ $receivingItem->uom ?? $receivingItem->item?->unit ?? '—' }}</td>
                                   <td data-label="Lot Number" class="col-hide-md" style="text-align:center;">{{ $receivingItem->lot_number ?? '—' }}</td>
                                   <td data-label="Expiry Date" class="col-hide-md" style="text-align:center;">{{ $receivingItem->expiry_date ? $receivingItem->expiry_date->format('M d, Y') : '—' }}</td>
-                                  <td data-label="Unit Cost" style="text-align:right;">₱ {{ isset($receivingItem->unit_cost) ? number_format($receivingItem->unit_cost, 2) : '—' }}</td>
-                                  <td data-label="Total" style="text-align:right;font-weight:600;color:var(--danger);">₱ {{ isset($receivingItem->unit_cost) && isset($receivingItem->quantity_received) ? number_format($receivingItem->unit_cost * $receivingItem->quantity_received, 2) : '—' }}</td>
+                                   <td data-label="Unit Cost" style="text-align:right;">₱ {{ isset($receivingItem->unit_cost) ? number_format($receivingItem->unit_cost, 2) : '—' }}</td>
+                                   <td data-label="Location" class="col-hide-md">{{ $receivingItem->location ?? '—' }}</td>
+                                   <td data-label="Total" style="text-align:right;font-weight:600;color:var(--danger);">₱ {{ isset($receivingItem->unit_cost) && isset($receivingItem->quantity_received) ? number_format($receivingItem->unit_cost * $receivingItem->quantity_received, 2) : '—' }}</td>
                                  <td class="mobile-card-actions">
                                      @if($receivingItem->item)
                                          <a href="{{ route('items.show', $receivingItem->item) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">View Item</a>
@@ -111,7 +113,7 @@
                              </tr>
                          @empty
                              <tr>
-                                <td colspan="10" style="padding: 2rem; text-align: center;">
+                                 <td colspan="11" style="padding: 2rem; text-align: center;">
                                     <div class="empty-state">
                                         <strong style="font-size: 1rem;">No items found</strong>
                                         <div style="margin-top: 0.5rem; color: var(--text-muted);">This receiving slip does not contain any received items.</div>

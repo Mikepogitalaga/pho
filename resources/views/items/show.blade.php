@@ -49,7 +49,7 @@
     <div style="background: linear-gradient(135deg, var(--primary), #1d4ed8); color: #fff; padding: 1.25rem 1.5rem; border-radius: 1rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
         <div>
             <h1 style="margin: 0; font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em;">{{ $item->name }}</h1>
-            <p style="margin: 0.25rem 0 0; opacity: 0.85; font-size: 0.95rem;">{{ $items->count() }} product code record(s) &middot; {{ $item->category ?? 'Uncategorized' }}</p>
+            <p style="margin: 0.25rem 0 0; opacity: 0.85; font-size: 0.95rem;">{{ $items->sum(fn ($i) => $i->receivingItems->count()) }} receiving record(s) &middot; {{ $item->category ?? 'Uncategorized' }}</p>
         </div>
         <div style="display: flex; gap: 0.75rem; align-items: center;">
             <span style="background: rgba(255,255,255,0.2); padding: 0.35rem 0.9rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600;">{{ $item->display_unit }}</span>

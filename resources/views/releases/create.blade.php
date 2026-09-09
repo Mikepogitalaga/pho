@@ -104,7 +104,7 @@
                     @php
                         $oldItems = collect(old('items', request('items', [])))->values()->all();
                         if (empty($oldItems)) {
-                            $oldItems = [['item_description' => '', 'quantity_released' => '', 'uom' => '', 'unit_cost' => '', 'item_id' => '']];
+                            $oldItems = [['item_description' => '', 'quantity_released' => '', 'uom' => '', 'unit_cost' => '', 'item_id' => '', 'lot_number' => '', 'expiry_date' => '']];
                         }
                     @endphp
 
@@ -149,6 +149,10 @@
                                     <div class="form-group">
                                         <label>Batch/Lot No.</label>
                                         <input class="item-lot-input" name="items[{{ $index }}][lot_number]" value="{{ $oldItem['lot_number'] ?? '' }}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Expiration Date</label>
+                                        <input type="date" class="item-expiry-input" name="items[{{ $index }}][expiry_date]" value="{{ $oldItem['expiry_date'] ?? '' }}">
                                     </div>
                                 </div>
                             </div>
@@ -201,11 +205,15 @@
                                     <option value="">Select product</option>
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label>Batch/Lot No.</label>
-                                <input class="item-lot-input" name="items[0][lot_number]" value="">
-                            </div>
-                        </div>
+                                <div class="form-group">
+                                        <label>Batch/Lot No.</label>
+                                        <input class="item-lot-input" name="items[0][lot_number]" value="">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Expiration Date</label>
+                                        <input type="date" class="item-expiry-input" name="items[0][expiry_date]" value="">
+                                    </div>
+                                </div>
                     </div>
                 </div>
             </template>
@@ -414,7 +422,7 @@ const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItem
         items.forEach(i => {
             const o = document.createElement('option');
             o.value = i.id;
-            o.textContent = i.code + ' - ' + i.name;
+            o.textContent = i.code;
             o.dataset.uom = i.uom;
             o.dataset.unitCost = i.cost;
             o.dataset.quantity = i.qty;
@@ -516,6 +524,8 @@ const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItem
                     if (unitCostInput) unitCostInput.value = '';
                     if (quantityInput) quantityInput.placeholder = 'Available: 0';
                     if (lotInput)      lotInput.value = '';
+                    const expiryInput = row.querySelector('.item-expiry-input');
+                    if (expiryInput)   expiryInput.value = '';
                     dd.style.display = 'none';
                     descInput.focus();
                 });

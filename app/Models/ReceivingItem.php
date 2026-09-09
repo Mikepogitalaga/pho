@@ -21,6 +21,7 @@ class ReceivingItem extends Model
         'lot_number',
         'expiry_date',
         'unit_cost',
+        'location',
     ];
 
     protected $casts = [

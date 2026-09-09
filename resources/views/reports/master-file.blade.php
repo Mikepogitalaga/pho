@@ -9,6 +9,33 @@
     $availableTotal = array_sum(array_column($rows, 'available_qty'));
 @endphp
 
+
+
+{{-- KPI Summary --}}
+<section class="card" style="padding: 1.25rem; margin-bottom: 1.25rem;">
+    <div class="section-header compact" style="padding: 0 0 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border);">
+        <div>
+            <h2 class="section-card-title" style="margin: 0;">Inventory Summary</h2>
+            <p class="page-description" style="margin: 0.25rem 0 0;">{{ count($rows) }} itemized records</p>
+        </div>
+       
+    </div>
+    <div class="dashboard-content-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem;">
+        @foreach([
+            ['Beginning', $summary['beginning'], '#2563eb'],
+            ['Purchases', $summary['purchases'], '#16a34a'],
+            ['Available', $availableTotal, '#7c3aed'],
+            ['Disposed', $summary['disposals'], '#d97706'],
+            ['Expired', $summary['expired'], '#dc2626'],
+            ['Ending', $summary['adjusted_ending'], '#0891b2'],
+        ] as [$label, $value, $color])
+            <div style="padding: 0.9rem 1rem; border-radius: 1rem; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow-sm);">
+                <p style="margin:0 0 0.3rem; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted);">{{ $label }}</p>
+                <p style="margin:0; font-size:1.5rem; font-weight:800; color:{{ $color }};">{{ number_format($value) }}</p>
+            </div>
+        @endforeach
+    </div>
+</section>
 {{-- Filters --}}
 <section class="card" style="padding: 1.25rem; margin-bottom: 1.25rem;">
     <form method="GET" action="{{ route('reports.master-file') }}">
@@ -46,35 +73,6 @@
     </form>
 </section>
 
-{{-- KPI Summary --}}
-<section class="card" style="padding: 1.25rem; margin-bottom: 1.25rem;">
-    <div class="section-header compact" style="padding: 0 0 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border);">
-        <div>
-            <h2 class="section-card-title" style="margin: 0;">Inventory Summary</h2>
-            <p class="page-description" style="margin: 0.25rem 0 0;">{{ count($rows) }} itemized records</p>
-        </div>
-        <a href="{{ route('reports.master-file.export', request()->query()) }}" class="btn btn-primary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download .xlsx
-        </a>
-    </div>
-    <div class="dashboard-content-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem;">
-        @foreach([
-            ['Beginning', $summary['beginning'], '#2563eb'],
-            ['Purchases', $summary['purchases'], '#16a34a'],
-            ['Available', $availableTotal, '#7c3aed'],
-            ['Disposed', $summary['disposals'], '#d97706'],
-            ['Expired', $summary['expired'], '#dc2626'],
-            ['Ending', $summary['adjusted_ending'], '#0891b2'],
-        ] as [$label, $value, $color])
-            <div style="padding: 0.9rem 1rem; border-radius: 1rem; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow-sm);">
-                <p style="margin:0 0 0.3rem; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted);">{{ $label }}</p>
-                <p style="margin:0; font-size:1.5rem; font-weight:800; color:{{ $color }};">{{ number_format($value) }}</p>
-            </div>
-        @endforeach
-    </div>
-</section>
-
 {{-- Master Table --}}
 <section class="card" style="padding: 0; overflow: hidden;">
     <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
@@ -82,6 +80,10 @@
             <h2 class="section-card-title" style="margin:0;">Master Inventory Matrix</h2>
             <p class="page-description" style="margin:0.2rem 0 0;">{{ count($rows) }} records &mdash; scroll horizontally to view all columns</p>
         </div>
+         <a href="{{ route('reports.master-file.export', request()->query()) }}" class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download .xlsx
+        </a>
     </div>
 
     <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">

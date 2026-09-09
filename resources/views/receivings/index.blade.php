@@ -75,7 +75,7 @@
                         <th>PO No.</th>
                         <th class="col-hide-md">Date Received</th>
                         <th class="col-hide-md">Received By</th>
-                        <th>Location</th>
+                       
                         <th class="col-hide-md">Program</th>
                         <th>Action</th>
                     </tr>
@@ -104,7 +104,7 @@
                               <td data-label="PO No.">{{ $receiving->po_number }}</td>
                               <td data-label="Date Received" class="col-hide-md">{{ $receiving->date_received->format('M d, Y') }}</td>
                               <td data-label="Received By" class="col-hide-md">{{ $receiving->received_by }}</td>
-                              <td data-label="Location">{{ $receiving->location }}</td>
+                              
                               <td data-label="Program" class="col-hide-md">{{ $receiving->stock_keeping_unit ?? '—' }}</td>
                              <td class="mobile-card-actions">
                                  <a href="{{ route('receivings.view', $receiving) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">View</a>

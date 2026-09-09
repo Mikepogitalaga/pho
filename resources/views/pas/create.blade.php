@@ -400,8 +400,7 @@ document.addEventListener('DOMContentLoaded', function () {
         matches.forEach(it => {
             const o = document.createElement('option');
             o.value = it.id;
-            const expiryText = it.expiry ? ' | Exp: ' + it.expiry : '';
-            o.textContent = it.code + ' — ' + it.name + ' (' + (it.qty || 0) + ' available' + expiryText + ')';
+            o.textContent = it.code;
             o.dataset.unit = it.unit;
             o.dataset.cost = it.cost;
             o.dataset.qty = it.qty;
@@ -437,7 +436,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 expiryInput.value = '';
             }
         }
-        if (codeInput  && opt.textContent)    codeInput.value   = opt.textContent.split(' — ')[0] ?? '';
+        if (codeInput)  codeInput.value   = opt.textContent || '';
         if (qtyInput) qtyInput.placeholder = 'Available: ' + (opt.dataset.qty || 0);
         calcTotal(row);
     }

@@ -7,25 +7,7 @@
 @section('content')
 
     {{-- Page Header --}}
-    <div style="display:flex; justify-content:flex-end; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:1.25rem;">
-        <a href="{{ route('items.print', request()->query()) }}" target="_blank" class="btn btn-secondary" style="gap: 0.4rem;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="6 9 6 2 18 2 18 9"/>
-                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-                <rect x="6" y="14" width="12" height="8"/>
-            </svg>
-            Print
-        </a>
-
-        <a href="{{ route('items.export', request()->query()) }}" class="btn btn-secondary" style="gap: 0.4rem;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Download Excel
-        </a>
-    </div>
+    
 
     {{-- KPI Cards --}}
     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; margin-bottom:1.25rem;">
@@ -121,6 +103,25 @@
                 <span style="font-weight:700; font-size:0.95rem;">Inventory List</span>
                 <span style="background:rgba(37,99,235,0.1); color:var(--primary); font-size:0.78rem; font-weight:700; padding:0.15rem 0.55rem; border-radius:999px;">{{ $items->total() }} items</span>
             </div>
+             <div style="display:flex; justify-content:flex-end; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:1.25rem;">
+        <a href="{{ route('items.print', request()->query()) }}" target="_blank" class="btn btn-secondary" style="gap: 0.4rem;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 6 2 18 2 18 9"/>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                <rect x="6" y="14" width="12" height="8"/>
+            </svg>
+            Print
+        </a>
+
+        <a href="{{ route('items.export', request()->query()) }}" class="btn btn-secondary" style="gap: 0.4rem;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download Excel
+        </a>
+    </div>
         </div>
 
         <div class="table-container">
