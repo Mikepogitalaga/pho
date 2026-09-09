@@ -42,8 +42,8 @@
             </div>
 
             <div>
-                <label for="productCodeFilter" class="sr-only">Filter by Product Code</label>
-                <input id="productCodeFilter" type="text" name="product_code" value="{{ request('product_code') }}" placeholder="Filter by Product Code" class="search-input" />
+                <label for="productCodeFilter" class="sr-only">Filter by PHO Code</label>
+                <input id="productCodeFilter" type="text" name="product_code" value="{{ request('product_code') }}" placeholder="Filter by PHO Code" class="search-input" />
             </div>
 
             <div>
@@ -115,7 +115,7 @@
                     <tr>
                         <th>PTR Number</th>
                         <th>PAS No.</th>
-                        <th class="col-hide-md">Product Code</th>
+                        <th class="col-hide-md">PHO Code</th>
                         <th>Facility / End-user</th>
                         <th class="col-hide-md">Program</th>
                         <th>Item Description</th>
@@ -131,7 +131,7 @@
                                   <span>{{ $release->ptr_itr_ris_no ?? $release->release_number }}</span>
                               </td>
                               <td data-label="PAS No.">{{ $release->pas_number }}</td>
-                              <td data-label="Product Code" class="col-hide-md">
+                              <td data-label="PHO Code" class="col-hide-md">
                                   {{ $release->items->flatMap(fn($releaseItem) => $releaseItem->item?->receivingItems ?? collect())->pluck('item_code')->filter()->unique()->implode(', ') ?: '—' }}
                               </td>
                               <td data-label="Facility / End-user">{{ $release->facility_name }}</td>

@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Product Code - ' . $product->item_code)
-@section('pageHeading', 'Product Code Details')
+@section('title', 'PHO Code - ' . $product->item_code)
+@section('pageHeading', 'PHO Code Details')
 @section('pageSubheading', 'Stock deduction tracking and history for product code ' . $product->item_code)
 
 @section('content')
@@ -102,7 +102,7 @@
                         <tr>
                             <th>Date</th>
                             <th>Type</th>
-                            <th>Product Code</th>
+                            <th>PHO Code</th>
                             <th>Reference</th>
                             <th>Reason</th>
                             <th style="text-align: center;">Quantity</th>
@@ -127,7 +127,7 @@
                                       @endphp
                                       <span class="badge" style="background:rgba(220,38,38,0.1);color:#dc2626;">{{ $record['type'] }}</span>
                                   </td>
-                                  <td data-label="Product Code"><span style="font-weight:600;">{{ $record['item_code'] }}</span></td>
+                                  <td data-label="PHO Code"><span style="font-weight:600;">{{ $record['item_code'] }}</span></td>
                                   <td data-label="Reference">{{ $record['reference'] }}</td>
                                   <td data-label="Reason" style="max-width:220px;">
                                       @if(in_array($record['type'], ['Canceled', 'Returned']))

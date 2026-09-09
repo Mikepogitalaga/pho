@@ -28,7 +28,7 @@
         <thead>
             <tr>
                 <th>#</th>
-                <th>Product Code</th>
+                <th>PHO Code</th>
                 <th>Item Description</th>
                 <th>Category</th>
                 <th>UOM</th>

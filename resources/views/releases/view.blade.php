@@ -239,7 +239,7 @@
                     <thead>
                          <tr>
                               <th style="text-align: left;">Item Description</th>
-                              <th style="text-align: center;" class="col-hide-md">Product Code</th>
+                              <th style="text-align: center;" class="col-hide-md">PHO Code</th>
                               <th style="text-align: center;" class="col-hide-md">Batch/Lot No.</th>
                               <th style="text-align: center;">Quantity</th>
                               <th style="text-align: center;">UOM</th>
@@ -253,7 +253,7 @@
                                   <td class="mobile-card-header">
                                       <span style="font-weight:600;color:var(--text);">{{ $releaseItem->item_description ?? '—' }}</span>
                                   </td>
-                                   <td data-label="Product Code" class="col-hide-md" style="text-align:center;">{{ $releaseItem->item?->item_code ?? '—' }}</td>
+                                   <td data-label="PHO Code" class="col-hide-md" style="text-align:center;">{{ $releaseItem->item?->item_code ?? '—' }}</td>
                                    <td data-label="Batch/Lot No." class="col-hide-md" style="text-align:center;">{{ $releaseItem->lot_number ?? '—' }}</td>
                                    <td data-label="Quantity" style="text-align:center;">{{ $releaseItem->quantity_released }}</td>
                                    <td data-label="UOM" style="text-align:center;">{{ $releaseItem->uom ?? '—' }}</td>

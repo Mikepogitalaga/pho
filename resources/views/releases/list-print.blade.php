@@ -15,7 +15,7 @@
 <body>
     <h1>Release Records</h1>
     <table>
-        <thead><tr><th>PTR Number</th><th>PAS No.</th><th>Product Code</th><th>Facility / End-user</th><th>Program</th><th>Item Description</th><th>Date Released</th><th>Status</th></tr></thead>
+        <thead><tr><th>PTR Number</th><th>PAS No.</th><th>PHO Code</th><th>Facility / End-user</th><th>Program</th><th>Item Description</th><th>Date Released</th><th>Status</th></tr></thead>
         <tbody>
         @forelse($releases as $release)
             @php $releaseItems = $release->items->isNotEmpty() ? $release->items : collect([null]); @endphp

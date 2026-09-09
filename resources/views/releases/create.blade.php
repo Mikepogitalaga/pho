@@ -104,7 +104,7 @@
                     @php
                         $oldItems = collect(old('items', request('items', [])))->values()->all();
                         if (empty($oldItems)) {
-                            $oldItems = [['item_description' => '', 'quantity_released' => '', 'uom' => '', 'unit_cost' => '', 'item_id' => '', 'lot_number' => '', 'expiry_date' => '']];
+                            $oldItems = [['item_description' => '', 'quantity_released' => '', 'uom' => '', 'unit_cost' => '', 'item_id' => '', 'lot_number' => '', 'expiry_date' => '', 'item_code' => '']];
                         }
                     @endphp
 
@@ -120,46 +120,57 @@
                             <div class="item-row-body">
                                 <div class="form-grid-3">
                                     <div class="form-group">
-                                        <label>Item Description</label>
+                                        <label>Item Description <span style="color: var(--danger);">*</span></label>
                                         <div style="position:relative; display:flex; align-items:center;">
-                                            <input type="text" class="item-description-input" name="items[{{ $index }}][item_description]" value="{{ $oldItem['item_description'] ?? '' }}" autocomplete="off" style="width:100%; padding-right:2rem;">
-                                            <button type="button" class="item-description-clear" title="Clear" style="position:absolute; right:0.5rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
+                                            <input type="text" class="item-description-input" name="items[{{ $index }}][item_description]"
+                                                value="{{ $oldItem['item_description'] ?? '' }}" autocomplete="off" style="width:100%; padding-right:2rem;" required>
+                                            <button type="button" class="item-description-clear" title="Clear"
+                                                style="position:absolute; right:0.5rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
                                         </div>
                                     </div>
                                     <div class="form-group">
-                                        <label>Quantity</label>
-                                        <input type="number" class="item-quantity-input" name="items[{{ $index }}][quantity_released]" value="{{ $oldItem['quantity_released'] ?? '' }}" min="0" placeholder="Available: 0">
-                                    </div>
-                                    <div class="form-group">
-                                        <label>UOM</label>
-                                        <input class="item-uom-input" name="items[{{ $index }}][uom]" value="{{ $oldItem['uom'] ?? '' }}">
-                                    </div>
-                                </div>
-                                <div class="form-grid-3">
-                                    <div class="form-group">
-                                        <label>Unit Cost</label>
-                                        <input class="item-unit-cost-input" type="number" step="0.01" name="items[{{ $index }}][unit_cost]" value="{{ $oldItem['unit_cost'] ?? '' }}">
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Product Code</label>
-                                        <select class="item-id-select" name="items[{{ $index }}][item_id]">
-                                            <option value="">Select product</option>
-                                        </select>
+                                        <label>PHO Code</label>
+                                        <div style="position:relative; display:flex; align-items:center;">
+                                            <input type="text" class="item-phocode-input" autocomplete="off" style="width:100%; padding-right:2rem;" value="{{ $oldItem['item_code'] ?? $oldItem['product_code'] ?? '' }}">
+                                            <input type="hidden" class="item-id-select" name="items[{{ $index }}][item_id]" value="{{ $oldItem['item_id'] ?? '' }}">
+                                            <button type="button" class="item-description-clear" title="Clear"
+                                                style="position:absolute; right:0.5rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
+                                        </div>
                                     </div>
                                     <div class="form-group">
                                         <label>Batch/Lot No.</label>
                                         <input class="item-lot-input" name="items[{{ $index }}][lot_number]" value="{{ $oldItem['lot_number'] ?? '' }}">
                                     </div>
+                                </div>
+                                <div class="form-grid-3">
                                     <div class="form-group">
                                         <label>Expiration Date</label>
                                         <input type="date" class="item-expiry-input" name="items[{{ $index }}][expiry_date]" value="{{ $oldItem['expiry_date'] ?? '' }}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Quantity <span style="color: var(--danger);">*</span></label>
+                                        <input type="number" class="item-quantity-input" name="items[{{ $index }}][quantity_released]" value="{{ $oldItem['quantity_released'] ?? '' }}" min="1" placeholder="Available: 0" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>UOM <span style="color: var(--danger);">*</span></label>
+                                        <input class="item-uom-input" name="items[{{ $index }}][uom]" value="{{ $oldItem['uom'] ?? '' }}" required>
+                                    </div>
+                                </div>
+                                <div class="form-grid-3">
+                                    <div class="form-group">
+                                        <label>Unit Cost <span style="color: var(--danger);">*</span></label>
+                                        <input class="item-unit-cost-input" type="number" step="0.01" name="items[{{ $index }}][unit_cost]" value="{{ $oldItem['unit_cost'] ?? '' }}" min="0" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Total Cost</label>
+                                        <input type="text" class="item-totalcost-display" readonly placeholder="Auto-calculated" style="background:var(--surface-strong); cursor:not-allowed;">
                                     </div>
                                 </div>
                             </div>
                         </div>
                     @endforeach
                 </div>
-                <button type="button" id="add-item-button" class="btn btn-secondary">Add another item</button>
+                <button type="button" id="add-item-button" class="btn btn-secondary" style="margin-top:0.75rem;">+ Add Item</button>
             </div>
 
             <div class="form-group">
@@ -179,41 +190,49 @@
                     <div class="item-row-body">
                         <div class="form-grid-3">
                             <div class="form-group">
-                                <label>Item Description</label>
+                                <label>Item Description <span style="color: var(--danger);">*</span></label>
                                 <div style="position:relative; display:flex; align-items:center;">
-                                    <input type="text" class="item-description-input" name="items[0][item_description]" value="" autocomplete="off" style="width:100%; padding-right:2rem;">
+                                    <input type="text" class="item-description-input" name="items[0][item_description]" value="" autocomplete="off" style="width:100%; padding-right:2rem;" required>
                                     <button type="button" class="item-description-clear" title="Clear" style="position:absolute; right:0.5rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Quantity</label>
-                                <input type="number" class="item-quantity-input" name="items[0][quantity_released]" value="" min="0" placeholder="Available: 0">
+                                <label>PHO Code</label>
+                                <div style="position:relative; display:flex; align-items:center;">
+                                    <input type="text" class="item-phocode-input" autocomplete="off" style="width:100%; padding-right:2rem;" value="">
+                                    <input type="hidden" class="item-id-select" name="items[0][item_id]" value="">
+                                    <button type="button" class="item-description-clear" title="Clear" style="position:absolute; right:0.5rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
+                                </div>
                             </div>
                             <div class="form-group">
-                                <label>UOM</label>
-                                <input class="item-uom-input" name="items[0][uom]" value="">
+                                <label>Batch/Lot No.</label>
+                                <input class="item-lot-input" name="items[0][lot_number]" value="">
                             </div>
                         </div>
                         <div class="form-grid-3">
                             <div class="form-group">
-                                <label>Unit Cost</label>
-                                <input class="item-unit-cost-input" type="number" step="0.01" name="items[0][unit_cost]" value="">
+                                <label>Expiration Date</label>
+                                <input type="date" class="item-expiry-input" name="items[0][expiry_date]" value="">
                             </div>
                             <div class="form-group">
-                                <label>Product Code</label>
-                                <select class="item-id-select" name="items[0][item_id]">
-                                    <option value="">Select product</option>
-                                </select>
+                                <label>Quantity <span style="color: var(--danger);">*</span></label>
+                                <input type="number" class="item-quantity-input" name="items[0][quantity_released]" value="" min="1" placeholder="Available: 0" required>
                             </div>
-                                <div class="form-group">
-                                        <label>Batch/Lot No.</label>
-                                        <input class="item-lot-input" name="items[0][lot_number]" value="">
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Expiration Date</label>
-                                        <input type="date" class="item-expiry-input" name="items[0][expiry_date]" value="">
-                                    </div>
-                                </div>
+                            <div class="form-group">
+                                <label>UOM <span style="color: var(--danger);">*</span></label>
+                                <input class="item-uom-input" name="items[0][uom]" value="" required>
+                            </div>
+                        </div>
+                        <div class="form-grid-3">
+                            <div class="form-group">
+                                <label>Unit Cost <span style="color: var(--danger);">*</span></label>
+                                <input class="item-unit-cost-input" type="number" step="0.01" name="items[0][unit_cost]" value="" min="0" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Total Cost</label>
+                                <input type="text" class="item-totalcost-display" readonly placeholder="Auto-calculated" style="background:var(--surface-strong); cursor:not-allowed;">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </template>
@@ -239,17 +258,30 @@
 
 @push('scripts')
 <script>
-const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItems->map(fn($receivingItem) => [
-    'id'         => $i->id,
-    'code'       => $receivingItem->item_code,
-    'name'       => $i->name,
-    'uom'        => $receivingItem->uom ?: $i->unit,
-    'cost'       => $receivingItem->unit_cost ?? $i->unit_cost,
-    'qty'        => $receivingItem->quantity_received,
-    'category'   => $receivingItem->category ?: $i->category,
-    'lot_number' => $receivingItem->lot_number,
-    'expiry'     => $receivingItem->expiry_date?->format('Y-m-d'),
-]))->filter(fn($item) => filled($item['code']))->values()->toArray()) !!};
+const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItems->isNotEmpty()
+    ? $i->receivingItems->map(fn($receivingItem) => [
+        'id'         => $i->id,
+        'code'       => $receivingItem->item_code,
+        'name'       => $i->name,
+        'uom'        => $receivingItem->uom ?: $i->unit,
+        'cost'       => $receivingItem->unit_cost ?? $i->unit_cost,
+        'qty'        => $i->quantity_on_hand ?? $receivingItem->quantity_received,
+        'category'   => $receivingItem->category ?: $i->category,
+        'lot_number' => $receivingItem->lot_number,
+        'expiry'     => $receivingItem->expiry_date?->format('Y-m-d'),
+    ])
+    : [[
+        'id'         => $i->id,
+        'code'       => $i->item_code ?? '',
+        'name'       => $i->name,
+        'uom'        => $i->unit,
+        'cost'       => $i->unit_cost,
+        'qty'        => $i->quantity_on_hand,
+        'category'   => $i->category,
+        'lot_number' => '',
+        'expiry'     => '',
+    ]]
+)->filter(fn($item) => filled($item['code']) || filled($item['name']))->values()->toArray()) !!};
 
 (function () {
     // ---- PTR/ITR/RIS/ELMIS Type Switcher ----
@@ -359,19 +391,10 @@ const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItem
     });
     // ---- End Program & Coordinator Autocomplete ----
 
-    // ---- Items Autocomplete ----
+    // ---- Items Autocomplete & Autofill (same as PAS) ----
     const releaseItems  = document.getElementById('release-items');
     const addItemButton = document.getElementById('add-item-button');
     const itemTemplate  = document.getElementById('release-item-template');
-
-    const itemsData = allItemsData.map(i => ({
-        id: i.id,
-        name: i.name,
-        nameLower: i.name.toLowerCase(),
-        code: i.code,
-        codeLower: (i.code || '').toLowerCase(),
-        category: i.category,
-    }));
 
     function updateIndexes() {
         Array.from(releaseItems.querySelectorAll('.release-item-row')).forEach((row, index) => {
@@ -380,7 +403,8 @@ const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItem
             row.querySelectorAll('input, select').forEach(f => {
                 f.name = f.name.replace(/items\[\d+\]/, 'items[' + index + ']');
             });
-            row.querySelector('.remove-item-button').style.display = index === 0 ? 'none' : '';
+            const del = row.querySelector('.remove-item-button');
+            if (del) del.style.display = index === 0 ? 'none' : '';
         });
     }
 
@@ -389,78 +413,135 @@ const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItem
         if (dd) dd.remove();
         dd = document.createElement('div');
         dd.className = 'autocomplete-dropdown';
-        dd.style.cssText = 'position:absolute;background:white;border:1px solid #ddd;max-height:200px;overflow-y:auto;width:100%;z-index:1000;display:none;box-shadow:0 4px 6px rgba(0,0,0,.1);top:100%;left:0;margin-top:4px;';
+        Object.assign(dd.style, {
+            position: 'absolute',
+            background: 'var(--surface, #fff)',
+            border: '1px solid var(--border, #ddd)',
+            maxHeight: '200px',
+            overflowY: 'auto',
+            width: '100%',
+            zIndex: '1000',
+            display: 'none',
+            boxShadow: '0 4px 6px rgba(0,0,0,.1)',
+            top: '100%',
+            left: '0',
+            marginTop: '4px'
+        });
         descInput.parentElement.style.position = 'relative';
         descInput.parentElement.appendChild(dd);
         return dd;
     }
 
-    function showItemOptions(descInput, dd, searchText, syncCb) {
+    function showItemOptions(descInput, dd, searchText, onSelect) {
         dd.innerHTML = '';
         const lower = searchText.toLowerCase().trim();
         const seen = new Set();
-        const filtered = (lower ? itemsData.filter(i => i.nameLower.includes(lower)) : itemsData)
-            .filter(i => { if (seen.has(i.nameLower)) return false; seen.add(i.nameLower); return true; });
+        const filtered = allItemsData.filter(it => {
+            if (lower && !it.name.toLowerCase().includes(lower)) return false;
+            if (seen.has(it.name.toLowerCase())) return false;
+            seen.add(it.name.toLowerCase());
+            return true;
+        });
         if (!filtered.length) { dd.style.display = 'none'; return; }
         filtered.forEach(item => {
             const opt = document.createElement('div');
-            opt.style.cssText = 'padding:10px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;';
             opt.textContent = item.name;
+            Object.assign(opt.style, { padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' });
             opt.addEventListener('mouseover', () => opt.style.background = '#f5f5f5');
             opt.addEventListener('mouseout',  () => opt.style.background = 'transparent');
-            opt.addEventListener('click', () => { descInput.value = item.name; dd.style.display = 'none'; syncCb(); });
+            opt.addEventListener('click', () => {
+                descInput.value = item.name;
+                dd.style.display = 'none';
+                if (onSelect) onSelect();
+            });
             dd.appendChild(opt);
         });
         dd.style.display = 'block';
     }
 
-    function buildProductOptions(select, items = allItemsData) {
-        select.innerHTML = '<option value="">Select product</option>';
-        if (!Array.isArray(items) || !items.length) {
-            return;
+    function applyItemToRow(row, item) {
+        const descInput     = row.querySelector('.item-description-input');
+        const phocodeInput  = row.querySelector('.item-phocode-input');
+        const itemIdHidden  = row.querySelector('.item-id-select');
+        const uomInput      = row.querySelector('.item-uom-input');
+        const unitCostInput = row.querySelector('.item-unit-cost-input');
+        const quantityInput = row.querySelector('.item-quantity-input');
+        const lotInput      = row.querySelector('.item-lot-input');
+        const expiryInput   = row.querySelector('.item-expiry-input');
+
+        if (descInput)     descInput.value     = item.name;
+        if (phocodeInput)  phocodeInput.value  = item.code || '';
+        if (itemIdHidden)  itemIdHidden.value  = item.id || '';
+        if (uomInput)      uomInput.value      = item.uom || '';
+        if (unitCostInput) unitCostInput.value = item.cost || '';
+        if (lotInput)      lotInput.value      = item.lot_number || '';
+        if (expiryInput)   expiryInput.value   = item.expiry || '';
+        if (quantityInput) quantityInput.placeholder = 'Available: ' + (item.qty || 0);
+        calcTotal(row);
+    }
+
+    function calcTotal(row) {
+        const qty  = parseFloat(row.querySelector('.item-quantity-input').value) || 0;
+        const cost = parseFloat(row.querySelector('.item-unit-cost-input').value) || 0;
+        const disp = row.querySelector('.item-totalcost-display');
+        if (disp) {
+            disp.value = qty && cost ? (qty * cost).toFixed(2) : '';
         }
-        items.forEach(i => {
-            const o = document.createElement('option');
-            o.value = i.id;
-            o.textContent = i.code;
-            o.dataset.uom = i.uom;
-            o.dataset.unitCost = i.cost;
-            o.dataset.quantity = i.qty;
-            o.dataset.lotNumber = i.lot_number || '';
-            o.dataset.expiry = i.expiry || '';
-            select.appendChild(o);
+    }
+
+    function bindPhocodeAutocomplete(row) {
+        const phocodeInput = row.querySelector('.item-phocode-input');
+        if (!phocodeInput) return;
+
+        const dd = document.createElement('div');
+        dd.className = 'autocomplete-dropdown';
+        Object.assign(dd.style, {
+            position: 'absolute',
+            background: 'var(--surface,#fff)',
+            border: '1px solid var(--border,#ddd)',
+            maxHeight: '200px',
+            overflowY: 'auto',
+            width: '100%',
+            zIndex: '1000',
+            display: 'none',
+            boxShadow: '0 4px 6px rgba(0,0,0,.1)',
+            top: '100%',
+            left: '0',
+            marginTop: '4px'
         });
-    }
+        phocodeInput.parentElement.style.position = 'relative';
+        phocodeInput.parentElement.appendChild(dd);
 
-    function filterItemsForDescription(text) {
-        const lowerText = (text || '').toLowerCase().trim();
-        if (!lowerText) {
-            return allItemsData;
+        function showOptions(query) {
+            dd.innerHTML = '';
+            const q = query.toLowerCase().trim();
+            const seen = new Set();
+            const filtered = allItemsData.filter(function(item) {
+                if (q && !((item.code && item.code.toLowerCase().includes(q)) || item.name.toLowerCase().includes(q))) return false;
+                if (seen.has(item.code)) return false;
+                seen.add(item.code);
+                return true;
+            });
+            if (!filtered.length) { dd.style.display = 'none'; return; }
+            filtered.forEach(function(item) {
+                const opt = document.createElement('div');
+                Object.assign(opt.style, { padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' });
+                opt.textContent = item.code + ' — ' + item.name + ' (' + (item.qty || 0) + ' available' + (item.expiry ? ' | Exp: ' + item.expiry : '') + ')';
+                opt.addEventListener('mouseover', function() { this.style.background = '#f5f5f5'; });
+                opt.addEventListener('mouseout',  function() { this.style.background = 'transparent'; });
+                opt.addEventListener('click', function() {
+                    phocodeInput.value = item.code;
+                    dd.style.display = 'none';
+                    applyItemToRow(row, item);
+                });
+                dd.appendChild(opt);
+            });
+            dd.style.display = 'block';
         }
-        const filtered = allItemsData.filter(i =>
-            i.name.toLowerCase().includes(lowerText) ||
-            i.code.toLowerCase().includes(lowerText)
-        );
-        return filtered.length ? filtered : allItemsData;
-    }
 
-    function populateProductSelect(select, itemName) {
-        const filteredItems = filterItemsForDescription(itemName);
-        buildProductOptions(select, filteredItems);
-        const lowerName = itemName.toLowerCase().trim();
-        let matchItem = filteredItems.find(i =>
-            i.name.toLowerCase() === lowerName ||
-            i.code.toLowerCase() === lowerName
-        );
-        if (!matchItem) {
-            matchItem = filteredItems.find(i =>
-                i.name.toLowerCase().includes(lowerName) ||
-                i.code.toLowerCase().includes(lowerName)
-            );
-        }
-        if (matchItem) {
-            select.value = matchItem.id;
-        }
+        phocodeInput.addEventListener('input', function () { showOptions(this.value); });
+        phocodeInput.addEventListener('focus', function () { showOptions(this.value); });
+        phocodeInput.addEventListener('blur',  function () { setTimeout(function () { dd.style.display = 'none'; }, 200); });
     }
 
     function bindRowEvents(row) {
@@ -468,159 +549,108 @@ const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItem
         const toggleButton  = row.querySelector('.item-toggle-button');
         const removeButton  = row.querySelector('.remove-item-button');
         const descInput     = row.querySelector('.item-description-input');
-        const itemIdSelect  = row.querySelector('.item-id-select');
-        const uomInput      = row.querySelector('.item-uom-input');
-        const unitCostInput = row.querySelector('.item-unit-cost-input');
+        const phocodeInput  = row.querySelector('.item-phocode-input');
         const quantityInput = row.querySelector('.item-quantity-input');
-        const lotInput      = row.querySelector('.item-lot-input');
+        const unitCostInput = row.querySelector('.item-unit-cost-input');
+        const clearBtns     = row.querySelectorAll('.item-description-clear');
 
-        if (descInput && itemIdSelect) {
+        if (descInput) {
             const dd = createDropdown(descInput);
 
-            const syncItemSelection = (preserveExistingSelection = false) => {
+            const syncItemSelection = () => {
                 const typed = descInput.value.trim().toLowerCase();
-                if (!typed) {
-                    return;
-                }
+                if (!typed) return;
 
-                if (preserveExistingSelection && itemIdSelect.value && itemIdSelect.value !== '') {
-                    const selectedItem = allItemsData.find(i => i.id == itemIdSelect.value);
-                    if (selectedItem && (selectedItem.name.toLowerCase() === typed || selectedItem.code.toLowerCase() === typed)) {
-                        return;
-                    }
-                }
-
-                let match = itemsData.find(i => i.nameLower === typed || i.codeLower === typed || i.id.toString() === typed);
+                let match = allItemsData.find(i => i.name.toLowerCase() === typed || (i.code && i.code.toLowerCase() === typed) || i.id.toString() === typed);
                 if (!match) {
-                    match = itemsData.find(i => i.nameLower.includes(typed) || i.codeLower.includes(typed));
+                    match = allItemsData.find(i => i.name.toLowerCase().includes(typed) || (i.code && i.code.toLowerCase().includes(typed)));
                 }
                 if (match) {
-                    populateProductSelect(itemIdSelect, match.name);
-                    itemIdSelect.value = match.id;
-                    const sel = itemIdSelect.options[itemIdSelect.selectedIndex];
-                    if (sel && sel.value) {
-                        if (uomInput)      uomInput.value      = sel.dataset.uom || '';
-                        if (unitCostInput) unitCostInput.value = sel.dataset.unitCost || '';
-                        if (quantityInput) quantityInput.placeholder = 'Available: ' + (sel.dataset.quantity || 0);
-                    }
-                    const itemData = allItemsData.find(i => i.id == match.id);
-                    if (lotInput && itemData && itemData.lot_number) lotInput.value = itemData.lot_number;
-                    if (descInput) descInput.value = match.name;
+                    applyItemToRow(row, match);
+                    const expiryInput = row.querySelector('.item-expiry-input');
+                    if (expiryInput && match.expiry) expiryInput.value = match.expiry;
                 }
             };
 
             descInput.addEventListener('input',  e => showItemOptions(descInput, dd, e.target.value, syncItemSelection));
-            descInput.addEventListener('change', syncItemSelection);
-            descInput.addEventListener('blur',   () => setTimeout(() => dd.style.display = 'none', 200));
             descInput.addEventListener('focus',  () => showItemOptions(descInput, dd, descInput.value, syncItemSelection));
-
-            const clearBtn = row.querySelector('.item-description-clear');
-            if (clearBtn) {
-                clearBtn.addEventListener('mousedown', e => e.preventDefault());
-                clearBtn.addEventListener('click', () => {
-                    descInput.value = '';
-                    itemIdSelect.innerHTML = '<option value="">Select product</option>';
-                    if (uomInput)      uomInput.value = '';
-                    if (unitCostInput) unitCostInput.value = '';
-                    if (quantityInput) quantityInput.placeholder = 'Available: 0';
-                    if (lotInput)      lotInput.value = '';
-                    const expiryInput = row.querySelector('.item-expiry-input');
-                    if (expiryInput)   expiryInput.value = '';
-                    dd.style.display = 'none';
-                    descInput.focus();
-                });
-            }
+            descInput.addEventListener('blur',   () => setTimeout(() => dd.style.display = 'none', 200));
+            descInput.addEventListener('change', syncItemSelection);
         }
 
-        if (itemIdSelect) {
-            buildProductOptions(itemIdSelect);
-            itemIdSelect.addEventListener('change', () => {
-                const sel = itemIdSelect.options[itemIdSelect.selectedIndex];
-                if (sel && sel.value) {
-                    if (uomInput)      uomInput.value      = sel.dataset.uom || '';
-                    if (unitCostInput) unitCostInput.value = sel.dataset.unitCost || '';
-                    if (quantityInput) quantityInput.placeholder = 'Available: ' + (sel.dataset.quantity || 0);
-                    if (row.querySelector('.item-expiry-input')) row.querySelector('.item-expiry-input').value = sel.dataset.expiry || '';
-                    const itemData = allItemsData.find(i => i.id == sel.value);
-                    if (lotInput && itemData && itemData.lot_number) lotInput.value = itemData.lot_number;
-                    if (descInput && itemData) descInput.value = itemData.name;
+        bindPhocodeAutocomplete(row);
+
+        if (quantityInput) quantityInput.addEventListener('input',  () => calcTotal(row));
+        if (unitCostInput) unitCostInput.addEventListener('input', () => calcTotal(row));
+
+        clearBtns.forEach(clearBtn => {
+            clearBtn.addEventListener('mousedown', e => e.preventDefault());
+            clearBtn.addEventListener('click', () => {
+                if (descInput) descInput.value = '';
+                if (phocodeInput) phocodeInput.value = '';
+                const itemIdHidden = row.querySelector('.item-id-select');
+                if (itemIdHidden) itemIdHidden.value = '';
+                const uomInput = row.querySelector('.item-uom-input');
+                if (uomInput) uomInput.value = '';
+                const unitCostInput = row.querySelector('.item-unit-cost-input');
+                if (unitCostInput) unitCostInput.value = '';
+                const lotInput = row.querySelector('.item-lot-input');
+                if (lotInput) lotInput.value = '';
+                const expiryInput = row.querySelector('.item-expiry-input');
+                if (expiryInput) expiryInput.value = '';
+                const totalDisp = row.querySelector('.item-totalcost-display');
+                if (totalDisp) totalDisp.value = '';
+                if (quantityInput) {
+                    quantityInput.value = '';
+                    quantityInput.placeholder = 'Available: 0';
                 }
+                const dd = descInput ? descInput.parentElement.querySelector('.autocomplete-dropdown') : null;
+                if (dd) dd.style.display = 'none';
+                if (descInput) descInput.focus();
+            });
+        });
+
+        if (toggleButton) {
+            toggleButton.addEventListener('click', () => {
+                body.style.display = body.style.display === 'none' ? '' : 'none';
+                toggleButton.textContent = body.style.display === 'none' ? 'Show' : 'Hide';
             });
         }
+        if (removeButton) {
+            removeButton.addEventListener('click', () => { row.remove(); updateIndexes(); });
+        }
 
-        toggleButton.addEventListener('click', () => {
-            body.style.display = body.style.display === 'none' ? '' : 'none';
-            toggleButton.textContent = body.style.display === 'none' ? 'Show' : 'Hide';
-        });
-        removeButton.addEventListener('click', () => { row.remove(); updateIndexes(); });
+        calcTotal(row);
     }
 
     Array.from(releaseItems.querySelectorAll('.release-item-row')).forEach(row => {
         bindRowEvents(row);
         const descInput    = row.querySelector('.item-description-input');
-        const itemIdSelect = row.querySelector('.item-id-select');
-        if (itemIdSelect) {
-            buildProductOptions(itemIdSelect);
-        }
+        const phocodeInput = row.querySelector('.item-phocode-input');
+        const itemIdHidden = row.querySelector('.item-id-select');
+        const qtyInput     = row.querySelector('.item-quantity-input');
         if (descInput && descInput.value.trim()) {
-            const match = itemsData.find(i => i.nameLower === descInput.value.trim().toLowerCase());
-            if (match) populateProductSelect(itemIdSelect, match.name);
+            const lower = descInput.value.trim().toLowerCase();
+            const match = allItemsData.find(i => i.name.toLowerCase() === lower || (i.code && i.code.toLowerCase() === lower));
+            if (match) {
+                if (phocodeInput && !phocodeInput.value) phocodeInput.value = match.code;
+                if (itemIdHidden && !itemIdHidden.value) itemIdHidden.value = match.id;
+                if (qtyInput && (!qtyInput.placeholder || qtyInput.placeholder === 'Available: 0')) {
+                    qtyInput.placeholder = 'Available: ' + (match.qty || 0);
+                }
+            }
         }
     });
     updateIndexes();
 
-    addItemButton.addEventListener('click', () => {
-        const clone = itemTemplate.content.cloneNode(true);
-        const row   = clone.querySelector('.release-item-row');
-        bindRowEvents(row);
-        releaseItems.appendChild(row);
-        updateIndexes();
-    });
-
-    function syncRowItemSelection(row) {
-        const descInput = row.querySelector('.item-description-input');
-        const itemIdSelect = row.querySelector('.item-id-select');
-        const uomInput = row.querySelector('.item-uom-input');
-        const unitCostInput = row.querySelector('.item-unit-cost-input');
-        const quantityInput = row.querySelector('.item-quantity-input');
-        const lotInput = row.querySelector('.item-lot-input');
-
-        if (!descInput || !itemIdSelect) {
-            return;
-        }
-
-        buildProductOptions(itemIdSelect);
-
-        if (itemIdSelect.value) {
-            return;
-        }
-
-        const typed = descInput.value.trim().toLowerCase();
-        if (!typed) {
-            return;
-        }
-
-        let match = itemsData.find(i => i.nameLower === typed || i.codeLower === typed || i.id.toString() === typed);
-        if (!match) {
-            match = itemsData.find(i => i.nameLower.includes(typed) || i.codeLower.includes(typed));
-        }
-        if (!match) {
-            return;
-        }
-
-        populateProductSelect(itemIdSelect, match.name);
-        itemIdSelect.value = match.id;
-
-        const sel = itemIdSelect.options[itemIdSelect.selectedIndex];
-        if (sel && sel.value) {
-            if (uomInput)      uomInput.value = sel.dataset.uom || '';
-            if (unitCostInput) unitCostInput.value = sel.dataset.unitCost || '';
-            if (quantityInput) quantityInput.placeholder = 'Available: ' + (sel.dataset.quantity || 0);
-            if (row.querySelector('.item-expiry-input')) row.querySelector('.item-expiry-input').value = sel.dataset.expiry || '';
-            const itemData = allItemsData.find(i => i.id == match.id);
-            if (lotInput && itemData && itemData.lot_number) lotInput.value = itemData.lot_number;
-            if (descInput) descInput.value = match.name;
-        }
+    if (addItemButton) {
+        addItemButton.addEventListener('click', () => {
+            const clone = itemTemplate.content.cloneNode(true);
+            const row   = clone.querySelector('.release-item-row');
+            bindRowEvents(row);
+            releaseItems.appendChild(row);
+            updateIndexes();
+        });
     }
 
     // ---- Dirty-form guard ----
@@ -644,7 +674,17 @@ const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItem
             if (itemIdSelect && itemIdSelect.value) {
                 return;
             }
-            syncRowItemSelection(row);
+            const descInput = row.querySelector('.item-description-input');
+            if (descInput && descInput.value.trim()) {
+                const typed = descInput.value.trim().toLowerCase();
+                let match = allItemsData.find(i => i.name.toLowerCase() === typed || (i.code && i.code.toLowerCase() === typed) || i.id.toString() === typed);
+                if (!match) {
+                    match = allItemsData.find(i => i.name.toLowerCase().includes(typed) || (i.code && i.code.toLowerCase().includes(typed)));
+                }
+                if (match) {
+                    applyItemToRow(row, match);
+                }
+            }
         });
         formDirty = false;
     });

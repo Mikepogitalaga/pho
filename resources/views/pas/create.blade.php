@@ -124,10 +124,12 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label>Product Code</label>
-                                    <select class="pas-product-select" name="items[{{ $index }}][item_id]">
-                                        <option value="">Select product</option>
-                                    </select>
+                                    <label>PHO Code</label>
+                                    <div style="position:relative;display:flex;align-items:center;">
+                                        <input type="text" class="pas-phocode-input" autocomplete="off" style="width:100%;padding-right:2rem;" value="{{ $oldItem['product_code'] ?? $oldItem['item_id'] ?? '' }}">
+                                        <input type="hidden" class="pas-item-id-hidden" name="items[{{ $index }}][item_id]" value="{{ $oldItem['item_id'] ?? '' }}">
+                                        <button type="button" class="item-description-clear" title="Clear" style="position:absolute;right:0.5rem;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;line-height:1;padding:0.2rem 0.3rem;">&times;</button>
+                                    </div>
                                     <input type="hidden" class="pas-product-code-input" name="items[{{ $index }}][product_code]" value="{{ $oldItem['product_code'] ?? '' }}">
                                 </div>
                                 <div class="form-group">
@@ -217,10 +219,12 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Product Code</label>
-                    <select class="pas-product-select" name="items[0][item_id]">
-                        <option value="">Select product</option>
-                    </select>
+                    <label>PHO Code</label>
+                    <div style="position:relative;display:flex;align-items:center;">
+                        <input type="text" class="pas-phocode-input" autocomplete="off" style="width:100%;padding-right:2rem;" value="">
+                        <input type="hidden" class="pas-item-id-hidden" name="items[0][item_id]" value="">
+                        <button type="button" class="item-description-clear" title="Clear" style="position:absolute;right:0.5rem;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;line-height:1;padding:0.2rem 0.3rem;">&times;</button>
+                    </div>
                     <input type="hidden" class="pas-product-code-input" name="items[0][product_code]" value="">
                 </div>
                 <div class="form-group">
@@ -388,27 +392,26 @@ document.addEventListener('DOMContentLoaded', function () {
         dd.style.display = 'block';
     }
 
-    function populateProductSelect(sel, name) {
-        const lower = name.toLowerCase().trim();
-        sel.innerHTML = '<option value="">Select product</option>';
-        const matches = pasAllItems.filter(it =>
-            it.name.toLowerCase() === lower ||
-            it.code.toLowerCase() === lower ||
-            it.name.toLowerCase().includes(lower) ||
-            it.code.toLowerCase().includes(lower)
-        );
-        matches.forEach(it => {
-            const o = document.createElement('option');
-            o.value = it.id;
-            o.textContent = it.code;
-            o.dataset.unit = it.unit;
-            o.dataset.cost = it.cost;
-            o.dataset.qty = it.qty;
-            o.dataset.lot  = it.lot_number;
-            o.dataset.expiry = it.expiry;
-            sel.appendChild(o);
-        });
-        return matches;
+    function applyItemToRow(row, item) {
+        const descInput    = row.querySelector('.pas-desc-input');
+        const phocodeInput = row.querySelector('.pas-phocode-input');
+        const itemIdHidden = row.querySelector('.pas-item-id-hidden');
+        const codeInput    = row.querySelector('.pas-product-code-input');
+        const unitInput    = row.querySelector('.pas-unit-input');
+        const costInput    = row.querySelector('.pas-unitcost-input');
+        const lotInput     = row.querySelector('.pas-lot-input');
+        const expiryInput  = row.querySelector('.pas-expiry-input');
+        const qtyInput     = row.querySelector('.pas-qty-input');
+        if (descInput)    descInput.value    = item.name;
+        if (phocodeInput) phocodeInput.value = item.code || '';
+        if (itemIdHidden) itemIdHidden.value = item.id || '';
+        if (codeInput)    codeInput.value    = item.code || '';
+        if (unitInput)    unitInput.value    = item.unit || '';
+        if (costInput)    costInput.value    = item.cost || '';
+        if (lotInput)     lotInput.value     = item.lot_number || '';
+        if (expiryInput)  expiryInput.value  = item.expiry || '';
+        if (qtyInput)     qtyInput.placeholder = 'Available: ' + (item.qty || 0);
+        calcTotal(row);
     }
 
     function calcTotal(row) {
@@ -418,35 +421,12 @@ document.addEventListener('DOMContentLoaded', function () {
         disp.value = qty && cost ? (qty * cost).toFixed(2) : '';
     }
 
-    function autofillFromOption(row, opt) {
-        if (!opt || !opt.value) return;
-        const unitInput   = row.querySelector('.pas-unit-input');
-        const costInput   = row.querySelector('.pas-unitcost-input');
-        const lotInput    = row.querySelector('.pas-lot-input');
-        const expiryInput = row.querySelector('.pas-expiry-input');
-        const codeInput   = row.querySelector('.pas-product-code-input');
-        const qtyInput    = row.querySelector('.pas-qty-input');
-        if (unitInput  && opt.dataset.unit)   unitInput.value   = opt.dataset.unit;
-        if (costInput  && opt.dataset.cost)   costInput.value   = opt.dataset.cost;
-        if (lotInput   && opt.dataset.lot)    lotInput.value    = opt.dataset.lot;
-        if (expiryInput) {
-            if (opt.dataset.expiry) {
-                expiryInput.value = opt.dataset.expiry;
-            } else {
-                expiryInput.value = '';
-            }
-        }
-        if (codeInput)  codeInput.value   = opt.textContent || '';
-        if (qtyInput) qtyInput.placeholder = 'Available: ' + (opt.dataset.qty || 0);
-        calcTotal(row);
-    }
-
     function bindRow(row) {
         const body       = row.querySelector('.item-row-body');
         const toggleBtn  = row.querySelector('.item-toggle-button');
         const removeBtn  = row.querySelector('.remove-item-button');
         const descInput  = row.querySelector('.pas-desc-input');
-        const productSel = row.querySelector('.pas-product-select');
+        const phocodeInput = row.querySelector('.pas-phocode-input');
         const qtyInput   = row.querySelector('.pas-qty-input');
         const costInput  = row.querySelector('.pas-unitcost-input');
         const clearBtn   = row.querySelector('.item-description-clear');
@@ -455,14 +435,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const syncFromDesc = () => {
             const name = descInput.value.trim();
-            const matches = populateProductSelect(productSel, name);
-            if (productSel.options.length > 1) {
-                productSel.selectedIndex = 1;
-                autofillFromOption(row, productSel.options[1]);
+            const lower = name.toLowerCase();
+            let match = pasAllItems.find(it => it.name.toLowerCase() === lower || it.code.toLowerCase() === lower);
+            if (!match) {
+                match = pasAllItems.find(it => it.name.toLowerCase().includes(lower) || it.code.toLowerCase().includes(lower));
             }
-            const qtyInput = row.querySelector('.pas-qty-input');
-            if (qtyInput && matches.length) {
-                qtyInput.placeholder = 'Available: ' + (matches[0].qty || 0);
+            if (match) {
+                applyItemToRow(row, match);
             }
         };
 
@@ -471,16 +450,7 @@ document.addEventListener('DOMContentLoaded', function () {
         descInput.addEventListener('blur',   () => setTimeout(() => dd.style.display = 'none', 200));
         descInput.addEventListener('change', syncFromDesc);
 
-        productSel.addEventListener('change', () => {
-            const opt = productSel.options[productSel.selectedIndex];
-            autofillFromOption(row, opt);
-            if (opt && opt.dataset.qty) {
-                qtyInput.placeholder = 'Available: ' + opt.dataset.qty;
-            }
-            if (opt && opt.dataset.expiry && row.querySelector('.pas-expiry-input')) {
-                row.querySelector('.pas-expiry-input').value = opt.dataset.expiry;
-            }
-        });
+        bindPhocodeAutocomplete(row);
 
         qtyInput.addEventListener('input',  () => calcTotal(row));
         costInput.addEventListener('input', () => calcTotal(row));
@@ -488,7 +458,9 @@ document.addEventListener('DOMContentLoaded', function () {
         clearBtn.addEventListener('mousedown', e => e.preventDefault());
         clearBtn.addEventListener('click', () => {
             descInput.value = '';
-            productSel.innerHTML = '<option value="">Select product</option>';
+            phocodeInput.value = '';
+            row.querySelector('.pas-item-id-hidden').value = '';
+            row.querySelector('.pas-product-code-input').value = '';
             row.querySelector('.pas-unit-input').value  = '';
             row.querySelector('.pas-unitcost-input').value = '';
             row.querySelector('.pas-lot-input').value   = '';
@@ -504,6 +476,48 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         removeBtn.addEventListener('click', () => { row.remove(); updateIndexes(); });
+    }
+
+    function bindPhocodeAutocomplete(row) {
+        const phocodeInput = row.querySelector('.pas-phocode-input');
+        if (!phocodeInput) return;
+
+        const dd = document.createElement('div');
+        dd.className = 'autocomplete-dropdown';
+        dd.style.cssText = 'position:absolute;background:var(--surface,#fff);border:1px solid var(--border,#ddd);max-height:200px;overflow-y:auto;width:100%;z-index:1000;display:none;box-shadow:0 4px 6px rgba(0,0,0,.1);top:100%;left:0;margin-top:4px;';
+        phocodeInput.parentElement.style.position = 'relative';
+        phocodeInput.parentElement.appendChild(dd);
+
+        function showOptions(query) {
+            dd.innerHTML = '';
+            const q = query.toLowerCase().trim();
+            const seen = new Set();
+            const filtered = pasAllItems.filter(function(item) {
+                if (q && !(item.code.toLowerCase().includes(q) || item.name.toLowerCase().includes(q))) return false;
+                if (seen.has(item.code)) return false;
+                seen.add(item.code);
+                return true;
+            });
+            if (!filtered.length) { dd.style.display = 'none'; return; }
+            filtered.forEach(function(item) {
+                const opt = document.createElement('div');
+                opt.style.cssText = 'padding:10px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;';
+                opt.textContent = item.code + ' — ' + item.name + ' (' + (item.qty || 0) + ' available' + (item.expiry ? ' | Exp: ' + item.expiry : '') + ')';
+                opt.addEventListener('mouseover', function() { this.style.background = '#f5f5f5'; });
+                opt.addEventListener('mouseout',  function() { this.style.background = 'transparent'; });
+                opt.addEventListener('click', function() {
+                    phocodeInput.value = item.code;
+                    dd.style.display = 'none';
+                    applyItemToRow(row, item);
+                });
+                dd.appendChild(opt);
+            });
+            dd.style.display = 'block';
+        }
+
+        phocodeInput.addEventListener('input', function() { showOptions(this.value); });
+        phocodeInput.addEventListener('focus', function() { showOptions(this.value); });
+        phocodeInput.addEventListener('blur',  function() { setTimeout(function() { dd.style.display = 'none'; }, 200); });
     }
 
     container.querySelectorAll('.pas-item-row').forEach(bindRow);
