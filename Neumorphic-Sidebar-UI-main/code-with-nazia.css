@@ -1,0 +1,641 @@
+/* =========================================================
+   RESET
+========================================================= */
+
+* {
+    box-sizing: border-box;
+  }
+  
+  
+  /* =========================================================
+     BODY
+  ========================================================= */
+    body {
+    margin: 0;
+    min-height: 100vh;
+  
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  
+    background: #eef0f3;
+  
+    font-family: sans-serif;
+  
+    padding: 20px;
+  
+    -webkit-font-smoothing: antialiased;
+  }
+  
+  
+  /* =========================================================
+     ROOT
+  ========================================================= */
+  
+  :root {
+    --bg: #eef0f3;
+  
+    --shadow-dark: #b8bcc3;
+    --shadow-light: #ffffff;
+  
+    --text-dim: #7b818c;
+    --text-bright: #2b3140;
+  
+    --red: #a30601;
+    --red-dark: #b81a13;
+  
+    --smooth: cubic-bezier(.22, 1, .36, 1);
+    --layout: cubic-bezier(.4, 0, .2, 1);
+  }
+  
+  
+  /* =========================================================
+     SIDEBAR
+  ========================================================= */
+  
+  .sidebar {
+    width: 260px;
+  
+    background: var(--bg);
+  
+    border-radius: 26px;
+  
+    padding: 22px 18px;
+  
+    box-shadow:
+      10px 10px 22px var(--shadow-dark),
+      -10px -10px 22px var(--shadow-light);
+  
+    transition:
+      width .4s var(--layout),
+      padding .4s var(--layout);
+  
+    overflow: hidden;
+  }
+  
+  
+  /* =========================================================
+     COLLAPSED SIDEBAR
+  ========================================================= */
+  
+  .sidebar.collapsed {
+    width: 88px;
+    padding: 22px 12px;
+  }
+  
+  
+  /* =========================================================
+     TOP ROW
+  ========================================================= */
+  
+  .top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  
+    margin-bottom: 24px;
+  
+    gap: 8px;
+  
+    transition:
+      justify-content .35s var(--layout),
+      gap .35s var(--layout);
+  }
+  
+  
+  /* =========================================================
+     BRAND ROW
+  ========================================================= */
+  
+  .brand-row {
+    display: flex;
+    align-items: center;
+  
+    gap: 12px;
+  
+    padding: 0 4px;
+  
+    cursor: pointer;
+  
+    min-width: 0;
+  
+    transition:
+      gap .35s var(--layout);
+  }
+  
+  
+  .sidebar.collapsed .brand-row {
+    gap: 0;
+  }
+  
+  
+  /* =========================
+   PREMIUM LOGO
+========================= */
+
+.brand-icon {
+    width: 40px;
+    height: 40px;
+  
+    border-radius: 13px;
+  
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  
+    font-family: 'Poppins', sans-serif;
+    font-weight: 800;
+    font-size: 17px;
+  
+    color: var(--red);
+    background: var(--bg);
+  
+    flex-shrink: 0;
+  
+    /* raised neumorphic surface */
+    box-shadow:
+      6px 7px 13px rgba(198, 202, 209, .72),
+      -6px -7px 13px rgba(255, 255, 255, .98);
+  
+    transition:
+      color .3s ease,
+      transform .35s cubic-bezier(.22, 1, .36, 1),
+      box-shadow .35s cubic-bezier(.22, 1, .36, 1);
+  }
+  
+  
+  /* =========================
+     LOGO HOVER
+  ========================= */
+  
+  .brand-row:hover .brand-icon {
+    color: var(--red);
+  
+    transform:
+      scale(1.035);
+  
+    box-shadow:
+      7px 8px 15px rgba(194, 199, 207, .75),
+      -7px -8px 15px rgba(255, 255, 255, 1);
+  }
+  
+  
+  /* =========================
+     LOGO PRESS
+  ========================= */
+  
+  .brand-row:active .brand-icon {
+    transform: scale(.96);
+  
+    box-shadow:
+      inset 3px 3px 6px rgba(197, 201, 208, .8),
+      inset -3px -3px 6px rgba(255, 255, 255, .95);
+  }
+  
+  /* =========================================================
+     BRAND TEXT
+  ========================================================= */
+  
+  .brand-text {
+    min-width: 0;
+  
+    overflow: hidden;
+  
+    white-space: nowrap;
+  
+    max-width: 160px;
+  
+    opacity: 1;
+  
+    transition:
+      opacity .28s var(--smooth),
+      max-width .4s var(--layout);
+  }
+  
+  
+  .sidebar.collapsed .brand-text {
+    max-width: 0;
+    opacity: 0;
+  }
+  
+  
+  /* =========================================================
+     BRAND NAME
+  ========================================================= */
+  
+  .brand-name {
+    font-family: 'Poppins', sans-serif;
+  
+    font-size: 16px;
+    font-weight: 600;
+  
+    color: var(--text-bright);
+  
+    letter-spacing: -.3px;
+  
+    margin: 0;
+  
+    line-height: 1.2;
+  }
+  
+  
+  /* =========================================================
+     BRAND SUBTITLE
+  ========================================================= */
+  
+  .brand-sub {
+    font-size: 10px;
+  
+    font-weight: 500;
+  
+    color: var(--text-dim);
+  
+    letter-spacing: .6px;
+  
+    text-transform: uppercase;
+  
+    margin: 1px 0 0;
+  }
+  
+  
+  /* =========================================================
+     EXPAND BUTTON
+  ========================================================= */
+  
+  .expand-btn {
+    width: 30px;
+    height: 30px;
+  
+    max-width: 30px;
+  
+    border-radius: 10px;
+  
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  
+    color: var(--text-dim);
+  
+    font-size: 18px;
+  
+    cursor: pointer;
+  
+    flex-shrink: 0;
+  
+    transition:
+      transform .35s var(--smooth),
+      color .25s ease,
+      opacity .28s ease,
+      max-width .4s var(--layout),
+      margin .4s var(--layout),
+      box-shadow .25s ease;
+  }
+  
+  
+  /* Expand hover */
+  
+  .expand-btn:hover {
+    color: var(--red);
+  
+    box-shadow:
+      4px 4px 8px var(--shadow-dark),
+      -4px -4px 8px var(--shadow-light);
+  
+    transform: translateY(-1px);
+  }
+  
+  
+  /* Expand press */
+  
+  .expand-btn:active {
+    transform: scale(.94);
+  
+    box-shadow:
+      inset 2px 2px 5px var(--shadow-dark),
+      inset -2px -2px 5px var(--shadow-light);
+  }
+  
+  
+  /* Collapsed */
+  
+  .sidebar.collapsed .expand-btn {
+    opacity: 0;
+  
+    max-width: 0;
+  
+    box-shadow: none;
+  
+    pointer-events: none;
+  }
+  
+  
+  .sidebar.collapsed .top-row {
+    justify-content: center;
+  }
+  
+  
+  /* =========================================================
+     SECTION LABEL
+  ========================================================= */
+  
+  .section-label {
+    font-family: 'Poppins', sans-serif;
+  
+    font-size: 10px;
+  
+    letter-spacing: 1.5px;
+  
+    font-weight: 600;
+  
+    color: var(--text-dim);
+  
+    margin: 18px 8px 10px;
+  
+    white-space: nowrap;
+  
+    overflow: hidden;
+  
+    transition:
+      opacity .25s ease,
+      height .4s var(--layout),
+      margin .4s var(--layout);
+  }
+  
+  
+  .section-label:first-of-type {
+    margin-top: 4px;
+  }
+  
+  
+  .sidebar.collapsed .section-label {
+    opacity: 0;
+  
+    height: 0;
+  
+    margin: 8px 0;
+  }
+  
+  
+  /* =========================================================
+     NAV ITEM
+  ========================================================= */
+  
+  .nav-item {
+    display: flex;
+    align-items: center;
+  
+    gap: 14px;
+    padding: 11px 14px;
+  
+    border-radius: 15px;
+    margin-bottom: 6px;
+  
+    cursor: pointer;
+  
+    color: var(--text-dim);
+  
+    font-size: 14px;
+    font-weight: 500;
+  
+    transition:
+      color .16s var(--smooth),
+      background .16s var(--smooth),
+      box-shadow .16s var(--smooth),
+      transform .16s var(--smooth),
+      padding .2s var(--layout),
+      gap .2s var(--layout);
+  }
+  
+  /* =========================================================
+     COLLAPSED NAV
+  ========================================================= */
+  
+  .sidebar.collapsed .nav-item {
+    gap: 0;
+  
+    justify-content: center;
+  
+    padding: 11px;
+  }
+  
+  
+  /* =========================================================
+     NAV ICON
+  ========================================================= */
+  
+  .nav-item i {
+    font-size: 17px;
+  
+    flex-shrink: 0;
+  
+    width: 20px;
+  
+    text-align: center;
+  
+    transition:
+      color .28s var(--smooth),
+      transform .28s var(--smooth);
+  }
+  
+  
+  /* =========================================================
+     NAV LABEL
+  ========================================================= */
+  
+  .nav-item .label {
+    flex: 1;
+  
+    white-space: nowrap;
+  
+    overflow: hidden;
+  
+    max-width: 160px;
+  
+    opacity: 1;
+  
+    transition:
+      opacity .28s var(--smooth),
+      max-width .4s var(--layout);
+  }
+  
+  
+  .sidebar.collapsed .nav-item .label {
+    max-width: 0;
+  
+    opacity: 0;
+  }
+  
+  
+  /* =========================================================
+     COUNT
+  ========================================================= */
+  
+  .nav-item .count {
+    background: var(--red);
+  
+    color: #fff;
+  
+    font-size: 10px;
+  
+    font-weight: 700;
+  
+    width: 18px;
+    height: 18px;
+  
+    border-radius: 50%;
+  
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  
+    flex-shrink: 0;
+
+  
+    transition:
+      transform .25s var(--smooth),
+      box-shadow .25s ease;
+  }
+  
+  
+  .sidebar.collapsed .nav-item .count {
+    display: none;
+  }
+  
+  
+  /* =========================================================
+     NORMAL HOVER
+     SAME UI — ONLY SMOOTHED
+  ========================================================= */
+  
+  .nav-item:not(.active):hover {
+    color: var(--text-bright);
+  
+    background: var(--bg);
+  
+    box-shadow:
+      inset 3px 3px 6px var(--shadow-dark),
+      inset -3px -3px 6px var(--shadow-light);
+  }
+  
+  
+  /* Icon follows text smoothly */
+  
+  .nav-item:not(.active):hover i {
+    color: var(--text-bright);
+  }
+  
+  
+  /* Count */
+  
+  .nav-item:not(.active):hover .count {
+    transform: scale(1.06);
+  }
+  
+  
+  /* =========================================================
+     ACTIVE ITEM
+     YOUR ORIGINAL DESIGN
+  ========================================================= */
+  .nav-item.active {
+    color: #fff;
+  
+    background:
+      linear-gradient(
+        145deg,
+        var(--red),
+        var(--red-dark)
+      );
+  
+
+  
+    transition:
+      color .12s ease,
+      background .12s ease,
+      box-shadow .22s var(--smooth),
+      transform .16s var(--smooth);
+  }
+  
+  
+  /* Active hover */
+  
+  .nav-item.active:hover {
+    box-shadow:
+      inset 2px 2px 5px rgba(0,0,0,.3),
+      inset -2px -2px 5px rgba(255,255,255,.15),
+      6px 6px 14px var(--shadow-dark);
+  }
+  
+  
+  /* =========================================================
+     DIVIDER
+  ========================================================= */
+  
+  .divider {
+    height: 1px;
+  
+    background: var(--shadow-dark);
+  
+    margin: 18px 4px;
+  
+    opacity: .9;
+  
+    transition:
+      opacity .3s ease,
+      margin .4s var(--layout);
+  }
+  
+  
+  /* =========================================================
+     SMALL INTERACTION DETAILS
+  ========================================================= */
+  
+  .nav-item:active {
+    transform: scale(.985);
+  }
+  
+  
+  .nav-item.active:active {
+    transform: scale(.985);
+  }
+  
+  
+  .nav-item i,
+  .nav-item .label,
+  .nav-item .count {
+    will-change: transform, opacity, color;
+  }
+  
+  
+  /* =========================================================
+     RESPONSIVE
+  ========================================================= */
+  
+  @media (max-width: 480px) {
+  
+    body {
+      padding: 15px;
+    }
+  
+    .sidebar {
+      width: 260px;
+    }
+  
+    .sidebar.collapsed {
+      width: 88px;
+    }
+  }
+  
+  
+  /* =========================================================
+     REDUCED MOTION
+  ========================================================= */
+  
+  @media (prefers-reduced-motion: reduce) {
+  
+    *,
+    *::before,
+    *::after {
+      transition: none !important;
+      animation: none !important;
+    }
+  }

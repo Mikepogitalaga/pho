@@ -7,8 +7,7 @@
 @section('content')
     <div class="section-header">
         <div>
-            <h1 class="page-heading">Suppliers</h1>
-            <p class="page-description">Search, edit, and manage supplier records.</p>
+            
         </div>
         <div class="table-actions">
             <a href="{{ route('suppliers.create') }}" class="btn btn-primary">New Supplier</a>
@@ -26,31 +25,37 @@
                 <thead>
                     <tr>
                         <th>Company</th>
-                        <th>Contact</th>
-                        <th>Phone</th>
+                        <th>Type</th>
+                        <th class="col-hide-md">Contact</th>
+                        <th class="col-hide-md">Phone</th>
                         <th>Email</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($suppliers as $supplier)
+                     @forelse ($suppliers as $supplier)
+                         <tr>
+                              <td class="mobile-card-header">
+                                  <span><a href="{{ route('suppliers.show', $supplier) }}" class="table-link" style="font-weight:600;color:var(--danger);"> {{ $supplier->company_name }}</a></span>
+                              </td>
+                              <td data-label="Type">
+                                  <span class="badge {{ $supplier->isDoh() ? 'badge-success' : 'badge-warning' }}">{{ $supplier->supplier_type }}</span>
+                              </td>
+                              <td data-label="Contact" class="col-hide-md">{{ $supplier->contact_person }}</td>
+                              <td data-label="Phone" class="col-hide-md">{{ $supplier->phone_number }}</td>
+                              <td data-label="Email">{{ $supplier->email }}</td>
+                             <td class="mobile-card-actions">
+                                 <a href="{{ route('suppliers.edit', $supplier) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">Edit</a>
+                                 <form action="{{ route('suppliers.destroy', $supplier) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this supplier?');">
+                                     @csrf
+                                     @method('DELETE')
+                                     <button type="submit" class="btn btn-danger" style="min-height:2rem;padding:0.3rem 0.7rem;font-size:0.8rem;">Delete</button>
+                                 </form>
+                             </td>
+                         </tr>
+                     @empty
                         <tr>
-                            <td>{{ $supplier->company_name }}</td>
-                            <td>{{ $supplier->contact_person }}</td>
-                            <td>{{ $supplier->phone_number }}</td>
-                            <td>{{ $supplier->email }}</td>
-                            <td class="table-actions">
-                                <a href="{{ route('suppliers.edit', $supplier) }}" class="table-link">Edit</a>
-                                <form action="{{ route('suppliers.destroy', $supplier) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="table-link table-link-danger" onclick="return confirm('Delete this supplier?')">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" style="padding: 1.25rem;">
+                            <td colspan="6" style="padding: 1.25rem;">
                                 <div class="empty-state">
                                     <strong>No suppliers found.</strong>
                                     <div style="margin-top: 0.35rem;">Create your first supplier to get started.</div>
@@ -63,8 +68,6 @@
         </div>
     </section>
 
-    <div class="pagination-wrapper">
-        {{ $suppliers->withQueryString()->links() }}
-    </div>
+    <x-pagination.modern :paginator="$suppliers" />
 @endsection
 

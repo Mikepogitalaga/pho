@@ -16,25 +16,34 @@
                     <input type="text" name="company_name" value="{{ old('company_name') }}" required>
                 </div>
                 <div class="form-group">
-                    <label>Contact Person</label>
-                    <input type="text" name="contact_person" value="{{ old('contact_person') }}">
+                    <label>Supplier Type</label>
+                    <select name="supplier_type" required>
+                        <option value="DOH" {{ old('supplier_type') === 'DOH' ? 'selected' : '' }}>DOH - Department of Health</option>
+                        <option value="GSO" {{ old('supplier_type') === 'GSO' ? 'selected' : '' }}>GSO - General Services Office</option>
+                    </select>
                 </div>
             </div>
 
             <div class="form-grid-2">
                 <div class="form-group">
+                    <label>Contact Person</label>
+                    <input type="text" name="contact_person" value="{{ old('contact_person') }}">
+                </div>
+                <div class="form-group">
                     <label>Phone Number</label>
                     <input type="text" name="phone_number" value="{{ old('phone_number') }}">
                 </div>
+            </div>
+
+            <div class="form-grid-2">
                 <div class="form-group">
                     <label>Email</label>
                     <input type="email" name="email" value="{{ old('email') }}">
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label>Address</label>
-                <textarea name="address" rows="3">{{ old('address') }}</textarea>
+                <div class="form-group">
+                    <label>Address</label>
+                    <textarea name="address" rows="3">{{ old('address') }}</textarea>
+                </div>
             </div>
 
             <div class="form-actions">

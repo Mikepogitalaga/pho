@@ -71,7 +71,6 @@ return new class extends Migration
             $table->string('pas_number')->nullable();
             $table->string('health_program_coordinator')->nullable();
             $table->string('ptr_itr_ris_no')->nullable();
-            $table->string('pho_code')->nullable();
             $table->string('source_docs_ptr_po_no')->nullable();
             $table->string('facility_name')->nullable();
             $table->string('received_by')->nullable();

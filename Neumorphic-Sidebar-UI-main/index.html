@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Neomorphic Sidebar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="code-with-nazia.css">
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="top-row">
+    <div class="brand-row" id="brandToggle">
+      <div class="brand-icon">N</div>
+      <div class="brand-text">
+        <p class="brand-name">Netflix</p>
+        <p class="brand-sub">Watch anywhere</p>
+      </div>
+    </div>
+    <div class="expand-btn" id="expandBtn">
+      <i class="ti ti-chevron-left"></i>
+    </div>
+  </div>
+
+  <div class="section-label">Menu</div>
+  <div class="nav-item active" style="transition-delay:0s"><i class="ti ti-home"></i><span class="label">Home</span></div>
+  <div class="nav-item" style="transition-delay:.04s"><i class="ti ti-player-play"></i><span class="label">Continue watching</span></div>
+  <div class="nav-item" style="transition-delay:.08s"><i class="ti ti-plus"></i><span class="label">My list</span><span class="count">7</span></div>
+  <div class="nav-item" style="transition-delay:.12s"><i class="ti ti-device-tv"></i><span class="label">Series</span></div>
+  <div class="nav-item" style="transition-delay:.16s"><i class="ti ti-movie"></i><span class="label">Movies</span></div>
+  <div class="nav-item" style="transition-delay:.20s"><i class="ti ti-device-gamepad-2"></i><span class="label">Games</span></div>
+ 
+  <div class="divider"></div>
+ 
+  <div class="section-label">Discovery</div>
+  <div class="nav-item" style="transition-delay:.24s"><i class="ti ti-layout-grid"></i><span class="label">Releases</span></div>
+  <div class="nav-item" style="transition-delay:.28s"><i class="ti ti-star"></i><span class="label">Popular</span></div>
+ 
+  <div class="divider"></div>
+ 
+  <div class="nav-item" style="transition-delay:.32s"><i class="ti ti-settings"></i><span class="label">Settings</span></div>
+  <div class="nav-item" style="transition-delay:.36s"><i class="ti ti-logout"></i><span class="label">Log out</span></div>
+</nav>
+
+<script>
+  const sidebar = document.getElementById('sidebar');
+  const expandBtn = document.getElementById('expandBtn');
+  const brandToggle = document.getElementById('brandToggle');
+
+  function toggleSidebar() {
+    sidebar.classList.toggle('collapsed');
+  }
+
+  expandBtn.addEventListener('click', toggleSidebar);
+  brandToggle.addEventListener('click', toggleSidebar);
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelector('.nav-item.active')?.classList.remove('active');
+      item.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
