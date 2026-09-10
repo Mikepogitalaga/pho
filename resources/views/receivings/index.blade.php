@@ -11,6 +11,7 @@
         </div>
         <div class="table-actions" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
             <a href="{{ route('receivings.export') }}" class="btn btn-secondary">Download Excel</a>
+            <a href="{{ route('receivings.print-list') }}" class="btn btn-secondary" target="_blank">Print</a>
             <a href="{{ route('receivings.create') }}" class="btn btn-primary">New Receiving</a>
         </div>
     </div>

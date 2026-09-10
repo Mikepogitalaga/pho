@@ -62,10 +62,12 @@ Route::middleware('web')->group(function () {
 
         Route::get('receivings', [ReceivingController::class, 'index'])->name('receivings.index');
         Route::get('receivings/export', [ReceivingController::class, 'export'])->name('receivings.export');
+        Route::get('receivings/print', [ReceivingController::class, 'printList'])->name('receivings.print-list');
         Route::get('receivings/create', [ReceivingController::class, 'create'])->name('receivings.create');
         Route::get('receivings/{receiving}/edit', [ReceivingController::class, 'edit'])->name('receivings.edit');
         Route::put('receivings/{receiving}', [ReceivingController::class, 'update'])->name('receivings.update');
         Route::get('receivings/{receiving}', [ReceivingController::class, 'view'])->name('receivings.view');
+        Route::get('receivings/{receiving}/print', [ReceivingController::class, 'print'])->name('receivings.print');
         Route::post('receivings', [ReceivingController::class, 'store'])->name('receivings.store');
 
         Route::get('releases', [ReleaseController::class, 'index'])->name('releases.index');

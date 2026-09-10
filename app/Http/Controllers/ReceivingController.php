@@ -136,11 +136,59 @@ class ReceivingController extends Controller
         ]);
     }
 
+    public function printList(Request $request)
+    {
+        $query = Receiving::with(['supplier', 'items.item'])->latest('date_received');
+
+        $search = trim((string) $request->input('search', ''));
+        if ($search !== '') {
+            $query->where('receiving_number', 'like', '%' . $search . '%');
+        }
+
+        $supplier = trim((string) $request->input('supplier', ''));
+        if ($supplier !== '') {
+            $query->whereHas('supplier', function ($q) use ($supplier) {
+                $q->where('company_name', 'like', '%' . $supplier . '%');
+            });
+        }
+
+        $poNumber = trim((string) $request->input('po_number', ''));
+        if ($poNumber !== '') {
+            $query->where('po_number', 'like', '%' . $poNumber . '%');
+        }
+
+        $program = trim((string) $request->input('program', ''));
+        if ($program !== '') {
+            $query->where('stock_keeping_unit', 'like', '%' . $program . '%');
+        }
+
+        $startDate = $request->input('start_date');
+        if ($startDate) {
+            $query->whereDate('date_received', '>=', $startDate);
+        }
+
+        $endDate = $request->input('end_date');
+        if ($endDate) {
+            $query->whereDate('date_received', '<=', $endDate);
+        }
+
+        $receivings = $query->get();
+
+        return view('receivings.list-print', compact('receivings'));
+    }
+
     public function view(Receiving $receiving)
     {
         $receiving->load('items.item');
 
         return view('receivings.view', compact('receiving'));
+    }
+
+    public function print(Receiving $receiving)
+    {
+        $receiving->load('items.item');
+
+        return view('receivings.print', compact('receiving'));
     }
 
     public function edit(Receiving $receiving)
