@@ -307,6 +307,19 @@
             };
         });
 
+        function resolveProgramPrefix(programValue) {
+            var normalized = (programValue || '').trim().toLowerCase();
+            if (!normalized) {
+                return '';
+            }
+
+            var matched = programsData.find(function(program) {
+                return program.nameLower === normalized;
+            });
+
+            return matched ? (matched.description || '') : '';
+        }
+
         function bindAutocompleteList(input, dataList, dropdown, onSelect) {
             function showOptions(searchText) {
                 dropdown.innerHTML = '';
@@ -376,6 +389,60 @@
         var programDropdown = document.getElementById('programDropdown');
         var coordinatorDropdown = document.getElementById('coordinatorDropdown');
 
+        function refreshAllItemCodes() {
+            var container = document.getElementById('receiving-items');
+            var prefix = currentCodePrefix;
+            if (!prefix) return;
+
+            var regex = new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$');
+            var maxExistingSeq = 0;
+
+            Array.from(container.querySelectorAll('.item-code-input')).forEach(function(input) {
+                var val = input.value || '';
+                var match = val.match(regex);
+                if (match) {
+                    var seq = parseInt(match[1], 10);
+                    if (seq > maxExistingSeq) {
+                        maxExistingSeq = seq;
+                    }
+                }
+            });
+
+            var dbSeq = programSequences[prefix] || 0;
+            var nextSeq = Math.max(dbSeq, maxExistingSeq);
+            codeSequences[prefix] = nextSeq;
+
+            Array.from(container.querySelectorAll('.item-code-input')).forEach(function(input) {
+                var shouldSync = input.dataset.generated === 'true' || !(input.value || '').trim();
+                if (!shouldSync) {
+                    return;
+                }
+
+                input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(nextSeq).padStart(4, '0');
+                input.dataset.generated = 'true';
+                nextSeq++;
+            });
+
+            codeSequences[prefix] = nextSeq;
+        }
+
+        function bindProgramCodeSync(programInput, onChange) {
+            if (!programInput) {
+                return;
+            }
+
+            function syncProgramCode() {
+                currentCodePrefix = resolveProgramPrefix(programInput.value);
+                if (currentCodePrefix) {
+                    onChange();
+                }
+            }
+
+            programInput.addEventListener('input', syncProgramCode);
+            programInput.addEventListener('change', syncProgramCode);
+            syncProgramCode();
+        }
+
         if (programInput && programDropdown) {
             bindAutocompleteList(programInput, programsData, programDropdown, function(item) {
                 currentCodePrefix = item.description || '';
@@ -387,6 +454,7 @@
                 }
                 refreshAllItemCodes();
             });
+            bindProgramCodeSync(programInput, refreshAllItemCodes);
         }
 
         if (coordinatorInput && coordinatorDropdown) {
@@ -396,8 +464,7 @@
                     if (programs.length > 0) {
                         if (!programInput.value.trim() || programsData.some(function(p) { return p.nameLower === programInput.value.trim().toLowerCase(); })) {
                             programInput.value = programs[0];
-                            var matched = programsData.find(function(p) { return p.nameLower === programs[0].toLowerCase(); });
-                            currentCodePrefix = matched ? matched.description : '';
+                            currentCodePrefix = resolveProgramPrefix(programs[0]);
                             refreshAllItemCodes();
                         }
                     }
@@ -405,39 +472,6 @@
             });
         }
         // ---- End Program & Coordinator Autocomplete ----
-
-        function refreshAllItemCodes() {
-            var container = document.getElementById('receiving-items');
-            var prefix = currentCodePrefix;
-            if (!prefix) return;
-
-            var maxExistingSeq = 0;
-            Array.from(container.querySelectorAll('.item-code-input')).forEach(function(input) {
-                var val = input.value || '';
-                var matchNew = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
-                if (matchNew) {
-                    var seq = parseInt(matchNew[1], 10);
-                    if (seq > maxExistingSeq) maxExistingSeq = seq;
-                }
-            });
-
-            var dbSeq = programSequences[prefix] || 0;
-            var nextSeq = Math.max(dbSeq, maxExistingSeq);
-            codeSequences[prefix] = nextSeq;
-
-            Array.from(container.querySelectorAll('.item-code-input')).forEach(function(input) {
-                var val = input.value || '';
-                var matchNew = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
-
-                if (!(input.value || '').trim()) {
-                    input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(nextSeq).padStart(4, '0');
-                    input.dataset.generated = 'true';
-                    nextSeq++;
-                }
-            });
-
-            codeSequences[prefix] = nextSeq;
-        }
 
         function getNextSequence(prefix) {
             if (!codeSequences[prefix]) {
@@ -686,15 +720,6 @@
         });
         updateIndexes();
         recalcNextSeq();
-
-        // If a program is already pre-selected on page load, initialize the code prefix
-        if (programInput && programInput.value.trim()) {
-            var matched = programsData.find(function(p) { return p.nameLower === programInput.value.trim().toLowerCase(); });
-            if (matched) {
-                currentCodePrefix = matched.description || '';
-                refreshAllItemCodes();
-            }
-        }
 
         // Add item button
         document.getElementById('add-receiving-item-button').addEventListener('click', addItemRow);

@@ -146,8 +146,8 @@ class DashboardController extends Controller
             ->get();
 
         // Inventory Value
-        $inventoryValue = Item::whereHas('receivingItems')
-            ->selectRaw('SUM(quantity_on_hand * COALESCE(unit_cost, 0)) as total_value')
+        $inventoryValue = Item::query()
+            ->selectRaw('COALESCE(SUM(quantity_on_hand * COALESCE(unit_cost, 0)), 0) as total_value')
             ->value('total_value') ?? 0;
 
         // ── Chart Data ────────────────────────────────────────────────

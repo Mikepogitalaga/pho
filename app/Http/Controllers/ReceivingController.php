@@ -175,16 +175,18 @@ class ReceivingController extends Controller
             'document_date'      => 'nullable|date',
             'date_received'      => 'required|date',
             'received_by'        => 'nullable|string|max:255',
-            'location'           => 'nullable|string|max:255',
             'stock_keeping_unit' => 'nullable|string|max:255',
             'program_coordinator'=> 'nullable|string|max:255',
             'items'              => 'required|array|min:1',
+            'items.*.item_code'  => 'nullable|string|max:255',
             'items.*.item_description'  => 'required|string|max:255',
-            'items.*.quantity_received' => 'required|integer|min:1',
+            'items.*.category' => 'nullable|in:DM,MDL,DOH,GSO,ACP',
             'items.*.uom'        => 'nullable|string|max:255',
+            'items.*.quantity_received' => 'required|integer|min:1',
             'items.*.lot_number' => 'nullable|string|max:255',
             'items.*.expiry_date'=> 'nullable|date',
             'items.*.unit_cost'  => 'nullable|numeric|min:0',
+            'items.*.location'   => 'nullable|string|max:255',
         ]);
 
         $syncedTotal = 0;
@@ -198,7 +200,7 @@ class ReceivingController extends Controller
                 'supplier_id'         => $request->input('supplier_id'),
                 'date_received'       => $request->input('date_received'),
                 'received_by'         => $request->input('received_by'),
-                'location'            => $request->input('location'),
+                'location'            => null,
                 'stock_keeping_unit'  => $request->input('stock_keeping_unit'),
                 'program_coordinator' => $request->input('program_coordinator'),
                 'notes'               => $request->input('notes'),
@@ -222,12 +224,11 @@ class ReceivingController extends Controller
                 }
                 if (!$item) {
                     $item = Item::create([
-                        'item_code'           => $itemData['item_code'] ?? null,
                         'name'                => $itemData['item_description'],
                         'category'            => $itemData['category'] ?? null,
                         'unit'                => $itemData['uom'] ?? null,
                         'description'         => $itemData['item_description'],
-                        'location'            => $request->input('location'),
+                        'location'            => $itemData['location'] ?? null,
                         'stock_keeping_unit'  => $request->input('stock_keeping_unit'),
                         'program_coordinator' => $request->input('program_coordinator'),
                         'unit_cost'           => $itemData['unit_cost'] ?? null,
@@ -239,7 +240,7 @@ class ReceivingController extends Controller
                         'category'            => $itemData['category'] ?? $item->category,
                         'unit'                => $itemData['uom'] ?? $item->unit,
                         'description'         => $itemData['item_description'] ?? $item->description,
-                        'location'            => $request->input('location') ?? $item->location,
+                        'location'            => $itemData['location'] ?? $item->location,
                         'stock_keeping_unit'  => $request->input('stock_keeping_unit') ?? $item->stock_keeping_unit,
                         'program_coordinator' => $request->input('program_coordinator') ?? $item->program_coordinator,
                     ]);
@@ -397,14 +398,15 @@ class ReceivingController extends Controller
                     }
                 },
             ],
-            'items.*.item_description' => 'required|string|max:255',
-            'items.*.category' => 'nullable|in:DM,MDL',
-            'items.*.uom' => 'nullable|string|max:255',
-            'items.*.quantity_received' => 'required|integer|min:1',
-            'items.*.lot_number' => 'nullable|string|max:255',
-            'items.*.expiry_date' => 'nullable|date',
-            'items.*.unit_cost' => 'nullable|numeric|min:0',
-        ]);
+             'items.*.item_description' => 'required|string|max:255',
+             'items.*.category' => 'nullable|in:DM,MDL',
+             'items.*.uom' => 'nullable|string|max:255',
+             'items.*.quantity_received' => 'required|integer|min:1',
+             'items.*.lot_number' => 'nullable|string|max:255',
+             'items.*.expiry_date' => 'nullable|date',
+             'items.*.unit_cost' => 'nullable|numeric|min:0',
+             'items.*.location' => 'nullable|string|max:255',
+         ]);
 
         try {
             DB::transaction(function () use ($request) {

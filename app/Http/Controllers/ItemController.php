@@ -20,7 +20,10 @@ class ItemController extends Controller
         $category = $request->query('category');
         $program = $request->query('program');
 
-        $query = Item::query()->whereHas('receivingItems');
+        $query = Item::query()->where(function ($q) {
+            $q->whereHas('receivingItems')
+              ->orWhere('quantity_on_hand', '>', 0);
+        });
 
         if ($search) {
             $query->where(function ($query) use ($search) {
@@ -348,7 +351,10 @@ class ItemController extends Controller
         $category = trim((string) $request->query('category', ''));
         $program  = trim((string) $request->query('program', ''));
 
-        $query = Item::query()->whereHas('receivingItems');
+        $query = Item::query()->where(function ($q) {
+            $q->whereHas('receivingItems')
+              ->orWhere('quantity_on_hand', '>', 0);
+        });
 
         if ($search) {
             $query->where(function ($q) use ($search) {

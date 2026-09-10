@@ -271,6 +271,19 @@
             return { name: opt.value, nameLower: opt.value.toLowerCase(), assignedPrograms: opt.dataset.programs || '' };
         });
 
+        function resolveProgramPrefix(programValue) {
+            var normalized = (programValue || '').trim().toLowerCase();
+            if (!normalized) {
+                return '';
+            }
+
+            var matched = programsData.find(function(program) {
+                return program.nameLower === normalized;
+            });
+
+            return matched ? (matched.description || '') : '';
+        }
+
         function bindAutocompleteList(input, dataList, dropdown, onSelect) {
             function showOptions(q) {
                 dropdown.innerHTML = '';
@@ -301,6 +314,50 @@
         var programDropdown   = document.getElementById('programDropdown');
         var coordinatorDropdown = document.getElementById('coordinatorDropdown');
 
+        function refreshAllNewItemCodes() {
+            var prefix = currentCodePrefix;
+            if (!prefix) return;
+            var dbSeq = programSequences[prefix] || 0;
+            var maxExistingReadonly = 0;
+            Array.from(document.querySelectorAll('.item-code-input')).forEach(function(input) {
+                if (input.readOnly) {
+                    var val = input.value || '';
+                    var match = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
+                    if (match) { var seq = parseInt(match[1], 10); if (seq > maxExistingReadonly) maxExistingReadonly = seq; }
+                }
+            });
+            var nextSeq = Math.max(dbSeq, maxExistingReadonly + 1);
+            codeSequences[prefix] = nextSeq;
+            Array.from(document.querySelectorAll('.item-code-input')).forEach(function(input) {
+                if (input.readOnly) return;
+                var shouldSync = input.dataset.generated === 'true' || !(input.value || '').trim();
+                if (!shouldSync) {
+                    return;
+                }
+                input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(nextSeq).padStart(4, '0');
+                input.dataset.generated = 'true';
+                nextSeq++;
+            });
+            codeSequences[prefix] = nextSeq;
+        }
+
+        function bindProgramCodeSync(programInput, onChange) {
+            if (!programInput) {
+                return;
+            }
+
+            function syncProgramCode() {
+                currentCodePrefix = resolveProgramPrefix(programInput.value);
+                if (currentCodePrefix) {
+                    onChange();
+                }
+            }
+
+            programInput.addEventListener('input', syncProgramCode);
+            programInput.addEventListener('change', syncProgramCode);
+            syncProgramCode();
+        }
+
         if (programInput && programDropdown) {
             bindAutocompleteList(programInput, programsData, programDropdown, function(item) {
                 currentCodePrefix = item.description || '';
@@ -308,14 +365,14 @@
                 if (matched && coordinatorInput && !coordinatorInput.value.trim()) coordinatorInput.value = matched.name;
                 refreshAllNewItemCodes();
             });
+            bindProgramCodeSync(programInput, refreshAllNewItemCodes);
         }
         if (coordinatorInput && coordinatorDropdown) {
             bindAutocompleteList(coordinatorInput, coordinatorsData, coordinatorDropdown, function(item) {
                 if (item.assignedPrograms && programInput && !programInput.value.trim()) {
                     var prog = item.assignedPrograms.split(', ')[0] || '';
                     programInput.value = prog;
-                    var matched = programsData.find(function(p) { return p.nameLower === prog.toLowerCase(); });
-                    currentCodePrefix = matched ? matched.description : '';
+                    currentCodePrefix = resolveProgramPrefix(prog);
                     refreshAllNewItemCodes();
                 }
             });
@@ -323,8 +380,63 @@
 
         // Init prefix from existing program value
         if (programInput && programInput.value.trim()) {
-            var matched = programsData.find(function(p) { return p.nameLower === programInput.value.trim().toLowerCase(); });
-            if (matched) currentCodePrefix = matched.description || '';
+            currentCodePrefix = resolveProgramPrefix(programInput.value);
+            if (currentCodePrefix) {
+                refreshAllNewItemCodes();
+            }
+        }
+
+        function recalcNextSeq() {
+            var container = document.getElementById('receiving-items');
+            var maxNewSeqs = {};
+            Array.from(container.querySelectorAll('.item-code-input')).forEach(function(input) {
+                var val = input.value || '';
+                var matchNew = val.match(/^([A-Za-z0-9_-]+)-\d{2}-\d{2}-(\\d{4})$/);
+                if (matchNew) {
+                    var prefix = matchNew[1];
+                    var seq = parseInt(matchNew[2], 10);
+                    if (!maxNewSeqs[prefix] || seq > maxNewSeqs[prefix]) {
+                        maxNewSeqs[prefix] = seq;
+                    }
+                }
+            });
+
+            Object.keys(maxNewSeqs).forEach(function(prefix) {
+                var dbSeq = programSequences[prefix] || 0;
+                codeSequences[prefix] = Math.max(dbSeq, maxNewSeqs[prefix] + 1);
+            });
+        }
+
+        function renumberAllItemCodes() {
+            var container = document.getElementById('receiving-items');
+            var prefix = currentCodePrefix;
+            if (!prefix) return;
+
+            var inputs = Array.from(container.querySelectorAll('.item-code-input'));
+            var dbSeq = programSequences[prefix] || 0;
+            var maxExistingReadonly = 0;
+
+            inputs.forEach(function(input) {
+                if (input.readOnly) {
+                    var val = input.value || '';
+                    var match = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
+                    if (match) {
+                        var s = parseInt(match[1], 10);
+                        if (s > maxExistingReadonly) maxExistingReadonly = s;
+                    }
+                }
+            });
+
+            var seq = Math.max(dbSeq, maxExistingReadonly + 1);
+
+            inputs.forEach(function(input) {
+                if (!input.readOnly && input.dataset.generated === 'true') {
+                    input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(seq).padStart(4, '0');
+                    seq++;
+                }
+            });
+
+            codeSequences[prefix] = seq;
         }
 
         function getNextSequence(prefix) {
@@ -332,12 +444,11 @@
                 var dbSeq = programSequences[prefix] || 0;
                 var maxExisting = 0;
                 Array.from(document.querySelectorAll('.item-code-input')).forEach(function(input) {
-                    if (input.readOnly) return;
                     var val = input.value || '';
                     var match = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
                     if (match) { var seq = parseInt(match[1], 10); if (seq > maxExisting) maxExisting = seq; }
                 });
-                codeSequences[prefix] = Math.max(dbSeq, maxExisting);
+                codeSequences[prefix] = Math.max(dbSeq, maxExisting > 0 ? maxExisting + 1 : 0);
             }
             return codeSequences[prefix]++;
         }
@@ -346,30 +457,6 @@
             if (!currentCodePrefix) return '';
             var seq = getNextSequence(currentCodePrefix);
             return currentCodePrefix + '-' + currentYear + '-' + currentMonth + '-' + String(seq).padStart(4, '0');
-        }
-
-        function refreshAllNewItemCodes() {
-            var prefix = currentCodePrefix;
-            if (!prefix) return;
-            var dbSeq = programSequences[prefix] || 0;
-            var maxExisting = 0;
-            Array.from(document.querySelectorAll('.item-code-input')).forEach(function(input) {
-                if (input.readOnly) return;
-                var val = input.value || '';
-                var match = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
-                if (match) { var seq = parseInt(match[1], 10); if (seq > maxExisting) maxExisting = seq; }
-            });
-            var nextSeq = Math.max(dbSeq, maxExisting);
-            codeSequences[prefix] = nextSeq;
-            Array.from(document.querySelectorAll('.item-code-input')).forEach(function(input) {
-                if (input.readOnly) return;
-                if (!(input.value || '').trim()) {
-                    input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(nextSeq).padStart(4, '0');
-                    input.dataset.generated = 'true';
-                    nextSeq++;
-                }
-            });
-            codeSequences[prefix] = nextSeq;
         }
 
         function bindItemAutocomplete(row) {
@@ -390,7 +477,6 @@
 
             function syncItem(item) {
                 descInput.value = item.name;
-                if (codeInput && !codeInput.readOnly) codeInput.value = item.code || '';
                 if (categoryInput) {
                     var cat = item.category || 'DM';
                     if (cat !== 'DM' && cat !== 'MDL') cat = 'DM';
@@ -446,18 +532,48 @@
                 body.style.display = hidden ? '' : 'none';
                 toggleButton.textContent = hidden ? 'Hide' : 'Show';
             });
-            removeButton.addEventListener('click', function() { row.remove(); updateIndexes(); });
+            removeButton.addEventListener('click', function() {
+                row.remove();
+                updateIndexes();
+                if (currentCodePrefix) {
+                    renumberAllItemCodes();
+                }
+            });
         }
 
         function updateIndexes() {
-            Array.from(document.querySelectorAll('#receiving-items .receiving-item-row')).forEach(function(row, index) {
+            var container = document.getElementById('receiving-items');
+            Array.from(container.querySelectorAll('.receiving-item-row')).forEach(function(row, index) {
                 row.dataset.index = index;
                 row.querySelector('.item-row-title').textContent = 'Item ' + (index + 1);
                 row.querySelectorAll('input, select').forEach(function(f) {
                     f.name = f.name.replace(/items\[\d+\]/, 'items[' + index + ']');
                 });
-                row.querySelector('.remove-item-button').style.display = index === 0 ? 'none' : '';
+                var deleteButton = row.querySelector('.remove-item-button');
+                if (deleteButton) {
+                    deleteButton.style.display = index === 0 ? 'none' : '';
+                }
             });
+            recalcNextSeq();
+        }
+
+        function addItemRow() {
+            var template = document.getElementById('receiving-item-template');
+            var clone    = template.content.cloneNode(true);
+            var row      = clone.querySelector('.receiving-item-row');
+            var container = document.getElementById('receiving-items');
+
+            recalcNextSeq();
+
+            var codeInput = row.querySelector('.item-code-input');
+            if (codeInput) {
+                codeInput.value = generateNextCode();
+                codeInput.dataset.generated = 'true';
+            }
+            bindItemAutocomplete(row);
+            bindRowActions(row);
+            container.appendChild(row);
+            updateIndexes();
         }
 
         // Init existing rows
@@ -466,22 +582,10 @@
             bindRowActions(row);
         });
         updateIndexes();
+        recalcNextSeq();
 
         // Add new row
-        document.getElementById('add-receiving-item-button').addEventListener('click', function() {
-            var template = document.getElementById('receiving-item-template');
-            var clone    = template.content.cloneNode(true);
-            var row      = clone.querySelector('.receiving-item-row');
-            var codeInput = row.querySelector('.item-code-input');
-            if (codeInput) {
-                codeInput.value = generateNextCode();
-                codeInput.dataset.generated = 'true';
-            }
-            bindItemAutocomplete(row);
-            bindRowActions(row);
-            document.getElementById('receiving-items').appendChild(row);
-            updateIndexes();
-        });
+        document.getElementById('add-receiving-item-button').addEventListener('click', addItemRow);
 
         // Dirty guard
         var formDirty = false;
