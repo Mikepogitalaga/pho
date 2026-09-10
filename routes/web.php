@@ -74,6 +74,7 @@ Route::middleware('web')->group(function () {
         Route::get('releases/export', [ReleaseController::class, 'exportList'])->name('releases.export');
         Route::get('releases/print', [ReleaseController::class, 'printList'])->name('releases.print-list');
         Route::get('releases/create', [ReleaseController::class, 'create'])->name('releases.create');
+        Route::get('releases/{release}/edit', [ReleaseController::class, 'edit'])->name('releases.edit');
         Route::get('releases/next-ptr-number/{type}', [ReleaseController::class, 'nextPtrNumber'])->name('releases.next-ptr');
         Route::post('releases', [ReleaseController::class, 'store'])->name('releases.store');
         Route::get('releases/{release}', [ReleaseController::class, 'view'])->name('releases.view');
