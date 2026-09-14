@@ -29,7 +29,7 @@ function makeReleaseCreateFixture(): array
 
     return [
         'items' => collect([$item]),
-        'ptrNumber' => '14538-PTR-2026-09-0001',
+        'ptrNumber' => 'PTR-2026-09-0001',
         'programs' => collect([(object) ['name' => 'Test Program']]),
         'coordinators' => collect([(object) ['full_name' => 'Test Coordinator', 'assigned_programs' => 'Test Program']]),
         'facilities' => collect([(object) ['name' => 'Test Facility', 'category' => 'Hospitals']]),

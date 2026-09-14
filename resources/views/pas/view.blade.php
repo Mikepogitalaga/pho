@@ -10,16 +10,16 @@
             <h1 class="page-heading">{{ $pas->pas_number }}</h1>
             @php
                 $linkedRelease = $pas->release;
-                $displayStatus = $linkedRelease ? 'PTR created' : $pas->status;
+                $displayStatus = $linkedRelease ? $linkedRelease->status : $pas->status;
                 $badgeClass = match($displayStatus) {
-                    'Released' => 'badge-success',
+                    'Released', 'Released through pass' => 'badge-success',
                     'Canceled' => 'badge-danger',
-                    'PTR created' => 'badge-success',
-                    default    => 'badge-warning',
+                    'Returned' => 'badge-warning',
+                    default    => 'badge-secondary',
                 };
             @endphp
             <p class="page-description">
-                <span class="pas-badge pas-badge--{{ $displayStatus === 'Released' || $displayStatus === 'PTR created' ? 'green' : ($displayStatus === 'Canceled' ? 'red' : 'amber') }}">
+                <span class="pas-badge pas-badge--{{ in_array($displayStatus, ['Released', 'Released through pass']) ? 'green' : ($displayStatus === 'Canceled' ? 'red' : 'amber') }}">
                     <span class="pas-badge-dot"></span>
                     {{ $displayStatus }}
                 </span>
@@ -34,6 +34,7 @@
                         'release_coordinator'        => $pas->facility_coordinator,
                         'facility_name'              => $pas->facility_name ?: $pas->facility_coordinator,
                         'transfer_type'              => $pas->transfer_type ?? 'PTR',
+                        'reason_for_transfer'        => $pas->reason_for_transfer,
                     ];
                     if (!empty($pas->purpose_activity)) {
                         $releaseParams['purpose_activity'] = $pas->purpose_activity;
@@ -101,10 +102,16 @@
             <p class="pas-detail-label">Purpose / Activity</p>
             <p class="pas-detail-value">{{ $pas->purpose_activity ?? '—' }}</p>
         </div>
+        @if($pas->reason_for_transfer)
+        <div class="pas-detail-item pas-detail-item--full">
+            <p class="pas-detail-label">Reason for Transfer</p>
+            <p class="pas-detail-value">{{ $pas->reason_for_transfer }}</p>
+        </div>
+        @endif
         <div class="pas-detail-item">
             <p class="pas-detail-label">Status</p>
             <p class="pas-detail-value">
-                <span class="pas-badge pas-badge--{{ $displayStatus === 'Released' || $displayStatus === 'PTR created' ? 'green' : ($displayStatus === 'Canceled' ? 'red' : 'amber') }}">
+                <span class="pas-badge pas-badge--{{ in_array($displayStatus, ['Released', 'Released through pass']) ? 'green' : ($displayStatus === 'Canceled' ? 'red' : 'amber') }}">
                     <span class="pas-badge-dot"></span>
                     {{ $displayStatus }}
                 </span>

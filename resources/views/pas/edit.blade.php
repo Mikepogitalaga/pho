@@ -100,6 +100,12 @@
             </div>
         </div>
 
+        <div class="form-group">
+            <label>Reason for Transfer</label>
+            <textarea name="reason_for_transfer" rows="3" placeholder="Specify the reason for this transfer...">{{ old('reason_for_transfer', $pas->reason_for_transfer) }}</textarea>
+            @error('reason_for_transfer')<span class="field-error">{{ $message }}</span>@enderror
+        </div>
+
         <div>
             <h2 class="section-title">Items <span style="color:var(--danger)">*</span></h2>
             <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem;">These items are for tracking only — inventory stock will NOT be deducted.</p>

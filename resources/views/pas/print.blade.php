@@ -357,6 +357,7 @@
     $facilityName = $pas->facility_name ?: $pas->facility_coordinator;
     $supplierName = $pas->supplier?->company_name ?? '—';
     $purposeActivity = $pas->purpose_activity ?: 'For the participants of World Hepatitis Day Celebration';
+    $reasonForTransfer = $pas->reason_for_transfer;
     $chunks = $items->chunk(20);
     $totalPages = max($chunks->count(), 1);
 @endphp
@@ -389,6 +390,12 @@
                     <label>Activity and Purpose:</label>
                     <span class="line">{{ $purposeActivity }}</span>
                 </div>
+                @if($reasonForTransfer)
+                <div class="form-row3">
+                    <label>Reason for Transfer:</label>
+                    <span class="line">{{ $reasonForTransfer }}</span>
+                </div>
+                @endif
             </div>
             <div class="top-info-right">
                 <div class="form-row">

@@ -19,6 +19,7 @@ class Pas extends Model
         'date_released',
         'supplier_id',
         'purpose_activity',
+        'reason_for_transfer',
         'facility_name',
         'facility_coordinator',
         'transfer_type',

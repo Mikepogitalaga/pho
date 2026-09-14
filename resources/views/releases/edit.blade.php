@@ -91,10 +91,55 @@
                 </div>
             </div>
 
-            {{-- Hidden fields for received_by, date_released, status --}}
-            <input type="hidden" name="received_by" value="{{ old('received_by', $release->received_by ?? '') }}">
-            <input type="hidden" name="date_released" value="{{ old('date_released', $release->date_released?->toDateString() ?? '') }}">
-            <input type="hidden" name="status" value="{{ old('status', $release->status ?? 'Unreleased') }}">
+            {{-- Reason for Transfer --}}
+            <div class="form-group">
+                <label>Reason for Transfer</label>
+                <select name="reason_for_transfer" id="reasonForTransferSelect" required>
+                    <option value="">— Select Reason —</option>
+                    <option value="Donation" {{ old('reason_for_transfer', $release->reason_for_transfer) === 'Donation' ? 'selected' : '' }}>Donation</option>
+                    <option value="Reassignment" {{ old('reason_for_transfer', $release->reason_for_transfer) === 'Reassignment' ? 'selected' : '' }}>Reassignment</option>
+                    <option value="Relocate" {{ old('reason_for_transfer', $release->reason_for_transfer) === 'Relocate' ? 'selected' : '' }}>Relocate</option>
+                    <option value="Allocation" {{ old('reason_for_transfer', $release->reason_for_transfer) === 'Allocation' ? 'selected' : '' }}>Allocation</option>
+                    <option value="Others" {{ old('reason_for_transfer', $release->reason_for_transfer) === 'Others' ? 'selected' : '' }}>Others (specify)</option>
+                </select>
+                @error('reason_for_transfer')
+                    <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem; display: block;">{{ $message }}</span>
+                @enderror
+            </div>
+            <div class="form-group" id="reasonOthersGroup" style="display: none;">
+                <label for="reason_for_transfer_others">Reason (Others)</label>
+                <input type="text" name="reason_for_transfer_others" id="reason_for_transfer_others" value="{{ old('reason_for_transfer_others', $release->reason_for_transfer_others ?? '') }}" placeholder="Specify the reason...">
+            </div>
+
+            {{-- Status --}}
+            <div class="form-grid-3">
+                <div class="form-group">
+                    <label>Status</label>
+                    <select name="status" id="releaseStatusSelect">
+                        <option value="Unreleased" @selected(($release->status ?? '') === 'Unreleased')>Unreleased</option>
+                        <option value="Released" @selected(($release->status ?? '') === 'Released')>Released</option>
+                        <option value="Released through pass" @selected(($release->status ?? '') === 'Released through pass')>Released through pass</option>
+                        <option value="Canceled" @selected(($release->status ?? '') === 'Canceled')>Canceled</option>
+                        <option value="Returned" @selected(($release->status ?? '') === 'Returned')>Returned</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date Released</label>
+                    <input type="date" name="date_released" value="{{ old('date_released', $release->date_released?->format('Y-m-d') ?? '') }}">
+                </div>
+                <div class="form-group">
+                    <label>Received By</label>
+                    <input type="text" name="received_by" value="{{ old('received_by', $release->received_by ?? '') }}" placeholder="Enter receiver name">
+                </div>
+            </div>
+
+            <div class="form-group" id="statusReasonGroup" style="display:none;">
+                <label>Reason <span style="color: var(--danger);">*</span></label>
+                <input type="text" name="status_reason" value="{{ old('status_reason', $release->status_reason ?? '') }}" placeholder="Enter reason">
+                @error('status_reason')
+                    <span style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem; display:block;">{{ $message }}</span>
+                @enderror
+            </div>
 
             {{-- Released Items --}}
             <div>
@@ -114,7 +159,7 @@
                                     'item_id'          => $ri->item_id,
                                     'item_description' => $ri->item_description ?? ($ri->item?->name ?? ''),
                                     'lot_number'       => $ri->lot_number ?? '',
-                                    'expiry_date'      => $ri->expiry_date?->toDateString() ?? '',
+                                    'expiry_date'      => $ri->expiry_date ?? '',
                                     'quantity_released' => $ri->quantity_released,
                                     'uom'              => $ri->uom ?? '',
                                     'unit_cost'        => $ri->unit_cost ?? '',
@@ -338,7 +383,7 @@
                 setManualEntry(false, false);
             });
 
-            if (currentPtrValue && !/^14538-/i.test(currentPtrValue)) {
+            if (currentPtrValue && !/^(PTR|ITR|RIS)-\d{4}-\d{2}-/i.test(currentPtrValue)) {
                 ptrTypeSelect.value = 'ELMIS';
                 setManualEntry(true, false);
             } else {
@@ -711,6 +756,20 @@
                 el.addEventListener('change', () => formDirty = true);
             });
         }).observe(releaseItems, { childList: true, subtree: true });
+    })();
+    </script>
+
+    <script>
+    (function () {
+        var statusSelect = document.getElementById('releaseStatusSelect');
+        var statusReasonGroup = document.getElementById('statusReasonGroup');
+        if (statusSelect && statusReasonGroup) {
+            var update = function () {
+                statusReasonGroup.style.display = ['Canceled', 'Returned'].includes(statusSelect.value) ? '' : 'none';
+            };
+            statusSelect.addEventListener('change', update);
+            update();
+        }
     })();
     </script>
     @endpush

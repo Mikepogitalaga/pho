@@ -274,6 +274,8 @@ class ReleaseController extends Controller
             'date_released'              => 'nullable|date',
             'status'                     => 'required|string|in:Unreleased,Released,Released through pass,Canceled,Returned',
             'status_reason'              => 'nullable|string|max:1000',
+            'reason_for_transfer'        => 'nullable|string',
+            'reason_for_transfer_others' => 'nullable|string|max:255',
             'notes'                      => 'nullable|string',
             'items'                      => 'nullable|array',
             'items.*.item_id'            => 'nullable|exists:items,id',
@@ -304,6 +306,12 @@ class ReleaseController extends Controller
                 'source_docs_ptr_po_no', 'facility_name',
                 'received_by', 'date_released', 'status', 'status_reason', 'notes',
             ]));
+
+            if ($request->has('reason_for_transfer')) {
+                $release->reason_for_transfer = $request->input('reason_for_transfer') === 'Others'
+                    ? $request->input('reason_for_transfer_others')
+                    : $request->input('reason_for_transfer');
+            }
             $release->facility_category = $facilityCategory;
 
             // Sync release items — delete removed, update changed, add new
@@ -457,14 +465,14 @@ class ReleaseController extends Controller
             ->groupBy('item_id')
             ->map(fn($group) => $group->first()->lot_number);
 
-        // Auto-generate PTR/ITR/RIS No. in format: 14538-{TYPE}-yyyy-mm-XXXX
+        // Auto-generate PTR/ITR/RIS No. in format: {TYPE}-yyyy-mm-XXXX
         $year = now()->format('Y');
         $month = now()->format('m');
         $ptrType = 'PTR'; // default type
-        $prefix = "14538-{$ptrType}-{$year}-{$month}-";
+        $prefix = "{$ptrType}-{$year}-{$month}-";
 
         // Get the last sequential number across ALL types (PTR, ITR, RIS) for this year-month
-        $nextSeq = $this->nextYearSequence(Release::class, 'ptr_itr_ris_no', "14538-%-{$year}-{$month}-%");
+        $nextSeq = $this->nextYearSequence(Release::class, 'ptr_itr_ris_no', "%-{$year}-{$month}-%");
 
         $ptrNumber = $prefix . $nextSeq;
 
@@ -480,10 +488,10 @@ class ReleaseController extends Controller
 
         $year = now()->format('Y');
         $month = now()->format('m');
-        $prefix = "14538-{$type}-{$year}-{$month}-";
+        $prefix = "{$type}-{$year}-{$month}-";
 
         // Get the last sequential number across ALL types (PTR, ITR, RIS) for this year-month
-        $nextSeq = $this->nextYearSequence(Release::class, 'ptr_itr_ris_no', "14538-%-{$year}-{$month}-%");
+        $nextSeq = $this->nextYearSequence(Release::class, 'ptr_itr_ris_no', "%-{$year}-{$month}-%");
 
         return response()->json(['number' => $prefix . $nextSeq]);
     }
@@ -524,6 +532,8 @@ class ReleaseController extends Controller
             'received_by' => 'required|string|max:255',
             'date_released' => 'nullable|date',
             'status' => 'required|string|max:255',
+            'reason_for_transfer' => 'nullable|string',
+            'reason_for_transfer_others' => 'nullable|string|max:255',
             'items' => 'required|array|min:1',
             'items.*.item_id' => 'required|exists:items,id',
             'items.*.item_description' => 'required|string|max:1000',
@@ -553,6 +563,9 @@ class ReleaseController extends Controller
                     'source_docs_ptr_po_no' => $request->input('source_docs_ptr_po_no'),
                     'facility_name' => $facilityName,
                     'facility_category' => $facilityCategory,
+                    'reason_for_transfer' => $request->input('reason_for_transfer') === 'Others'
+                        ? $request->input('reason_for_transfer_others')
+                        : $request->input('reason_for_transfer'),
                     'received_by' => $request->input('received_by'),
                     'date_released' => $request->input('date_released') ?: null,
                     'notes' => $request->input('notes'),

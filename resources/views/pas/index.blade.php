@@ -53,15 +53,12 @@
                 @forelse($slips as $slip)
                     @php
                         $linkedRelease = $slip->release;
-                        $displayStatus = $slip->status;
-                        if ($slip->status === 'Pending' && $linkedRelease) {
-                            $displayStatus = 'PTR created';
-                        }
+                        $displayStatus = $linkedRelease ? $linkedRelease->status : $slip->status;
                         $badgeClass = match($displayStatus) {
-                            'Released' => 'badge-success',
+                            'Released', 'Released through pass' => 'badge-success',
                             'Canceled' => 'badge-danger',
-                            'PTR created' => 'badge-success',
-                            default    => 'badge-warning',
+                            'Returned' => 'badge-warning',
+                            default    => 'badge-secondary',
                         };
                     @endphp
                      <tr>
@@ -75,7 +72,7 @@
                          <td data-label="Program" class="col-hide-md pas-muted">{{ $slip->program ?? '—' }}</td>
                          <td data-label="Purpose / Activity" class="pas-muted">{{ $slip->purpose_activity ?? '—' }}</td>
                          <td data-label="Status">
-                             <span class="pas-badge pas-badge--{{ $displayStatus === 'Released' || $displayStatus === 'PTR created' ? 'green' : ($displayStatus === 'Canceled' ? 'red' : 'amber') }}">
+                              <span class="pas-badge pas-badge--{{ in_array($displayStatus, ['Released', 'Released through pass']) ? 'green' : ($displayStatus === 'Canceled' ? 'red' : 'amber') }}">
                                  <span class="pas-badge-dot"></span>
                                  {{ $displayStatus }}
                              </span>

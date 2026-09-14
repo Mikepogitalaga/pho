@@ -48,45 +48,79 @@
                 </div>
             </div>
 
-            {{-- Row 2: Facility & Program --}}
-            <div class="form-grid-3">
-                <div class="form-group">
-                    <label>Name of Facility / End-user <span style="color: var(--danger);">*</span></label>
-                    <select name="facility_name" id="facilityName" required>
-                        <option value="">— Select Facility —</option>
-                        @foreach($facilities->groupBy('category') as $cat => $group)
-                            <optgroup label="{{ $cat ?: 'Other' }}">
-                                @foreach($group as $f)
-                                    <option value="{{ $f->name }}" {{ old('facility_name', request('facility_name')) === $f->name ? 'selected' : '' }}>{{ $f->name }}</option>
-                                @endforeach
-                            </optgroup>
-                        @endforeach
-                    </select>
-                    <a href="{{ route('facilities.index') }}" class="section-link" style="font-size:0.78rem;margin-top:0.35rem;display:inline-block;">+ Manage Facilities</a>
-                    @error('facility_name')
-                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
-                    @enderror
+        {{-- Row 2: Facility & Program --}}
+        <div class="form-grid-3">
+            <div class="form-group">
+                <label>Name of Facility / End-user <span style="color: var(--danger);">*</span></label>
+                <select name="facility_name" id="facilityName" required>
+                    <option value="">— Select Facility —</option>
+                    @foreach($facilities->groupBy('category') as $cat => $group)
+                        <optgroup label="{{ $cat ?: 'Other' }}">
+                            @foreach($group as $f)
+                                <option value="{{ $f->name }}" {{ old('facility_name', request('facility_name')) === $f->name ? 'selected' : '' }}>{{ $f->name }}</option>
+                            @endforeach
+                        </optgroup>
+                    @endforeach
+                </select>
+                <a href="{{ route('facilities.index') }}" class="section-link" style="font-size:0.78rem;margin-top:0.35rem;display:inline-block;">+ Manage Facilities</a>
+                @error('facility_name')
+                    <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                @enderror
+            </div>
+            <div class="form-group">
+                <label>Stock Keeping Unit (Program) <span style="color: var(--danger);">*</span></label>
+                <div style="position:relative;">
+                    <input name="health_program_coordinator" id="releaseProgramInput"
+                        value="{{ old('health_program_coordinator', request('health_program_coordinator')) }}" autocomplete="off" required style="width:100%;">
+                    <div id="releaseProgramDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
                 </div>
-                <div class="form-group">
-                    <label>Stock Keeping Unit (Program) <span style="color: var(--danger);">*</span></label>
-                    <div style="position:relative;">
-                        <input name="health_program_coordinator" id="releaseProgramInput"
-                            value="{{ old('health_program_coordinator', request('health_program_coordinator')) }}" autocomplete="off" required style="width:100%;">
-                        <div id="releaseProgramDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
-                    </div>
-                    @error('health_program_coordinator')
-                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
-                    @enderror
-                </div>
-                <div class="form-group">
-                    <label>Program Coordinator</label>
-                    <div style="position:relative;">
-                        <input name="release_coordinator" id="releaseCoordinatorInput"
-                            value="{{ old('release_coordinator', request('release_coordinator')) }}" autocomplete="off" style="width:100%;">
-                        <div id="releaseCoordinatorDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
-                    </div>
+                @error('health_program_coordinator')
+                    <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                @enderror
+            </div>
+            <div class="form-group">
+                <label>Program Coordinator</label>
+                <div style="position:relative;">
+                    <input name="release_coordinator" id="releaseCoordinatorInput"
+                        value="{{ old('release_coordinator', request('release_coordinator')) }}" autocomplete="off" style="width:100%;">
+                    <div id="releaseCoordinatorDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
                 </div>
             </div>
+        </div>
+
+        {{-- Reason for Transfer --}}
+        <div class="form-group">
+            <label>Reason for Transfer</label>
+            <select name="reason_for_transfer" id="reasonForTransferSelect" required>
+                <option value="">— Select Reason —</option>
+                <option value="Donation" {{ old('reason_for_transfer', request('reason_for_transfer')) === 'Donation' ? 'selected' : '' }}>Donation</option>
+                <option value="Reassignment" {{ old('reason_for_transfer', request('reason_for_transfer')) === 'Reassignment' ? 'selected' : '' }}>Reassignment</option>
+                <option value="Relocate" {{ old('reason_for_transfer', request('reason_for_transfer')) === 'Relocate' ? 'selected' : '' }}>Relocate</option>
+                <option value="Allocation" {{ old('reason_for_transfer', request('reason_for_transfer')) === 'Allocation' ? 'selected' : '' }}>Allocation</option>
+                <option value="Others" {{ old('reason_for_transfer', request('reason_for_transfer')) === 'Others' ? 'selected' : '' }}>Others (specify)</option>
+            </select>
+            @error('reason_for_transfer')
+                <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem; display: block;">{{ $message }}</span>
+            @enderror
+        </div>
+        <div class="form-group" id="reasonOthersGroup" style="display: none;">
+            <label for="reason_for_transfer_others">Reason (Others)</label>
+            <input type="text" name="reason_for_transfer_others" id="reason_for_transfer_others" value="{{ old('reason_for_transfer_others') }}" placeholder="Specify the reason...">
+        </div>
+
+        <script>
+            (function () {
+                var select = document.getElementById('reasonForTransferSelect');
+                var othersGroup = document.getElementById('reasonOthersGroup');
+                if (select && othersGroup) {
+                    var toggle = function () {
+                        othersGroup.style.display = select.value === 'Others' ? '' : 'none';
+                    };
+                    select.addEventListener('change', toggle);
+                    toggle();
+                }
+            })();
+        </script>
 
             <div class="section-note">
                 Received by, Date, and Status are assigned after saving.
@@ -326,7 +360,7 @@ const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItem
         const initialValue = '{{ old('ptr_itr_ris_no') }}';
         const initialTransferType = '{{ request('transfer_type', '') }}'.toUpperCase();
 
-        if (initialValue && !/^14538-/i.test(initialValue)) {
+        if (initialValue && !/^(PTR|ITR|RIS)-\d{4}-\d{2}-/i.test(initialValue)) {
             // Old value is not an auto-generated number → it was a manual
             // ELMIS entry. Restore the selection and keep the typed value.
             ptrTypeSelect.value = 'ELMIS';

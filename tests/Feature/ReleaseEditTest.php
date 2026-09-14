@@ -35,7 +35,7 @@ function makeReleaseEditFixture(): array
         'release_number'            => 'REL-TEST123',
         'pas_number'                => 'PAS-001',
         'health_program_coordinator' => 'Test Program',
-        'ptr_itr_ris_no'            => '14538-PTR-2026-09-0001',
+        'ptr_itr_ris_no'            => 'PTR-2026-09-0001',
         'source_docs_ptr_po_no'     => 'PO-001',
         'facility_name'             => 'Test Facility',
         'facility_category'         => 'Hospitals',
@@ -97,7 +97,7 @@ it('renders the release edit page with pre-filled data and item rows', function 
     expect($html)->toContain('Edit Release Slip');
     expect($html)->toContain('REL-TEST123');
     expect($html)->toContain('PAS-001');
-    expect($html)->toContain('14538-PTR-2026-09-0001');
+    expect($html)->toContain('PTR-2026-09-0001');
     expect($html)->toContain('Test Item');
     expect($html)->toContain('10');
     expect($html)->toContain('name="items[0][_release_item_id]" value="1"');

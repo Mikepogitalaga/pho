@@ -62,7 +62,7 @@
                 @error('facility_coordinator')<span class="field-error">{{ $message }}</span>@enderror
             </div>
             <div class="form-group">
-                <label>Transfer Type <span style="color:var(--danger)">*</span></label>
+                <label>Select Type <span style="color:var(--danger)">*</span></label>
                 <select name="transfer_type" id="pasTransferTypeSelect">
                     <option value="PTR" {{ old('transfer_type', 'PTR') === 'PTR' ? 'selected' : '' }}>PTR</option>
                     <option value="ITR" {{ old('transfer_type') === 'ITR' ? 'selected' : '' }}>ITR</option>
@@ -82,7 +82,7 @@
                 </div>
                 @error('program')<span class="field-error">{{ $message }}</span>@enderror
             </div>
-            <div class="form-group" style="grid-column: span 2;">
+            <div class="form-group">
                 <label>Purpose / Activity</label>
                 <input name="purpose_activity" value="{{ old('purpose_activity') }}" placeholder="e.g. Immunization Drive, Health Program Distribution">
                 @error('purpose_activity')<span class="field-error">{{ $message }}</span>@enderror
@@ -269,7 +269,7 @@ const pasAllItems = {!! json_encode($items->flatMap(fn($i) => $i->receivingItems
     'name'       => $i->name,
     'unit'       => $receivingItem->uom ?: $i->unit,
     'cost'       => $receivingItem->unit_cost ?? $i->unit_cost,
-    'qty'        => $receivingItem->quantity_received,
+    'qty'        => $i->quantity_on_hand,
     'lot_number' => $receivingItem->lot_number,
     'expiry'     => $receivingItem->expiry_date?->format('Y-m-d'),
 ]))->filter(fn($item) => filled($item['code']))->values()->toArray()) !!};
