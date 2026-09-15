@@ -93,12 +93,12 @@
 
             <div>
                 <label for="programFilter" class="sr-only">Filter by program</label>
-                <select id="programFilter" name="program" class="search-input">
-                    <option value="">All programs</option>
+                <input id="programFilter" type="text" name="program" value="{{ request('program') }}" placeholder="Filter by program" class="search-input" list="program-options-list" autocomplete="off" />
+                <datalist id="program-options-list" style="display:none;">
                     @foreach($programs as $programOption)
-                        <option value="{{ $programOption->name }}" @selected(request('program') === $programOption->name)>{{ $programOption->name }}</option>
+                        <option value="{{ $programOption->name }}"></option>
                     @endforeach
-                </select>
+                </datalist>
             </div>
 
             <div style="display: flex; gap: 0.5rem;">
@@ -138,9 +138,9 @@
                               <td data-label="Program" class="col-hide-md">{{ $release->health_program_coordinator ?? '—' }}</td>
                               <td data-label="Item Description">
                                   <div class="item-desc-cell">
-                                      <div class="item-desc-primary">{{ $release->items->first()?->item_description ?? '—' }}</div>
-                                      @php
-                                          $allDescriptions = $release->items->pluck('item_description')->filter()->values();
+                                       <div class="item-desc-primary">{{ $release->items->first()?->item?->name ?? $release->items->first()?->item_description ?? '—' }}</div>
+                                       @php
+                                           $allDescriptions = $release->items->map(fn($ri) => $ri->item?->name ?? $ri->item_description)->filter()->values();
                                       @endphp
                                       @if($allDescriptions->count() > 1)
                                           <button type="button" class="btn btn-ghost view-items-btn" style="padding:0; min-height:auto; font-size:0.8rem;" data-items='@json($allDescriptions)'>

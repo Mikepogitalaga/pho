@@ -111,7 +111,7 @@
                                 $recentReceiving = $releaseItem->item->receivingItems->sortByDesc('created_at')->first();
                             @endphp
                             <tr>
-                                <td style="text-align: left;">{{ $releaseItem->item_description ?? '—' }}</td>
+                                 <td style="text-align: left;">{{ $releaseItem->item?->name ?? $releaseItem->item_description ?? '—' }}</td>
                                 <td style="text-align: center;">{{ $recentReceiving?->item_code ?? '—' }}</td>
                                 <td style="text-align: center;">{{ $releaseItem->lot_number ?? '—' }}</td>
                                 <td style="text-align: center;">

@@ -394,7 +394,7 @@
         <tr>
             <td>{{ $release->source_docs_ptr_po_no ?? '—' }}</td>
             <td>{{ $release->health_program_coordinator ?? '—' }}</td>
-            <td>{{ $releaseItem->item_description ?? '—' }}</td>
+             <td>{{ $releaseItem->item?->name ?? $releaseItem->item_description ?? '—' }}</td>
             <td>{{ $releaseItem->lot_number ?? '—' }}</td>
             <td>{{ $expiryMap[$releaseItem->id] ?? '—' }}</td>
             <td align="center">{{ number_format($releaseItem->quantity_released) }}</td>

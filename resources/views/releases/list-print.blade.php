@@ -30,7 +30,7 @@
                         <td rowspan="{{ $releaseItems->count() }}">{{ $release->facility_name ?? '—' }}</td>
                         <td rowspan="{{ $releaseItems->count() }}">{{ $release->health_program_coordinator ?? '—' }}</td>
                     @endif
-                    <td>{{ $item?->item_description ?? '—' }}</td>
+                     <td>{{ $item?->item?->name ?? $item?->item_description ?? '—' }}</td>
                     @if($index === 0)
                         <td rowspan="{{ $releaseItems->count() }}">{{ optional($release->date_released)->format('M d, Y') ?? '—' }}</td>
                         <td rowspan="{{ $releaseItems->count() }}">{{ $release->status ?? '—' }}</td>

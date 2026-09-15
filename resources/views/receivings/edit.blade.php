@@ -113,7 +113,7 @@
                                     </div>
                                     <div class="form-group">
                                         <label>UOM</label>
-                                        <input class="item-uom-input" name="items[0][uom]" />
+                                        <input class="item-uom-input" name="items[0][uom]" list="uom-options-receiving" />
                                     </div>
                                 </div>
                                 <div class="form-grid-4">
@@ -138,6 +138,10 @@
                                     <div class="form-group">
                                         <label>Location</label>
                                         <input class="item-location-input" name="items[0][location]" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Reorder Level</label>
+                                        <input type="number" class="item-reorder-level-input" name="items[0][reorder_level]" value="0" min="0" />
                                     </div>
                                 </div>
                             </div>
@@ -164,7 +168,7 @@
                                 <div class="form-grid-4">
                                     <div class="form-group" style="position:relative;">
                                         <label>Product Code</label>
-                                        <input class="item-code-input" name="items[{{ $index }}][item_code]" value="{{ $oi['item_code'] ?? $ri->item_code }}" readonly style="background:var(--surface-strong);cursor:not-allowed;" />
+                                         <input class="item-code-input" name="items[{{ $index }}][item_code]" value="{{ $oi['item_code'] ?? $ri->item_code }}" data-existing="true" />
                                     </div>
                                     <div class="form-group" style="position:relative;">
                                         <label>Item Description</label>
@@ -182,7 +186,7 @@
                                     </div>
                                     <div class="form-group">
                                         <label>UOM</label>
-                                        <input class="item-uom-input" name="items[{{ $index }}][uom]" value="{{ $oi['uom'] ?? $ri->uom }}" />
+                                        <input class="item-uom-input" name="items[{{ $index }}][uom]" value="{{ $oi['uom'] ?? $ri->uom }}" list="uom-options-receiving" />
                                     </div>
                                 </div>
                                 <div class="form-grid-4">
@@ -208,6 +212,10 @@
                                         <label>Location</label>
                                         <input class="item-location-input" name="items[{{ $index }}][location]" value="{{ $oi['location'] ?? $ri->location ?? $receiving->location }}" />
                                     </div>
+                                    <div class="form-group">
+                                        <label>Reorder Level</label>
+                                        <input type="number" class="item-reorder-level-input" name="items[{{ $index }}][reorder_level]" value="{{ $oi['reorder_level'] ?? ($ri->item?->reorder_level ?? '') }}" min="0" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -225,7 +233,7 @@
 
     <datalist id="item-options-receiving" style="display:none;">
         @foreach($items as $item)
-            <option value="{{ $item->name }}" data-id="{{ $item->id }}" data-category="{{ $item->category }}" data-uom="{{ $item->unit }}" data-cost="{{ $item->unit_cost }}"></option>
+            <option value="{{ $item->name }}" data-id="{{ $item->id }}" data-category="{{ $item->category }}" data-uom="{{ $item->unit }}" data-cost="{{ $item->unit_cost }}" data-reorder-level="{{ $item->reorder_level }}"></option>
         @endforeach
     </datalist>
     <datalist id="program-options" style="display:none;">
@@ -236,6 +244,11 @@
     <datalist id="coordinator-options" style="display:none;">
         @foreach($coordinators as $coordinator)
             <option value="{{ $coordinator->full_name }}" data-programs="{{ $coordinator->assigned_programs }}"></option>
+        @endforeach
+    </datalist>
+    <datalist id="uom-options-receiving" style="display:none;">
+        @foreach($uoms as $uom)
+            <option value="{{ $uom }}"></option>
         @endforeach
     </datalist>
 
@@ -257,6 +270,7 @@
                 category: opt.dataset.category,
                 uom: opt.dataset.uom,
                 cost: opt.dataset.cost,
+                reorderLevel: opt.dataset.reorderLevel,
             };
         });
 
@@ -320,7 +334,7 @@
             var dbSeq = programSequences[prefix] || 0;
             var maxExistingReadonly = 0;
             Array.from(document.querySelectorAll('.item-code-input')).forEach(function(input) {
-                if (input.readOnly) {
+                if (input.dataset.existing === 'true') {
                     var val = input.value || '';
                     var match = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
                     if (match) { var seq = parseInt(match[1], 10); if (seq > maxExistingReadonly) maxExistingReadonly = seq; }
@@ -329,7 +343,7 @@
             var nextSeq = Math.max(dbSeq, maxExistingReadonly + 1);
             codeSequences[prefix] = nextSeq;
             Array.from(document.querySelectorAll('.item-code-input')).forEach(function(input) {
-                if (input.readOnly) return;
+                if (input.dataset.existing === 'true') return;
                 var shouldSync = input.dataset.generated === 'true' || !(input.value || '').trim();
                 if (!shouldSync) {
                     return;
@@ -417,7 +431,7 @@
             var maxExistingReadonly = 0;
 
             inputs.forEach(function(input) {
-                if (input.readOnly) {
+                if (input.dataset.existing === 'true') {
                     var val = input.value || '';
                     var match = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
                     if (match) {
@@ -430,7 +444,7 @@
             var seq = Math.max(dbSeq, maxExistingReadonly + 1);
 
             inputs.forEach(function(input) {
-                if (!input.readOnly && input.dataset.generated === 'true') {
+                if (input.dataset.existing !== 'true' && input.dataset.generated === 'true') {
                     input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(seq).padStart(4, '0');
                     seq++;
                 }
@@ -465,13 +479,14 @@
             var categoryInput = row.querySelector('.item-category-input');
             var uomInput      = row.querySelector('.item-uom-input');
             var costInput     = row.querySelector('.item-unit-cost-input');
+            var reorderLevelInput = row.querySelector('.item-reorder-level-input');
             var itemIdHidden  = row.querySelector('.item-id-hidden');
 
             if (!descInput) return;
 
             var dd = document.createElement('div');
             dd.className = 'autocomplete-dropdown';
-            dd.style.cssText = 'position:absolute;background:white;border:1px solid #ddd;max-height:200px;overflow-y:auto;width:100%;z-index:1000;display:none;box-shadow:0 4px 6px rgba(0,0,0,.1);top:100%;left:0;margin-top:4px;';
+            dd.style.cssText = 'position:absolute;background:var(--surface);color:var(--text);border:1px solid rgba(128,128,128,0.35);max-height:200px;overflow-y:auto;width:100%;z-index:1000;display:none;box-shadow:0 4px 6px rgba(0,0,0,.15);top:100%;left:0;margin-top:4px;';
             descInput.parentElement.style.position = 'relative';
             descInput.parentElement.appendChild(dd);
 
@@ -484,8 +499,15 @@
                 }
                 if (uomInput)     uomInput.value     = item.uom || '';
                 if (costInput)    costInput.value    = item.cost || '';
+                if (reorderLevelInput) reorderLevelInput.value = item.reorderLevel || 0;
                 if (itemIdHidden) itemIdHidden.value = item.id || '';
             }
+
+            descInput.addEventListener('input', function() {
+                if (itemIdHidden && itemIdHidden.value) {
+                    itemIdHidden.value = '';
+                }
+            });
 
             function showOptions(q) {
                 dd.innerHTML = '';
@@ -511,8 +533,8 @@
             descInput.addEventListener('focus', function() { showOptions(this.value); });
             descInput.addEventListener('blur',  function() { setTimeout(function() { dd.style.display = 'none'; }, 200); });
 
-            // Clear duplicate error on manual code edit (new rows only)
-            if (codeInput && !codeInput.readOnly) {
+            // Clear duplicate error on manual code edit
+            if (codeInput) {
                 codeInput.addEventListener('input', function() {
                     this.dataset.generated = 'false';
                     this.style.borderColor = '';
@@ -537,6 +559,29 @@
                 updateIndexes();
                 if (currentCodePrefix) {
                     renumberAllItemCodes();
+                }
+            });
+        }
+
+        function bindExpiryFix(row) {
+            var expiryInput = row.querySelector('.item-expiry-input');
+            if (!expiryInput) return;
+
+            expiryInput.addEventListener('blur', function() {
+                var val = this.value;
+                if (!val) return;
+                var parts = val.split('-');
+                if (parts.length !== 3) return;
+                var year = parseInt(parts[0], 10);
+                var month = parseInt(parts[1], 10);
+                var day = parseInt(parts[2], 10);
+                if (isNaN(year) || isNaN(month) || isNaN(day)) return;
+
+                var lastDay = new Date(year, month, 0).getDate();
+                if (day > lastDay) {
+                    var fixedMonth = String(month).padStart(2, '0');
+                    var fixedDay = String(lastDay).padStart(2, '0');
+                    this.value = year + '-' + fixedMonth + '-' + fixedDay;
                 }
             });
         }
@@ -572,6 +617,7 @@
             }
             bindItemAutocomplete(row);
             bindRowActions(row);
+            bindExpiryFix(row);
             container.appendChild(row);
             updateIndexes();
         }
@@ -580,6 +626,7 @@
         Array.from(document.querySelectorAll('#receiving-items .receiving-item-row')).forEach(function(row) {
             bindItemAutocomplete(row);
             bindRowActions(row);
+            bindExpiryFix(row);
         });
         updateIndexes();
         recalcNextSeq();
@@ -608,12 +655,11 @@
         form.addEventListener('submit', function(e) {
             isSubmitting = true;
 
-            // Duplicate product code check (new rows only — existing are readonly)
+            // Duplicate product code check
             var codes = [];
             var hasDuplicate = false;
 
             document.querySelectorAll('.item-code-input').forEach(function(input) {
-                if (input.readOnly) return;
                 var errorSpan = input.parentElement.querySelector('.product-code-error');
                 input.style.borderColor = '';
                 if (errorSpan) errorSpan.style.display = 'none';
@@ -621,26 +667,20 @@
 
             document.querySelectorAll('.item-code-input').forEach(function(input) {
                 var val = input.value.trim();
-                if (val) codes.push({ val: val, input: input, isNew: !input.readOnly });
+                if (val) codes.push({ val: val, input: input });
             });
 
             var seen = {};
             codes.forEach(function(entry) { seen[entry.val] = (seen[entry.val] || 0) + 1; });
 
             codes.forEach(function(entry) {
-                if (seen[entry.val] > 1 && entry.isNew) {
+                if (seen[entry.val] > 1) {
                     hasDuplicate = true;
                     entry.input.style.borderColor = 'var(--danger)';
                     var errorSpan = entry.input.parentElement.querySelector('.product-code-error');
                     if (errorSpan) {
-                        errorSpan.textContent = 'Duplicate product code: "' + entry.val + '"';
+                        errorSpan.textContent = "Product code '" + entry.val + "' is entered more than once in this form.";
                         errorSpan.style.display = 'block';
-                    }
-                    var row = entry.input.closest('.receiving-item-row');
-                    if (row) {
-                        var body = row.querySelector('.item-row-body');
-                        var toggle = row.querySelector('.item-toggle-button');
-                        if (body && body.style.display === 'none') { body.style.display = ''; if (toggle) toggle.textContent = 'Hide'; }
                     }
                 }
             });
@@ -648,8 +688,7 @@
             if (hasDuplicate) {
                 isSubmitting = false;
                 e.preventDefault();
-                var first = document.querySelector('.product-code-error[style*="block"]');
-                if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                alert('Please fix the duplicate product code(s) before saving.');
                 return;
             }
 

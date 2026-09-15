@@ -16,7 +16,7 @@ return new class extends Migration
 
         Schema::table('releases', function (Blueprint $table) {
             if (! Schema::hasColumn('releases', 'reason_for_transfer')) {
-                $table->text('reason_for_transfer')->nullable()->after('transfer_type');
+                $table->text('reason_for_transfer')->nullable()->after('notes');
             }
         });
     }

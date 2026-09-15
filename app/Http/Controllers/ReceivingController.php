@@ -196,6 +196,7 @@ class ReceivingController extends Controller
         $receiving->load('items.item');
         $suppliers    = Supplier::orderBy('company_name')->get();
         $items        = Item::orderBy('name')->get();
+        $uoms         = Item::whereNotNull('unit')->where('unit', '!=', '')->orderBy('unit')->distinct()->pluck('unit')->all();
         $programs     = Program::orderBy('name')->get();
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
 
@@ -211,7 +212,7 @@ class ReceivingController extends Controller
             }
         }
 
-        return view('receivings.edit', compact('receiving', 'suppliers', 'items', 'programs', 'coordinators', 'programSequences'));
+        return view('receivings.edit', compact('receiving', 'suppliers', 'items', 'programs', 'coordinators', 'programSequences', 'uoms'));
     }
 
     public function update(Request $request, Receiving $receiving)
@@ -235,6 +236,7 @@ class ReceivingController extends Controller
             'items.*.expiry_date'=> 'nullable|date',
             'items.*.unit_cost'  => 'nullable|numeric|min:0',
             'items.*.location'   => 'nullable|string|max:255',
+            'items.*.reorder_level' => 'nullable|integer|min:0',
         ]);
 
         $syncedTotal = 0;
@@ -280,6 +282,7 @@ class ReceivingController extends Controller
                         'stock_keeping_unit'  => $request->input('stock_keeping_unit'),
                         'program_coordinator' => $request->input('program_coordinator'),
                         'unit_cost'           => $itemData['unit_cost'] ?? null,
+                        'reorder_level'       => $itemData['reorder_level'] ?? 0,
                         'quantity_on_hand'    => 0,
                     ]);
                 } else {
@@ -291,6 +294,7 @@ class ReceivingController extends Controller
                         'location'            => $itemData['location'] ?? $item->location,
                         'stock_keeping_unit'  => $request->input('stock_keeping_unit') ?? $item->stock_keeping_unit,
                         'program_coordinator' => $request->input('program_coordinator') ?? $item->program_coordinator,
+                        'reorder_level'       => $itemData['reorder_level'] ?? $item->reorder_level,
                     ]);
                     if (!empty($itemData['unit_cost'])) {
                         $item->unit_cost = $itemData['unit_cost'];
@@ -301,14 +305,14 @@ class ReceivingController extends Controller
                 $newQty = (int) $itemData['quantity_received'];
 
                 if ($receivingItemId && $existingItems->has($receivingItemId)) {
-                    // Existing row — reconcile stock delta
                     $existingRow = $existingItems[$receivingItemId];
                     $oldQty      = (int) $existingRow->quantity_received;
-                    $delta       = $newQty - $oldQty;
-                    $oldLot      = $existingRow->lot_number; // lot the releases were made from
+                    $oldItemId   = (int) $existingRow->item_id;
+                    $oldLot      = $existingRow->lot_number;
+                    $newItemId   = (int) $item->id;
 
                      $existingRow->update([
-                        'item_id'           => $item->id,
+                        'item_id'           => $newItemId,
                         'item_code'         => $itemData['item_code'] ?? null,
                         'item_description'  => $itemData['item_description'],
                         'category'          => $itemData['category'] ?? null,
@@ -321,8 +325,13 @@ class ReceivingController extends Controller
                         'location'          => $itemData['location'] ?? null,
                     ]);
 
-                    if ($delta !== 0) {
-                        $item->increment('quantity_on_hand', $delta);
+                    if ($oldItemId !== $newItemId) {
+                        if ($oldItemId) {
+                            Item::where('id', $oldItemId)->decrement('quantity_on_hand', $oldQty);
+                        }
+                        $item->increment('quantity_on_hand', $newQty);
+                    } elseif ($oldQty !== $newQty) {
+                        $item->increment('quantity_on_hand', $newQty - $oldQty);
                     }
 
                     // Propagate description / UOM / unit cost edits onto the
@@ -395,6 +404,7 @@ class ReceivingController extends Controller
     {
         $suppliers = Supplier::orderBy('company_name')->get();
         $items = Item::orderBy('name')->get();
+        $uoms = Item::whereNotNull('unit')->where('unit', '!=', '')->orderBy('unit')->distinct()->pluck('unit')->all();
         $programs = Program::orderBy('name')->get();
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
 
@@ -412,7 +422,7 @@ class ReceivingController extends Controller
 
         $receivingNumber = $this->nextReceivingNumber();
 
-        return view('receivings.create', compact('suppliers', 'items', 'programs', 'coordinators', 'receivingNumber', 'programSequences'));
+        return view('receivings.create', compact('suppliers', 'items', 'programs', 'coordinators', 'receivingNumber', 'programSequences', 'uoms'));
     }
 
     private function nextReceivingNumber(): string
@@ -454,6 +464,7 @@ class ReceivingController extends Controller
              'items.*.expiry_date' => 'nullable|date',
              'items.*.unit_cost' => 'nullable|numeric|min:0',
              'items.*.location' => 'nullable|string|max:255',
+             'items.*.reorder_level' => 'nullable|integer|min:0',
          ]);
 
         try {
@@ -495,6 +506,7 @@ class ReceivingController extends Controller
                         'stock_keeping_unit' => $request->input('stock_keeping_unit'),
                         'program_coordinator' => $request->input('program_coordinator'),
                         'unit_cost' => $itemData['unit_cost'] ?? null,
+                        'reorder_level' => $itemData['reorder_level'] ?? 0,
                         'quantity_on_hand' => 0,
                     ]);
                 } else {
@@ -506,6 +518,7 @@ class ReceivingController extends Controller
                         'location'            => $itemData['location'] ?? $item->location,
                         'stock_keeping_unit'  => $request->input('stock_keeping_unit') ?? $item->stock_keeping_unit,
                         'program_coordinator' => $request->input('program_coordinator') ?? $item->program_coordinator,
+                        'reorder_level'       => $itemData['reorder_level'] ?? $item->reorder_level,
                     ]);
 
                     if (!empty($itemData['unit_cost'])) {
