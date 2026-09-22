@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
+use App\Models\Program;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -35,17 +36,27 @@ class UserController extends Controller
 
     public function create()
     {
-        return view('users.create');
+        $programs = Program::orderBy('name')->get();
+
+        return view('users.create', compact('programs'));
     }
 
     public function store(Request $request)
     {
         $data = $this->validateUser($request);
 
+        if (isset($data['programs']) && ! empty($data['programs'])) {
+            $data['program_id'] = $data['programs'][0];
+        }
+
         $user = User::create([
             ...$data,
             'password' => Hash::make($data['password']),
         ]);
+
+        if (! empty($data['programs'])) {
+            $user->programs()->sync($data['programs']);
+        }
 
         $this->writeAudit('created', $user, []);
 
@@ -54,7 +65,13 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
-        return view('users.edit', compact('user'));
+        $programs = Program::orderBy('name')->get();
+        $userPrograms = $user->programs->pluck('id')->toArray();
+        if ($user->program_id && ! in_array($user->program_id, $userPrograms)) {
+            $userPrograms[] = $user->program_id;
+        }
+
+        return view('users.edit', compact('user', 'programs', 'userPrograms'));
     }
 
     public function update(Request $request, User $user)
@@ -66,8 +83,15 @@ class UserController extends Controller
             return back()->withInput()->withErrors(['is_active' => 'You cannot deactivate your own account.']);
         }
 
+        if (array_key_exists('programs', $data)) {
+            $data['program_id'] = ! empty($data['programs']) ? $data['programs'][0] : null;
+        }
+
         $changes = [];
         foreach ($data as $field => $newValue) {
+            if (is_array($newValue)) {
+                continue;
+            }
             $oldValue = $user->{$field};
             if ((string) $oldValue !== (string) $newValue) {
                 $changes[$field] = ['old' => $oldValue, 'new' => $newValue];
@@ -80,7 +104,11 @@ class UserController extends Controller
 
         $user->update($data);
 
-        $this->writeAudit('updated', $user, array_diff_key($changes, ['password' => 0]));
+        if (array_key_exists('programs', $data)) {
+            $user->programs()->sync($data['programs']);
+        }
+
+        $this->writeAudit('updated', $user, array_diff_key($changes, ['programs' => 0, 'password' => 0]));
 
         return redirect()->route('users.index')->with('success', 'User updated successfully.');
     }
@@ -170,6 +198,9 @@ class UserController extends Controller
             'address' => ['nullable', 'string', 'max:500'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user?->id)],
             'role' => ['required', Rule::in([User::ROLE_ADMIN, User::ROLE_STAFF])],
+            'program_id' => ['nullable', 'exists:programs,id'],
+            'programs' => ['nullable', 'array'],
+            'programs.*' => ['exists:programs,id'],
             'password' => $user
                 ? ['nullable', 'string', 'min:8', 'confirmed']
                 : ['required', 'string', 'min:8', 'confirmed'],
@@ -218,4 +249,3 @@ class UserController extends Controller
         return trim(($user->employee_id ? $user->employee_id.' · ' : '').$user->name);
     }
 }
-

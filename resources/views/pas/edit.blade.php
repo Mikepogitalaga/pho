@@ -22,19 +22,24 @@
         <div class="form-grid-3">
             <div class="form-group">
                 <label>PAS Number <span style="color:var(--danger)">*</span></label>
-                <input name="pas_number" value="{{ old('pas_number', $pas->pas_number) }}" required>
+                <input name="pas_number" value="{{ old('pas_number', $pas->pas_number) }}" required {{ auth()->user()?->program_id ? 'readonly' : '' }} style="{{ auth()->user()?->program_id ? 'background: var(--surface-strong); cursor: not-allowed;' : '' }}">
                 @error('pas_number')<span class="field-error">{{ $message }}</span>@enderror
+                @if(auth()->user()?->program_id)
+                    <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.3rem;">PAS Number cannot be changed.</p>
+                @endif
             </div>
             <div class="form-group">
                 <label>Date of PASS <span style="color:var(--danger)">*</span></label>
                 <input type="date" name="date_of_pass" value="{{ old('date_of_pass', optional($pas->date_of_pass)->format('Y-m-d')) }}" required>
                 @error('date_of_pass')<span class="field-error">{{ $message }}</span>@enderror
             </div>
+            @if(! auth()->user()?->program_id)
             <div class="form-group">
                 <label>Date Released</label>
                 <input type="date" name="date_released" value="{{ old('date_released', optional($pas->date_released)->format('Y-m-d')) }}">
                 @error('date_released')<span class="field-error">{{ $message }}</span>@enderror
             </div>
+            @endif
         </div>
 
         <div class="form-grid-3">
@@ -58,6 +63,7 @@
                 </div>
                 @error('program')<span class="field-error">{{ $message }}</span>@enderror
             </div>
+            @if(! auth()->user()?->program_id)
             <div class="form-group">
                 <label>Preferred Transfer Type</label>
                 <select name="transfer_type" id="pasTransferTypeSelect">
@@ -67,6 +73,7 @@
                 </select>
                 @error('transfer_type')<span class="field-error">{{ $message }}</span>@enderror
             </div>
+            @endif
         </div>
 
         <div class="form-grid-3">
@@ -98,12 +105,6 @@
                 <input name="purpose_activity" value="{{ old('purpose_activity', $pas->purpose_activity) }}" placeholder="e.g. Immunization Drive, Health Program Distribution">
                 @error('purpose_activity')<span class="field-error">{{ $message }}</span>@enderror
             </div>
-        </div>
-
-        <div class="form-group">
-            <label>Reason for Transfer</label>
-            <textarea name="reason_for_transfer" rows="3" placeholder="Specify the reason for this transfer...">{{ old('reason_for_transfer', $pas->reason_for_transfer) }}</textarea>
-            @error('reason_for_transfer')<span class="field-error">{{ $message }}</span>@enderror
         </div>
 
         <div>
@@ -155,6 +156,7 @@
                                         <button type="button" class="item-description-clear" title="Clear" style="position:absolute;right:0.5rem;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;line-height:1;padding:0.2rem 0.3rem;">&times;</button>
                                     </div>
                                 </div>
+                                @if(! auth()->user()?->program_id)
                                 <div class="form-group">
                                     <label>PHO Code</label>
                                     <div style="position:relative;display:flex;align-items:center;">
@@ -164,6 +166,7 @@
                                     </div>
                                     <input type="hidden" class="pas-product-code-input" name="items[{{ $index }}][product_code]" value="{{ $oldItem['product_code'] ?? '' }}">
                                 </div>
+                                @endif
                                 <div class="form-group">
                                     <label>Lot Number</label>
                                     <input class="pas-lot-input" name="items[{{ $index }}][lot_number]" value="{{ $oldItem['lot_number'] ?? '' }}">
@@ -201,10 +204,12 @@
             <button type="button" id="add-pas-item" class="btn btn-secondary" style="margin-top:0.75rem;">+ Add Item</button>
         </div>
 
+        @if(! auth()->user()?->program_id)
         <div class="form-group">
             <label>Notes</label>
             <textarea name="notes" rows="3">{{ old('notes', $pas->notes) }}</textarea>
         </div>
+        @endif
 
         <div class="form-actions" style="gap:0.75rem;display:flex;flex-wrap:wrap;align-items:center;">
             <button type="submit" class="btn btn-primary">Update PAS</button>
@@ -247,6 +252,7 @@
                         <button type="button" class="item-description-clear" title="Clear" style="position:absolute;right:0.5rem;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;line-height:1;padding:0.2rem 0.3rem;">&times;</button>
                     </div>
                 </div>
+                @if(! auth()->user()?->program_id)
                 <div class="form-group">
                     <label>PHO Code</label>
                     <div style="position:relative;display:flex;align-items:center;">
@@ -256,6 +262,7 @@
                     </div>
                     <input type="hidden" class="pas-product-code-input" name="items[0][product_code]" value="">
                 </div>
+                @endif
                 <div class="form-group">
                     <label>Lot Number</label>
                     <input class="pas-lot-input" name="items[0][lot_number]" value="">
@@ -292,16 +299,16 @@
 @push('scripts')
 
 <script>
-const pasAllItems = {!! json_encode($items->map(fn($i) => [
+const pasAllItems = {!! json_encode($items->flatMap(fn($i) => $i->relationLoaded('receivingItems') ? $i->receivingItems->map(fn($receivingItem) => [
     'id'         => $i->id,
-    'code'       => $i->item_code,
+    'code'       => $receivingItem->item_code,
     'name'       => $i->name,
-    'unit'       => $i->unit,
-    'cost'       => $i->unit_cost,
+    'unit'       => $receivingItem->uom ?: $i->unit,
+    'cost'       => $receivingItem->unit_cost ?? $i->unit_cost,
     'qty'        => $i->quantity_on_hand,
-    'lot_number' => $itemLotNumbers[$i->id]['lot_number'] ?? '',
-    'expiry'     => $itemLotNumbers[$i->id]['expiry_date'] ?? '',
-])->values()->toArray()) !!};
+    'lot_number' => $receivingItem->lot_number,
+    'expiry'     => $receivingItem->expiry_date?->format('Y-m-d'),
+]) : collect())->filter(fn($item) => filled($item['code']))->values()->toArray()) !!};
 
 document.addEventListener('DOMContentLoaded', function () {
     const container = document.getElementById('pas-items');

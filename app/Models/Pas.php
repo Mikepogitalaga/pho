@@ -26,6 +26,8 @@ class Pas extends Model
         'program',
         'status',
         'notes',
+        'requested_by',
+        'request_status',
     ];
 
     protected $casts = [
@@ -46,5 +48,10 @@ class Pas extends Model
     public function release()
     {
         return $this->hasOne(Release::class, 'pas_number', 'pas_number')->latestOfMany();
+    }
+
+    public function requester()
+    {
+        return $this->belongsTo(User::class, 'requested_by');
     }
 }

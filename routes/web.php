@@ -39,7 +39,7 @@ Route::middleware('web')->group(function () {
         ->middleware('auth')
         ->name('logout');
 
-    Route::middleware(['auth', 'active'])->group(function () {
+    Route::middleware(['auth', 'active', 'program-user'])->group(function () {
         Route::get('/', [DashboardController::class, 'index']);
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/dashboard/doh', [DashboardController::class, 'dohIndex'])->name('dashboard.doh');
@@ -93,6 +93,7 @@ Route::middleware('web')->group(function () {
 
         // Property Allocation Slip (PAS) Routes
         Route::get('pas', [PasController::class, 'index'])->name('pas.index');
+        Route::get('pas/my-requests', [PasController::class, 'myRequests'])->name('pas.my-requests');
         Route::get('pas/create', [PasController::class, 'create'])->name('pas.create');
         Route::post('pas', [PasController::class, 'store'])->name('pas.store');
         Route::get('pas/{pas}/edit', [PasController::class, 'edit'])->name('pas.edit');
@@ -102,6 +103,8 @@ Route::middleware('web')->group(function () {
         Route::post('pas/{pas}/status/{status}', [PasController::class, 'updateStatus'])
             ->where('status', 'Pending|Released|Canceled')
             ->name('pas.status');
+        Route::post('pas/{pas}/approve', [PasController::class, 'approveRequest'])->name('pas.approve');
+        Route::post('pas/{pas}/reject', [PasController::class, 'rejectRequest'])->name('pas.reject');
 
         // Program Management Routes — single unified page
         Route::get('program-management', [ProgramManagementController::class, 'index'])->name('program-management.index');

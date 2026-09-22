@@ -57,6 +57,23 @@
                         <p style="margin:0.3rem 0 0; font-size:0.8rem; color:#ef4444; font-weight:600;">{{ $message }}</p>
                     @enderror
                 </div>
+                <div class="form-group">
+                    <label>Programs</label>
+                    <select name="programs[]" multiple size="6" style="width:100%;">
+                        @foreach($programs as $program)
+                            <option value="{{ $program->id }}" {{ in_array($program->id, old('programs', [])) ? 'selected' : '' }}>
+                                {{ $program->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <p style="font-size:0.78rem; color:var(--text-muted); margin-top:0.3rem;">Hold Ctrl/Cmd to select multiple programs.</p>
+                    @error('programs.*')
+                        <p style="margin:0.3rem 0 0; font-size:0.8rem; color:#ef4444; font-weight:600;">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+
+            <div class="form-grid-2">
                 <div class="form-group" style="display:flex; align-items:flex-end;">
                     <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; margin:0;">
                         <input type="hidden" name="is_active" value="0">

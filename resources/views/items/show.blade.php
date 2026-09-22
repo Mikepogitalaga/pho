@@ -61,7 +61,7 @@
         <div class="section-header">
             <div>
                 <h2 class="section-card-title" style="margin: 0;">PHO Codes</h2>
-                <p class="page-description" style="margin-top: 0.25rem;">All product codes for {{ $item->name }}. View and manage deductions per product code.</p>
+                <p class="page-description" style="margin-top: 0.25rem;">All product codes for {{ $item->name }}. View and manage deductions per PHO code.</p>
             </div>
             <div style="display:flex; gap:0.5rem;">
                 <a href="{{ route('items.index') }}" class="btn btn-secondary">Back to Items</a>
@@ -72,7 +72,7 @@
         <div style="display:flex; gap:0.75rem; padding:0.75rem 0; margin-bottom:0.75rem; align-items:end; flex-wrap:wrap;">
             <div style="display:flex; flex-direction:column; gap:0.3rem; flex:1; min-width:200px;">
                 <label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted);">Search PHO Code</label>
-                <input id="productCodeSearch" type="text" class="search-input" placeholder="Type to filter product codes..." />
+                <input id="productCodeSearch" type="text" class="search-input" placeholder="Type to filter PHO codes..." />
             </div>
             <div style="display:flex; flex-direction:column; gap:0.3rem; min-width:160px;">
                 <label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted);">Location</label>

@@ -26,6 +26,10 @@
             </div>
 
             <nav class="sidebar-nav">
+                @php
+                    $programUser = auth()->check() && ! auth()->user()->isAdmin() && auth()->user()->program_id;
+                @endphp
+
                 <div class="sidebar-nav-group">
                     <p class="sidebar-nav-label">Overview</p>
                     <a href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') && !request()->routeIs('dashboard.doh') && !request()->routeIs('dashboard.gso') ? 'active' : '' }}">
@@ -34,6 +38,7 @@
                         </span>
                         <span class="sidebar-link-text">Dashboard</span>
                     </a>
+                    @if(! $programUser)
                     <a href="{{ route('dashboard.doh') }}" class="sidebar-link {{ request()->routeIs('dashboard.doh') ? 'active' : '' }}">
                         <span class="sidebar-link-icon" aria-hidden="true">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/></svg>
@@ -46,12 +51,15 @@
                         </span>
                         <span class="sidebar-link-text">GSO Dashboard</span>
                     </a>
+                    @endif
+                    @if(! $programUser)
                     <a href="{{ route('analytics.facility-categories') }}" class="sidebar-link {{ request()->routeIs('analytics.*') ? 'active' : '' }}">
                         <span class="sidebar-link-icon" aria-hidden="true">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
                         </span>
                         <span class="sidebar-link-text">Release Analytics</span>
                     </a>
+                    @endif
                 </div>
 
                 <div class="sidebar-nav-group">
@@ -64,6 +72,7 @@
                     </a>
                 </div>
 
+                @if(! $programUser)
                 <div class="sidebar-nav-group">
                     <p class="sidebar-nav-label">Program Management</p>
                     <a href="{{ route('program-management.index') }}" class="sidebar-link {{ request()->routeIs('program-management.*') ? 'active' : '' }}">
@@ -73,7 +82,9 @@
                         <span class="sidebar-link-text">Program Management</span>
                     </a>
                 </div>
+                @endif
 
+                @if(! $programUser)
                 <div class="sidebar-nav-group">
                     <p class="sidebar-nav-label">Procurement</p>
                     <a href="{{ route('suppliers.index') }}" class="sidebar-link {{ request()->routeIs('suppliers.*') ? 'active' : '' }}">
@@ -89,23 +100,33 @@
                         <span class="sidebar-link-text">Receivings</span>
                     </a>
                 </div>
+                @endif
 
                 <div class="sidebar-nav-group">
                     <p class="sidebar-nav-label">Distribution</p>
+                    @if(! $programUser)
                     <a href="{{ route('releases.index') }}" class="sidebar-link {{ request()->routeIs('releases.*') ? 'active' : '' }}">
                         <span class="sidebar-link-icon" aria-hidden="true">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
                         </span>
                         <span class="sidebar-link-text">Releases</span>
                     </a>
-                    <a href="{{ route('pas.index') }}" class="sidebar-link {{ request()->routeIs('pas.*') ? 'active' : '' }}">
+                    @endif
+                    <a href="{{ route('pas.index') }}" class="sidebar-link {{ request()->routeIs('pas.*') && !request()->routeIs('pas.my-requests') ? 'active' : '' }}">
                         <span class="sidebar-link-icon" aria-hidden="true">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                         </span>
                         <span class="sidebar-link-text">PAS</span>
                     </a>
+                    <a href="{{ route('pas.my-requests') }}" class="sidebar-link {{ request()->routeIs('pas.my-requests') ? 'active' : '' }}">
+                        <span class="sidebar-link-icon" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                        </span>
+                        <span class="sidebar-link-text">My Requests</span>
+                    </a>
                 </div>
 
+                @if(! $programUser)
                 <div class="sidebar-nav-group">
                     <p class="sidebar-nav-label">Reports</p>
                     <a href="{{ route('reports.master-file') }}" class="sidebar-link {{ request()->routeIs('reports.master-file*') ? 'active' : '' }}">
@@ -127,6 +148,7 @@
                         <span class="sidebar-link-text">Audit Trail</span>
                     </a>
                 </div>
+                @endif
 
                 @if(auth()->user()?->isAdmin())
                     <div class="sidebar-nav-group">
@@ -258,7 +280,11 @@
                 } elseif (str_starts_with($routeName, 'releases')) {
                     $breadcrumbItems = [['label' => 'Releases']];
                 } elseif (str_starts_with($routeName, 'pas')) {
-                    $breadcrumbItems = [['label' => 'PAS', 'url' => route('pas.index')], ['label' => 'Property Allocation Slips']];
+                    if ($routeName === 'pas.my-requests') {
+                        $breadcrumbItems = [['label' => 'PAS', 'url' => route('pas.index')], ['label' => 'My Requests']];
+                    } else {
+                        $breadcrumbItems = [['label' => 'PAS', 'url' => route('pas.index')], ['label' => 'Property Allocation Slips']];
+                    }
                 } elseif (str_starts_with($routeName, 'program-management')) {
                     $breadcrumbItems = [['label' => 'Program Management']];
                 } elseif (str_starts_with($routeName, 'users')) {

@@ -5,6 +5,7 @@
 @section('pageSubheading', 'Comprehensive overview of inventory, supply movements, and key metrics.')
 
 @section('content')
+    @if(! $programScoped)
     <section class="dashboard-quick-actions" aria-label="Quick actions">
         <a href="{{ route('receivings.create') }}" class="quick-action-card quick-action-card--primary">
             <span class="quick-action-icon" aria-hidden="true">
@@ -17,7 +18,7 @@
         </a>
         <a href="{{ route('releases.create') }}" class="quick-action-card">
             <span class="quick-action-icon" aria-hidden="true">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
             </span>
             <span>
                 <span class="quick-action-label">New Release</span>
@@ -35,7 +36,7 @@
         </a>
         <a href="{{ route('items.index') }}" class="quick-action-card">
             <span class="quick-action-icon" aria-hidden="true">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
             </span>
             <span>
                 <span class="quick-action-label">Browse Items</span>
@@ -52,6 +53,161 @@
             </span>
         </a>
     </section>
+    @endif
+
+    @if($programScoped)
+    {{-- ═══════════════ PROGRAM USER KPI GRID ═══════════════ --}}
+    <section class="dashboard-kpi-grid" role="region" aria-label="Key performance indicators">
+        <article class="kpi-card">
+            <div class="kpi-card-header">
+                <span class="kpi-card-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                </span>
+                <span class="kpi-card-label">My Program Items</span>
+            </div>
+            <p class="kpi-card-value">{{ number_format($myProgramItemsCount ?? 0) }}</p>
+            <p class="kpi-card-foot">Items in your program</p>
+        </article>
+
+        <article class="kpi-card">
+            <div class="kpi-card-header">
+                <span class="kpi-card-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                </span>
+                <span class="kpi-card-label">Available Stock</span>
+            </div>
+            <p class="kpi-card-value">{{ number_format($availableStock ?? 0) }}</p>
+            <p class="kpi-card-foot">Units on hand</p>
+        </article>
+
+        <article class="kpi-card">
+            <div class="kpi-card-header">
+                <span class="kpi-card-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </span>
+                <span class="kpi-card-label">Low Stock Alerts</span>
+            </div>
+            <p class="kpi-card-value">{{ number_format($lowStockAlerts->count()) }}</p>
+            <p class="kpi-card-foot">Items below reorder level</p>
+        </article>
+
+        <article class="kpi-card">
+            <div class="kpi-card-header">
+                <span class="kpi-card-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </span>
+                <span class="kpi-card-label">Expiring Soon</span>
+            </div>
+            <p class="kpi-card-value">{{ number_format($expiringSoon->count()) }}</p>
+            <p class="kpi-card-foot">Within 30 days</p>
+        </article>
+
+        <article class="kpi-card">
+            <div class="kpi-card-header">
+                <span class="kpi-card-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </span>
+                <span class="kpi-card-label">Pending Requests</span>
+            </div>
+            <p class="kpi-card-value">{{ number_format($pendingRequests ?? 0) }}</p>
+            <p class="kpi-card-foot">Awaiting approval</p>
+        </article>
+
+        <article class="kpi-card">
+            <div class="kpi-card-header">
+                <span class="kpi-card-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+                </span>
+                <span class="kpi-card-label">Approved Requests</span>
+            </div>
+            <p class="kpi-card-value">{{ number_format($approvedRequests ?? 0) }}</p>
+            <p class="kpi-card-foot">Ready for release</p>
+        </article>
+
+        <article class="kpi-card">
+            <div class="kpi-card-header">
+                <span class="kpi-card-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                </span>
+                <span class="kpi-card-label">Total PAS Submitted</span>
+            </div>
+            <p class="kpi-card-value">{{ number_format($totalPasSubmitted ?? 0) }}</p>
+            <p class="kpi-card-foot">All-time requests</p>
+        </article>
+    </section>
+
+    {{-- ═══════════════ PROGRAM USER CHARTS ═══════════════ --}}
+    <div class="dashboard-analytics-row">
+        <section class="section-card chart-card" aria-label="Stock status distribution">
+            <div class="section-header compact">
+                <div>
+                    <h3 class="section-card-title">Stock Status</h3>
+                    <p class="page-description">Available vs Low Stock vs Out of Stock for your program.</p>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="programStockStatusChart" role="img" aria-label="Pie chart showing stock status distribution"></canvas>
+            </div>
+        </section>
+
+        <section class="section-card chart-card" aria-label="PAS request status">
+            <div class="section-header compact">
+                <div>
+                    <h3 class="section-card-title">PAS Request Status</h3>
+                    <p class="page-description">Pending vs Approved vs Rejected breakdown.</p>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="pasRequestStatusChart" role="img" aria-label="Bar chart showing PAS request status"></canvas>
+            </div>
+        </section>
+    </div>
+
+    <div class="dashboard-analytics-row">
+        <section class="section-card chart-card" aria-label="Monthly supply movement">
+            <div class="section-header compact">
+                <div>
+                    <h3 class="section-card-title">Monthly Supply Movement</h3>
+                    <p class="page-description">Received vs released for your program items.</p>
+                </div>
+                <span class="chart-legend" aria-hidden="true">
+                    <span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--received"></span> Received</span>
+                    <span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--released"></span> Released</span>
+                </span>
+            </div>
+            <div class="chart-container">
+                <canvas id="programSupplyMovementChart" role="img" aria-label="Line chart showing monthly supply movement"></canvas>
+            </div>
+        </section>
+
+        <section class="section-card chart-card" aria-label="Top items by stock">
+            <div class="section-header compact">
+                <div>
+                    <h3 class="section-card-title">Top Items by Stock</h3>
+                    <p class="page-description">Highest stock items in your program.</p>
+                </div>
+            </div>
+            <div class="chart-container chart-container--tall">
+                <canvas id="topItemsByStockChart" role="img" aria-label="Horizontal bar chart showing top items by stock"></canvas>
+            </div>
+        </section>
+    </div>
+
+    <div class="dashboard-analytics-row">
+        <section class="section-card chart-card" aria-label="Expiring items timeline">
+            <div class="section-header compact">
+                <div>
+                    <h3 class="section-card-title">Expiring Items Timeline</h3>
+                    <p class="page-description">Items expiring within 90 days in your program.</p>
+                </div>
+            </div>
+            <div class="chart-container chart-container--tall">
+                <canvas id="expiringItemsTimelineChart" role="img" aria-label="Bar chart showing expiring items timeline"></canvas>
+            </div>
+        </section>
+    </div>
+
+    @else
 
     {{-- ═══════════════ TOP SECTION: KPI GRID (8 CARDS) ═══════════════ --}}
     <section class="dashboard-kpi-grid" role="region" aria-label="Key performance indicators">
@@ -348,6 +504,51 @@
             @endif
         </section>
     </div>
+
+    @if(! $programScoped && isset($pendingApprovals) && $pendingApprovals->count())
+    <div class="dashboard-tables-grid">
+        <section class="section-card" aria-label="Pending PAS approvals">
+            <div class="section-header compact">
+                <div>
+                    <h3 class="section-card-title">Pending PAS Approvals</h3>
+                    <p class="page-description">Program user requests awaiting your approval.</p>
+                </div>
+                <a href="{{ route('pas.index', ['request_status' => 'pending_approval']) }}" class="section-link">View all</a>
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>PAS Number</th>
+                            <th>Requester</th>
+                            <th>Program</th>
+                            <th>Date of PASS</th>
+                            <th style="text-align:center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($pendingApprovals as $approval)
+                            <tr>
+                                <td><strong>{{ $approval->pas_number ?? 'Pending' }}</strong></td>
+                                <td>{{ $approval->requester?->name ?? '—' }}</td>
+                                <td>{{ $approval->program ?? '—' }}</td>
+                                <td>{{ $approval->date_of_pass?->format('M d, Y') ?? '—' }}</td>
+                                <td style="text-align:center;white-space:nowrap;">
+                                    <a href="{{ route('pas.view', $approval) }}" class="btn btn-sm btn-outline">Review</a>
+                                    <form method="POST" action="{{ route('pas.approve', $approval) }}" style="display:inline;" onsubmit="return confirm('Approve this PAS request?')">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-primary">Approve</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+    @endif
+    @endif
 @endsection
 
 @push('scripts')
@@ -602,6 +803,211 @@
                     },
                 });
             }
+
+            @if($programScoped)
+            // ── Program User: Stock Status Distribution (Pie Chart) ──
+            const programStatusCtx = document.getElementById('programStockStatusChart');
+            if (programStatusCtx) {
+                const statusData = {!! json_encode($stockStatusDistribution) !!};
+                new Chart(programStatusCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: statusData.map(function(d) { return d.status; }),
+                        datasets: [{
+                            data: statusData.map(function(d) { return d.count; }),
+                            backgroundColor: ['#059669', '#D97706', '#DC2626'],
+                            borderWidth: 2,
+                            borderColor: isDark ? '#0f172a' : '#ffffff',
+                        }],
+                    },
+                    options: {
+                        ...chartDefaults,
+                        plugins: {
+                            ...chartDefaults.plugins,
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: textColor, font: { size: 10 }, padding: 12 },
+                            },
+                        },
+                    },
+                });
+            }
+
+            // ── Program User: PAS Request Status (Bar Chart) ──
+            const pasRequestCtx = document.getElementById('pasRequestStatusChart');
+            if (pasRequestCtx) {
+                const pasData = {!! json_encode($pasRequestStatus) !!};
+                new Chart(pasRequestCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: pasData.map(function(d) { return d.status; }),
+                        datasets: [{
+                            label: 'Requests',
+                            data: pasData.map(function(d) { return d.count; }),
+                            backgroundColor: ['#D97706', '#059669', '#DC2626'],
+                            borderRadius: 4,
+                        }],
+                    },
+                    options: {
+                        ...chartDefaults,
+                        indexAxis: 'y',
+                        plugins: {
+                            ...chartDefaults.plugins,
+                            legend: { display: false },
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                grid: { color: gridColor },
+                                ticks: { color: textColor, precision: 0 },
+                            },
+                            y: {
+                                grid: { display: false },
+                                ticks: { color: textColor, font: { size: 10 } },
+                            },
+                        },
+                    },
+                });
+            }
+
+            // ── Program User: Monthly Supply Movement (Line Chart) ──
+            const programSupplyCtx = document.getElementById('programSupplyMovementChart');
+            if (programSupplyCtx) {
+                const supplyData = {!! json_encode($monthlySupplyMovement) !!};
+                new Chart(programSupplyCtx, {
+                    type: 'line',
+                    data: {
+                        labels: supplyData.map(function(d) { return d.month; }),
+                        datasets: [
+                            {
+                                label: 'Received',
+                                data: supplyData.map(function(d) { return parseInt(d.received, 10) || 0; }),
+                                borderColor: '#DC2626',
+                                backgroundColor: 'rgba(220, 38, 38, 0.12)',
+                                fill: true,
+                                tension: 0.35,
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
+                                borderWidth: 2,
+                            },
+                            {
+                                label: 'Released',
+                                data: supplyData.map(function(d) { return parseInt(d.released, 10) || 0; }),
+                                borderColor: '#2563EB',
+                                backgroundColor: 'rgba(37, 99, 235, 0.12)',
+                                fill: true,
+                                tension: 0.35,
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
+                                borderWidth: 2,
+                            },
+                        ],
+                    },
+                    options: {
+                        ...chartDefaults,
+                        plugins: {
+                            ...chartDefaults.plugins,
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: { color: textColor, font: { size: 11 } },
+                            },
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: textColor, maxTicksLimit: 8, maxRotation: 45 },
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: gridColor },
+                                ticks: { color: textColor, precision: 0 },
+                            },
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index',
+                        },
+                    },
+                });
+            }
+
+            // ── Program User: Top Items by Stock (Horizontal Bar) ──
+            const topStockCtx = document.getElementById('topItemsByStockChart');
+            if (topStockCtx) {
+                const topStockData = {!! json_encode($topItemsByStock) !!};
+                new Chart(topStockCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: topStockData.map(function(d) { return d.name.length > 25 ? d.name.substring(0, 25) + '…' : d.name; }).reverse(),
+                        datasets: [{
+                            label: 'Units on Hand',
+                            data: topStockData.map(function(d) { return d.total; }).reverse(),
+                            backgroundColor: 'rgba(37, 99, 235, 0.75)',
+                            borderRadius: 4,
+                        }],
+                    },
+                    options: {
+                        ...chartDefaults,
+                        indexAxis: 'y',
+                        plugins: {
+                            ...chartDefaults.plugins,
+                            legend: { display: false },
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                grid: { color: gridColor },
+                                ticks: { color: textColor, precision: 0 },
+                            },
+                            y: {
+                                grid: { display: false },
+                                ticks: { color: textColor, font: { size: 10 } },
+                            },
+                        },
+                    },
+                });
+            }
+
+            // ── Program User: Expiring Items Timeline (Bar Chart) ──
+            const expiringCtx = document.getElementById('expiringItemsTimelineChart');
+            if (expiringCtx) {
+                const expData = {!! json_encode($expiringItemsTimeline) !!};
+                const expLabels = expData.map(function(d) { return d.expiry_date || 'Unknown'; });
+                const expValues = expData.map(function(d) { return d.item ? (d.item.quantity_on_hand || 0) : 0; });
+                new Chart(expiringCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: expLabels,
+                        datasets: [{
+                            label: 'Units',
+                            data: expValues,
+                            backgroundColor: 'rgba(220, 38, 38, 0.75)',
+                            borderRadius: 4,
+                        }],
+                    },
+                    options: {
+                        ...chartDefaults,
+                        indexAxis: 'y',
+                        plugins: {
+                            ...chartDefaults.plugins,
+                            legend: { display: false },
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                grid: { color: gridColor },
+                                ticks: { color: textColor, precision: 0 },
+                            },
+                            y: {
+                                grid: { display: false },
+                                ticks: { color: textColor, font: { size: 10 } },
+                            },
+                        },
+                    },
+                });
+            }
+            @endif
         });
     </script>
 @endpush
