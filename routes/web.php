@@ -15,6 +15,7 @@ use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\CoordinatorController;
 use App\Http\Controllers\ProgramManagementController;
 use App\Http\Controllers\PasController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -105,6 +106,10 @@ Route::middleware('web')->group(function () {
             ->name('pas.status');
         Route::post('pas/{pas}/approve', [PasController::class, 'approveRequest'])->name('pas.approve');
         Route::post('pas/{pas}/reject', [PasController::class, 'rejectRequest'])->name('pas.reject');
+
+        // Self-service profile (every signed-in account, including program users)
+        Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
 
         // Program Management Routes — single unified page
         Route::get('program-management', [ProgramManagementController::class, 'index'])->name('program-management.index');

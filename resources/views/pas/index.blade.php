@@ -43,11 +43,7 @@
                     <th class="col-hide-md">Facility / End-user</th>
                     <th class="col-hide-md">Requester</th>
                     <th class="col-hide-md">Request Status</th>
-                    @if(! auth()->user()?->program_id)
                     <th>Date Released</th>
-                    @endif
-                    
-                
                     <th>Facility / Coordinator</th>
                     <th class="col-hide-md">Program</th>
                     <th>Purpose / Activity</th>
@@ -68,10 +64,10 @@
                             default    => 'badge-secondary',
                         };
                         $requestBadgeClass = match($requestStatus) {
-                            'approved', 'completed' => 'badge-success',
-                            'rejected' => 'badge-danger',
-                            'pending_approval' => 'badge-warning',
-                            default => 'badge-secondary',
+                            'approved', 'completed' => 'green',
+                            'rejected' => 'red',
+                            'pending_approval' => 'amber',
+                            default => 'secondary',
                         };
                     @endphp
                      <tr>
@@ -91,11 +87,8 @@
                                <span class="pas-muted">—</span>
                                @endif
                           </td>
-                          @if(! auth()->user()?->program_id)
-                          <td data-label="Date Released" class="col-hide-md pas-muted">{{ $slip->date_released?->format('M d, Y') ?? '—' }}</td>
-                          @endif
-                         
-                         <td data-label="Facility / Coordinator" class="pas-name"><span>{{ $slip->facility_coordinator }}</span></td>
+                           <td data-label="Date Released" class="col-hide-md pas-muted">{{ $slip->date_released?->format('M d, Y') ?? '—' }}</td>
+                           <td data-label="Facility / Coordinator" class="pas-name"><span>{{ $slip->facility_coordinator }}</span></td>
                          <td data-label="Program" class="col-hide-md pas-muted"><span>{{ $slip->program ?? '—' }}</span></td>
                          <td data-label="Purpose / Activity" class="pas-muted"><span>{{ $slip->purpose_activity ?? '—' }}</span></td>
                          <td data-label="Status">
@@ -119,7 +112,7 @@
                     </tr>
                 @empty
                 <tr class="pas-empty-row">
-                    <td colspan="{{ auth()->user()?->program_id ? 10 : 11 }}">
+                    <td colspan="11">
                         <div class="pas-empty">
                             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
                             <p>No property allocation slips found.</p>
@@ -193,6 +186,8 @@
     .pas-badge--red .pas-badge-dot { background: #ef4444; }
     .pas-badge--amber { background: rgba(217,119,6,0.12); color: #92400e; }
     .pas-badge--amber .pas-badge-dot { background: #f59e0b; }
+    .pas-badge--secondary { background: rgba(100,116,139,0.12); color: #475569; }
+    .pas-badge--secondary .pas-badge-dot { background: #94a3b8; }
 
     .pas-actions { display: flex; gap: 0.4rem; justify-content: center; flex-wrap: wrap; }
     .btn-outline {

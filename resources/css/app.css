@@ -2377,6 +2377,20 @@ html[data-theme='dark'] .chart-card .section-card-title { color: #F87171; }
     }
 }
 
+.dashboard-tables-grid--full {
+    grid-template-columns: 1fr;
+}
+
+.dashboard-tables-grid--full .table-wrapper--desktop {
+    overflow-x: auto;
+}
+
+.dashboard-tables-grid--full .table-wrapper--desktop .data-table {
+    display: table;
+    width: 100%;
+    min-width: 720px;
+}
+
 /* ===== MOBILE TABLE CARD LAYOUT ===== */
 @media (max-width: 768px) {
     .table-container,

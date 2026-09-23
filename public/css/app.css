@@ -1142,6 +1142,20 @@ html[data-theme='dark'] .quick-action-hint { color: #94a3b8; }
     gap: 1rem;
 }
 
+.dashboard-tables-grid--full {
+    grid-template-columns: 1fr;
+}
+
+.dashboard-tables-grid--full .table-wrapper--desktop {
+    overflow-x: auto;
+}
+
+.dashboard-tables-grid--full .table-wrapper--desktop .data-table {
+    display: table;
+    width: 100%;
+    min-width: 720px;
+}
+
 .dashboard-tables-grid .section-card {
     padding: 0.75rem;
     min-width: 0;

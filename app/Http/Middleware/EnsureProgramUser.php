@@ -22,6 +22,7 @@ class EnsureProgramUser
                 'dashboard.gso',
                 'items.*',
                 'pas.*',
+                'profile.*',
             ];
 
             $routeName = $request->route()?->getName();

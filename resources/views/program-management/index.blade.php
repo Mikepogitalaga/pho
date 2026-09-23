@@ -427,7 +427,7 @@
         display: flex;
         gap: 0.4rem;
         justify-content: flex-end;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
     }
     .btn-outline {
         background: transparent;

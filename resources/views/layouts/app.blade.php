@@ -167,6 +167,15 @@
                         </a>
                     </div>
                 @endif
+                <div class="sidebar-nav-group">
+                    <p class="sidebar-nav-label">My Account</p>
+                    <a href="{{ route('profile.edit') }}" class="sidebar-link {{ request()->routeIs('profile.*') ? 'active' : '' }}">
+                        <span class="sidebar-link-icon" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </span>
+                        <span class="sidebar-link-text">My Profile</span>
+                    </a>
+                </div>
             </nav>
 
             <div class="sidebar-footer">
@@ -255,6 +264,7 @@
                                 <p class="topbar-profile-panel-name">{{ auth()->user()->name ?? 'Supply Officer' }}</p>
                                 <p class="topbar-profile-panel-role">{{ auth()->user()->email ?? 'Provincial Health Office' }}</p>
                                 <hr class="topbar-divider">
+                                <a href="{{ route('profile.edit') }}" class="topbar-menu-link" role="menuitem">My Profile</a>
                                 <a href="{{ route('dashboard') }}" class="topbar-menu-link" role="menuitem">Dashboard</a>
                                 <a href="{{ route('items.index') }}" class="topbar-menu-link" role="menuitem">Inventory Items</a>
                                 <form method="POST" action="{{ route('logout') }}" class="topbar-menu-form">
@@ -289,6 +299,8 @@
                     $breadcrumbItems = [['label' => 'Program Management']];
                 } elseif (str_starts_with($routeName, 'users')) {
                     $breadcrumbItems = [['label' => 'User Management']];
+                } elseif (str_starts_with($routeName, 'profile')) {
+                    $breadcrumbItems = [['label' => 'My Profile']];
                 } else {
                     $breadcrumbItems = [['label' => 'Dashboard']];
                 }

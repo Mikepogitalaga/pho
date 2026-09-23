@@ -80,12 +80,10 @@
             <p class="pas-detail-label">Date of PASS</p>
             <p class="pas-detail-value">{{ $pas->date_of_pass?->format('M d, Y') }}</p>
         </div>
-        @if(! auth()->user()?->program_id)
         <div class="pas-detail-item">
             <p class="pas-detail-label">Date Released</p>
             <p class="pas-detail-value">{{ $pas->date_released?->format('M d, Y') ?? '—' }}</p>
         </div>
-        @endif
         <div class="pas-detail-item">
             <p class="pas-detail-label">Supplier</p>
             <p class="pas-detail-value">{{ $pas->supplier?->company_name ?? '—' }}</p>

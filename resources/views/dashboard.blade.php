@@ -506,8 +506,8 @@
     </div>
 
     @if(! $programScoped && isset($pendingApprovals) && $pendingApprovals->count())
-    <div class="dashboard-tables-grid">
-        <section class="section-card" aria-label="Pending PAS approvals">
+    <div class="dashboard-tables-grid" style="grid-template-columns: 1fr;">
+        <section class="section-card" aria-label="Pending PAS approvals" style="padding: 1.15rem;">
             <div class="section-header compact">
                 <div>
                     <h3 class="section-card-title">Pending PAS Approvals</h3>
@@ -515,8 +515,8 @@
                 </div>
                 <a href="{{ route('pas.index', ['request_status' => 'pending_approval']) }}" class="section-link">View all</a>
             </div>
-            <div class="table-wrapper">
-                <table class="data-table">
+            <div class="table-wrapper" style="overflow-x: auto;">
+                <table class="data-table" style="display: table; width: 100%; min-width: 720px;">
                     <thead>
                         <tr>
                             <th>PAS Number</th>
@@ -675,6 +675,18 @@
             const topItemsCtx = document.getElementById('topReleasedItemsChart');
             if (topItemsCtx) {
                 const topData = {!! json_encode($topReleasedItems) !!};
+                const topColors = [
+                    'hsl(0, 89%, 10%)', // Red
+                    'rgb(97, 7, 7)', // Dark Red
+                    'rgb(117, 8, 8)', // Bright Red
+                    'rgb(160, 13, 13)', // Deep Red
+                    'rgb(162, 48, 48)', // Red-Orange
+                    'rgb(230, 108, 108)', // Rose Red
+                    'hsl(0, 74%, 81%)', // Crimson
+                    '#b69494', // Coral Red
+                    'hsl(0, 12%, 67%)', // Dark Crimson
+                    'hsl(0, 33%, 86%)'  // Deep Rose
+                ];
                 new Chart(topItemsCtx, {
                     type: 'bar',
                     data: {
@@ -682,7 +694,7 @@
                         datasets: [{
                             label: 'Units Released',
                             data: topData.map(function(d) { return d.total; }).reverse(),
-                            backgroundColor: 'rgba(37, 99, 235, 0.75)',
+                            backgroundColor: topColors.slice(0, topData.length),
                             borderRadius: 4,
                         }],
                     },
@@ -744,6 +756,18 @@
             const facilityCtx = document.getElementById('releasesByFacilityChart');
             if (facilityCtx) {
                 const facData = {!! json_encode($releasesByFacility) !!};
+                const facilityColors = [
+                    'hsl(0, 89%, 10%)', // Red
+                    'rgb(97, 7, 7)', // Dark Red
+                    'rgb(117, 8, 8)', // Bright Red
+                    'rgb(160, 13, 13)', // Deep Red
+                    'rgb(162, 48, 48)', // Red-Orange
+                    'rgb(230, 108, 108)', // Rose Red
+                    'hsl(0, 74%, 81%)', // Crimson
+                    '#b69494', // Coral Red
+                    'hsl(0, 12%, 67%)', // Dark Crimson
+                    'hsl(0, 33%, 86%)'  // Deep Rose
+                ];
                 new Chart(facilityCtx, {
                     type: 'bar',
                     data: {
@@ -751,7 +775,7 @@
                         datasets: [{
                             label: 'Units Released',
                             data: facData.map(function(d) { return d.total; }).reverse(),
-                            backgroundColor: 'rgba(124, 58, 237, 0.75)',
+                            backgroundColor: facilityColors.slice(0, facData.length),
                             borderRadius: 4,
                         }],
                     },
@@ -936,6 +960,18 @@
             const topStockCtx = document.getElementById('topItemsByStockChart');
             if (topStockCtx) {
                 const topStockData = {!! json_encode($topItemsByStock) !!};
+                const topStockColors = [
+                    'hsl(0, 89%, 10%)', // Red
+                    'rgb(97, 7, 7)', // Dark Red
+                    'rgb(117, 8, 8)', // Bright Red
+                    'rgb(160, 13, 13)', // Deep Red
+                    'rgb(162, 48, 48)', // Red-Orange
+                    'rgb(230, 108, 108)', // Rose Red
+                    'hsl(0, 74%, 81%)', // Crimson
+                    '#b69494', // Coral Red
+                    'hsl(0, 12%, 67%)', // Dark Crimson
+                    'hsl(0, 33%, 86%)'  // Deep Rose
+                ];
                 new Chart(topStockCtx, {
                     type: 'bar',
                     data: {
@@ -943,7 +979,7 @@
                         datasets: [{
                             label: 'Units on Hand',
                             data: topStockData.map(function(d) { return d.total; }).reverse(),
-                            backgroundColor: 'rgba(37, 99, 235, 0.75)',
+                            backgroundColor: topStockColors.slice(0, topStockData.length),
                             borderRadius: 4,
                         }],
                     },
