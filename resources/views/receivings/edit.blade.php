@@ -178,9 +178,6 @@
                                     <div class="form-group">
                                         <label>Category</label>
                                         <select class="item-category-input" name="items[{{ $index }}][category]">
-                                            <option value="GSO" @selected(($oi['category'] ?? $ri->category ?? '') === 'GSO')>GSO</option>
-                                            <option value="ACP" @selected(($oi['category'] ?? $ri->category ?? '') === 'ACP')>ACP</option>
-                                            <option value="DOH" @selected(($oi['category'] ?? $ri->category ?? '') === 'DOH')>DOH</option>
                                             <option value="DM" @selected(($oi['category'] ?? $ri->category ?? 'DM') === 'DM')>DM</option>
                                             <option value="MDL" @selected(($oi['category'] ?? $ri->category ?? '') === 'MDL')>MDL</option>
                                             <option value="Other supplies" @selected(($oi['category'] ?? $ri->category ?? '') === 'Other supplies')>Other supplies</option>

@@ -698,6 +698,7 @@ class DashboardController extends Controller
         // ── Notifications (low stock / expiring items from this type) ──
         $notifications = collect();
         $notificationCount = 0;
+        $pendingApprovalRecords = collect();
 
         $typeItemIds = $this->getItemIdsBySupplierType($type);
         if (!empty($typeItemIds)) {
