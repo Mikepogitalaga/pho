@@ -195,7 +195,7 @@ class ReceivingController extends Controller
                 'supplier_id'         => $request->input('supplier_id'),
                 'date_received'       => $request->input('date_received'),
                 'received_by'         => $request->input('received_by'),
-                'location'            => null,
+                'location'            => $request->input('location'),
                 'stock_keeping_unit'  => $request->input('stock_keeping_unit'),
                 'program_coordinator' => $request->input('program_coordinator'),
                 'notes'               => $request->input('notes'),

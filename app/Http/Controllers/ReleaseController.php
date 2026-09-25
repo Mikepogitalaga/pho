@@ -405,7 +405,7 @@ class ReleaseController extends Controller
                     $newItem = ReleaseItem::create([
                         'release_id'        => $release->id,
                         'item_id'           => $itemId,
-                        'item_code'         => $code,
+                        'item_code'         => $itemData['item_code'] ?? null,
                         'item_description'  => $description ?: ($item?->name ?? ''),
                         'category'          => $category,
                         'quantity_released' => $qty,
