@@ -212,10 +212,11 @@ class ItemController extends Controller
                 'releaseItems.release',
             ])
             ->orderBy('location')
-            ->get();
+            ->get()
+            ->each(fn ($groupedItem) => $groupedItem->attachCodeAvailability());
 
         $totalReleased = $itemGroups->sum(fn ($groupedItem) => $groupedItem->releaseItems
-            ->filter(fn ($ri) => ! in_array($ri->release->status ?? '', ['Canceled', 'Returned'], true))
+            ->filter(fn ($ri) => ! in_array($ri->release?->status ?? '', ['Canceled', 'Returned'], true))
             ->sum('quantity_released'));
         $totalReceived = $itemGroups->sum(fn ($groupedItem) => $groupedItem->receivingItems->sum('quantity_received'));
         $totalStock = $itemGroups->sum('quantity_on_hand');
@@ -237,7 +238,7 @@ class ItemController extends Controller
                 $row->item_code = $productCode ?: null;
                 $row->receivingItems = $receivingItems;
                 $row->quantity_on_hand = $receivingItems->isNotEmpty()
-                    ? $receivingItems->sum('quantity_received')
+                    ? $receivingItems->sum(fn ($ri) => $ri->available_quantity ?? $ri->quantity_received)
                     : $groupedItem->quantity_on_hand;
                 if ($source) {
                     $row->category = $source->category ?: $row->category;

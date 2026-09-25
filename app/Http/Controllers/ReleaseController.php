@@ -247,6 +247,7 @@ class ReleaseController extends Controller
     {
         $release->load('items.item.receivingItems.receiving');
         $items = Item::with('receivingItems')->orderBy('name')->get();
+        $items->each(fn($i) => $i->attachCodeAvailability());
         $facilities = Facility::active()->orderBy('category')->orderBy('name')->get(['name', 'category']);
         $programs = Program::orderBy('name')->get();
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
@@ -404,6 +405,7 @@ class ReleaseController extends Controller
                     $newItem = ReleaseItem::create([
                         'release_id'        => $release->id,
                         'item_id'           => $itemId,
+                        'item_code'         => $code,
                         'item_description'  => $description ?: ($item?->name ?? ''),
                         'category'          => $category,
                         'quantity_released' => $qty,
@@ -452,6 +454,7 @@ class ReleaseController extends Controller
     public function create()
     {
         $items = Item::with('receivingItems')->orderBy('name')->get();
+        $items->each(fn($i) => $i->attachCodeAvailability());
         $facilities = Facility::active()->orderBy('category')->orderBy('name')->get(['name', 'category']);
         $programs = Program::orderBy('name')->get();
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
@@ -586,6 +589,7 @@ class ReleaseController extends Controller
                     ReleaseItem::create([
                         'release_id' => $release->id,
                         'item_id' => $itemData['item_id'],
+                        'item_code' => $itemData['item_code'] ?? null,
                         'item_description' => $itemData['item_description'] ?? $item->name,
                         'category' => $item->category,
                         'quantity_released' => $itemData['quantity_released'],

@@ -23,7 +23,7 @@
                 <p class="page-description" style="margin-top: 0.25rem;">Search and filter receiving records by various criteria.</p>
             </div>
             <div class="table-actions">
-                @if(request()->hasAny(['search','supplier','po_number','start_date','end_date','program']))
+                @if(request()->hasAny(['search','supplier','po_number','received_by','start_date','end_date','program']))
                     <a href="{{ route('receivings.index') }}" class="btn btn-secondary" style="min-height: 44px;">Clear All</a>
                 @endif
             </div>
@@ -32,7 +32,7 @@
         <form id="receivingsFilterForm" method="GET" class="search-panel" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: var(--space-4);">
             <div>
                 <label for="receivingSearch" class="sr-only">Search receivings</label>
-                <input id="receivingSearch" type="text" name="search" value="{{ request('search') }}" placeholder="Search by Receiving No." class="search-input" />
+                <input id="receivingSearch" type="text" name="search" value="{{ request('search') }}" placeholder="Search by ICS/PTR/RIS, PO No. or Received By" class="search-input" />
             </div>
             <div>
                 <label for="supplierFilter" class="sr-only">Filter by supplier</label>
@@ -41,6 +41,10 @@
             <div>
                 <label for="poNumberFilter" class="sr-only">Filter by PO No.</label>
                 <input id="poNumberFilter" type="text" name="po_number" value="{{ request('po_number') }}" placeholder="Filter by PO No." class="search-input" />
+            </div>
+            <div>
+                <label for="receivedByFilter" class="sr-only">Filter by Received By</label>
+                <input id="receivedByFilter" type="text" name="received_by" value="{{ request('received_by') }}" placeholder="Filter by Received By" class="search-input" />
             </div>
             <div>
                 <label for="startDate" class="sr-only">Start Date</label>
@@ -113,7 +117,7 @@
                          </tr>
                      @empty
                         <tr>
-                            <td colspan="9" style="padding: 1.25rem;">
+                                <td colspan="8" style="padding: 1.25rem;">
                                 <div class="empty-state">
                                     <strong>No receiving records found.</strong>
                                     <div style="margin-top: 0.35rem;">Create a new receiving slip to start tracking incoming stock.</div>
@@ -131,7 +135,7 @@
     @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const hasFilters = {{ request()->hasAny(['search','supplier','po_number','start_date','end_date','program']) ? 'true' : 'false' }};
+            const hasFilters = {{ request()->hasAny(['search','supplier','po_number','received_by','start_date','end_date','program']) ? 'true' : 'false' }};
             if (hasFilters) {
                 document.getElementById('receivingsTable').scrollIntoView({ behavior: 'smooth', block: 'start' });
             }

@@ -72,7 +72,20 @@ class PasController extends Controller
 
     public function create()
     {
-        $items = Item::with('receivingItems')->orderBy('name')->get();
+        $itemsQuery = Item::with(['receivingItems', 'releaseItems.release'])->orderBy('name');
+        $user = auth()->user();
+
+        if ($user && ! $user->isAdmin() && $user->program_id) {
+            $programIds = $user->all_programs;
+            if ($programIds->isNotEmpty()) {
+                $programNames = Program::whereIn('id', $programIds)->pluck('name')->unique()->values()->toArray();
+                if (! empty($programNames)) {
+                    $itemsQuery->whereIn('stock_keeping_unit', $programNames);
+                }
+            }
+        }
+
+        $items = $itemsQuery->get()->each(fn($i) => $i->attachCodeAvailability());
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
         $facilities = Facility::active()->orderBy('category')->orderBy('name')->get(['name', 'category']);
 
@@ -196,7 +209,21 @@ class PasController extends Controller
     public function edit(Pas $pas)
     {
         $pas->load(['items.item', 'supplier', 'release']);
-        $items = Item::with('receivingItems')->orderBy('name')->get();
+
+        $itemsQuery = Item::with(['receivingItems', 'releaseItems.release'])->orderBy('name');
+        $user = auth()->user();
+
+        if ($user && ! $user->isAdmin() && $user->program_id) {
+            $programIds = $user->all_programs;
+            if ($programIds->isNotEmpty()) {
+                $programNames = Program::whereIn('id', $programIds)->pluck('name')->unique()->values()->toArray();
+                if (! empty($programNames)) {
+                    $itemsQuery->whereIn('stock_keeping_unit', $programNames);
+                }
+            }
+        }
+
+        $items = $itemsQuery->get()->each(fn($i) => $i->attachCodeAvailability());
         $suppliers = Supplier::orderBy('company_name')->get();
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
         $programs = Program::orderBy('name')->get();
@@ -213,7 +240,9 @@ class PasController extends Controller
                 'expiry_date' => $g->first()->expiry_date?->format('Y-m-d'),
             ]);
 
-        return view('pas.edit', compact('pas', 'items', 'suppliers', 'coordinators', 'programs', 'itemLotNumbers', 'facilities'));
+        $nextSeq = (int) $this->nextYearSequence(PasItem::class, 'product_code', 'PC'.now()->format('ym').'%');
+
+        return view('pas.edit', compact('pas', 'items', 'suppliers', 'coordinators', 'programs', 'facilities', 'itemLotNumbers', 'nextSeq'));
     }
 
     public function update(Request $request, Pas $pas)

@@ -292,6 +292,9 @@
     </datalist>
 
 @push('scripts')
+@php
+    $items->each(fn($i) => $i->attachCodeAvailability());
+@endphp
 
 <script>
 const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItems->isNotEmpty()

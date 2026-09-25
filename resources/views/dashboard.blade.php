@@ -99,7 +99,7 @@
                 <span class="kpi-card-label">Expiring Soon</span>
             </div>
             <p class="kpi-card-value">{{ number_format($expiringSoon->count()) }}</p>
-            <p class="kpi-card-foot">Within 30 days</p>
+            <p class="kpi-card-foot">Within 90 days</p>
         </article>
 
         <article class="kpi-card">
@@ -274,7 +274,7 @@
                 <span class="kpi-card-label">Expiring Items</span>
             </div>
             <p class="kpi-card-value">{{ number_format($expiringItemsCount) }}</p>
-            <p class="kpi-card-foot">Within 30 days</p>
+            <p class="kpi-card-foot">Within 90 days</p>
         </article>
 
         <article class="kpi-card">
@@ -299,6 +299,7 @@
             <p class="kpi-card-foot">Registered vendors</p>
         </article>
     </section>
+    
 
     {{-- ═══════════════ MIDDLE SECTION: CHARTS (2 COLUMNS) ═══════════════ --}}
     <div class="dashboard-analytics-row">
@@ -406,7 +407,7 @@
                         <li class="activity-item">
                             <span class="activity-dot activity-dot--success" aria-hidden="true"></span>
                             <div class="activity-body">
-                                <p class="activity-title">{{ $receive->receiving_number }}</p>
+                                <p class="activity-title">{{ $receive->po_number ?? $receive->id }}</p>
                                 <p class="activity-meta">{{ $receive->supplier->company_name }} · {{ $receive->date_received->format('M d, Y') }}</p>
                             </div>
                         </li>
@@ -478,7 +479,7 @@
             <div class="section-header compact">
                 <div>
                     <h3 class="section-card-title">Expiring Items</h3>
-                    <p class="page-description">Items nearing expiry within 30 days.</p>
+                    <p class="page-description">Items nearing expiry within 90 days.</p>
                 </div>
                 <a href="{{ route('items.index') }}" class="section-link">View items</a>
             </div>

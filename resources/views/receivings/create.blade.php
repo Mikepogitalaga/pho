@@ -11,7 +11,7 @@
             <a href="{{ route('receivings.index') }}" class="btn btn-secondary">Back to Receivings</a>
         </div>
 
-        <form action="{{ route('receivings.store') }}" method="POST" class="stack">
+        <form action="{{ route('receivings.store') }}" method="POST" class="stack" id="receivingForm">
             @csrf
 
             @if(session('error'))
@@ -772,7 +772,7 @@
         var isSubmitting = false; // Add this to track submission
         function markDirty() { formDirty = true; }
 
-        document.querySelector('form').querySelectorAll('input, select, textarea').forEach(function(el) {
+        document.getElementById('receivingForm').querySelectorAll('input, select, textarea').forEach(function(el) {
             el.addEventListener('input', markDirty);
             el.addEventListener('change', markDirty);
         });
@@ -796,7 +796,7 @@
             });
         });
 
-        document.querySelector('form').addEventListener('submit', function(e) {
+        document.getElementById('receivingForm').addEventListener('submit', function(e) {
             // Mark the form as submitting immediately so beforeunload does not
             // warn while the browser is sending a valid save request.
             isSubmitting = true;

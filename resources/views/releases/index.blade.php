@@ -132,7 +132,7 @@
                               </td>
                               <td data-label="PAS No.">{{ $release->pas_number }}</td>
                               <td data-label="PHO Code" class="col-hide-md">
-                                  {{ $release->items->flatMap(fn($releaseItem) => $releaseItem->item?->receivingItems ?? collect())->pluck('item_code')->filter()->unique()->implode(', ') ?: '—' }}
+                                   {{ $release->items->pluck('item_code')->filter()->unique()->implode(', ') ?: '—' }}
                               </td>
                               <td data-label="Facility / End-user">{{ $release->facility_name }}</td>
                               <td data-label="Program" class="col-hide-md">{{ $release->health_program_coordinator ?? '—' }}</td>

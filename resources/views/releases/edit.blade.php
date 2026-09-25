@@ -180,32 +180,34 @@
                                     <button type="button" class="btn btn-danger remove-item-button" @if($index === 0) style="display:none;" @endif>Delete</button>
                                 </div>
                             </div>
-                            <div class="item-row-body">
-                                <input type="hidden" class="release-item-id" name="items[{{ $index }}][_release_item_id]" value="{{ $oldItem['_release_item_id'] ?? '' }}">
-                                <input type="hidden" class="item-id-select" name="items[{{ $index }}][item_id]" value="{{ $oldItem['item_id'] ?? '' }}">
-                                <div class="form-grid-3">
-                                    <div class="form-group">
-                                        <label>Item Description <span style="color: var(--danger);">*</span></label>
-                                        <div style="position:relative; display:flex; align-items:center;">
-                                            <input type="text" class="item-description-input" name="items[{{ $index }}][item_description]"
-                                                value="{{ $oldItem['item_description'] ?? '' }}" autocomplete="off" style="width:100%; padding-right:2rem;" required>
-                                            <button type="button" class="item-description-clear" title="Clear"
-                                                style="position:absolute; right:0.5rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
+                                <div class="item-row-body">
+                                    <input type="hidden" class="release-item-id" name="items[{{ $index }}][_release_item_id]" value="{{ $oldItem['_release_item_id'] ?? '' }}">
+                                    <input type="hidden" class="item-id-select" name="items[{{ $index }}][item_id]" value="{{ $oldItem['item_id'] ?? '' }}">
+                                    <div class="form-grid-3">
+                                        <div class="form-group">
+                                            <label>Item Description <span style="color: var(--danger);">*</span></label>
+                                            <div style="position:relative; display:flex; align-items:center;">
+                                                <input type="text" class="item-description-input" name="items[{{ $index }}][item_description]"
+                                                    value="{{ $oldItem['item_description'] ?? '' }}" autocomplete="off" style="width:100%; padding-right:2rem;" required>
+                                                <button type="button" class="item-description-clear" title="Clear"
+                                                    style="position:absolute; right:0.5rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>PHO Code</label>
+                                            <div style="position:relative; display:flex; align-items:center;">
+                                                <input type="text" class="item-phocode-input" autocomplete="off" style="width:100%; padding-right:2rem;" value="{{ $oldItem['item_code'] ?? '' }}">
+                                                <input type="hidden" class="item-code-select" name="items[{{ $index }}][item_code]" value="{{ $oldItem['item_code'] ?? '' }}">
+                                                <input type="hidden" class="item-id-select" name="items[{{ $index }}][item_id]" value="{{ $oldItem['item_id'] ?? '' }}">
+                                                <button type="button" class="item-description-clear" title="Clear"
+                                                    style="position:absolute; right:0.5rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Batch/Lot No.</label>
+                                            <input class="item-lot-input" name="items[{{ $index }}][lot_number]" value="{{ $oldItem['lot_number'] ?? '' }}">
                                         </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label>PHO Code</label>
-                                        <div style="position:relative; display:flex; align-items:center;">
-                                            <input type="text" class="item-phocode-input" autocomplete="off" style="width:100%; padding-right:2rem;" value="{{ $oldItem['item_code'] ?? '' }}">
-                                            <button type="button" class="item-description-clear" title="Clear"
-                                                style="position:absolute; right:0.5rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Batch/Lot No.</label>
-                                        <input class="item-lot-input" name="items[{{ $index }}][lot_number]" value="{{ $oldItem['lot_number'] ?? '' }}">
-                                    </div>
-                                </div>
                                 <div class="form-grid-3">
                                     <div class="form-group">
                                         <label>Expiration Date</label>
@@ -334,7 +336,7 @@
             'name'       => $i->name,
             'uom'        => $receivingItem->uom ?: $i->unit,
             'cost'       => $receivingItem->unit_cost ?? $i->unit_cost,
-            'qty'        => $i->quantity_on_hand ?? $receivingItem->quantity_received,
+            'qty'        => $receivingItem->available_quantity ?? $receivingItem->quantity_received,
             'category'   => $receivingItem->category ?: $i->category,
             'lot_number' => $receivingItem->lot_number,
             'expiry'     => $receivingItem->expiry_date?->format('Y-m-d'),

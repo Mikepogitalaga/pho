@@ -161,6 +161,7 @@
                                     <label>PHO Code</label>
                                     <div style="position:relative;display:flex;align-items:center;">
                                         <input type="text" class="pas-phocode-input" autocomplete="off" style="width:100%;padding-right:2rem;" value="{{ $oldItem['product_code'] ?? $oldItem['item_id'] ?? '' }}">
+                                        <input type="hidden" class="pas-item-code-hidden" name="items[{{ $index }}][item_code]" value="{{ $oldItem['product_code'] ?? $oldItem['item_id'] ?? '' }}">
                                         <input type="hidden" class="pas-item-id-hidden" name="items[{{ $index }}][item_id]" value="{{ $oldItem['item_id'] ?? '' }}">
                                         <button type="button" class="item-description-clear" title="Clear" style="position:absolute;right:0.5rem;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;line-height:1;padding:0.2rem 0.3rem;">&times;</button>
                                     </div>
@@ -257,6 +258,7 @@
                     <label>PHO Code</label>
                     <div style="position:relative;display:flex;align-items:center;">
                         <input type="text" class="pas-phocode-input" autocomplete="off" style="width:100%;padding-right:2rem;" value="">
+                        <input type="hidden" class="pas-item-code-hidden" name="items[0][item_code]" value="">
                         <input type="hidden" class="pas-item-id-hidden" name="items[0][item_id]" value="">
                         <button type="button" class="item-description-clear" title="Clear" style="position:absolute;right:0.5rem;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;line-height:1;padding:0.2rem 0.3rem;">&times;</button>
                     </div>
@@ -299,16 +301,28 @@
 @push('scripts')
 
 <script>
-const pasAllItems = {!! json_encode($items->flatMap(fn($i) => $i->relationLoaded('receivingItems') ? $i->receivingItems->map(fn($receivingItem) => [
-    'id'         => $i->id,
-    'code'       => $receivingItem->item_code,
-    'name'       => $i->name,
-    'unit'       => $receivingItem->uom ?: $i->unit,
-    'cost'       => $receivingItem->unit_cost ?? $i->unit_cost,
-    'qty'        => $i->quantity_on_hand,
-    'lot_number' => $receivingItem->lot_number,
-    'expiry'     => $receivingItem->expiry_date?->format('Y-m-d'),
-]) : collect())->filter(fn($item) => filled($item['code']))->values()->toArray()) !!};
+const pasAllItems = {!! json_encode($items->flatMap(fn($i) => $i->receivingItems->isNotEmpty()
+    ? $i->receivingItems->map(fn($receivingItem) => [
+        'id'         => $i->id,
+        'code'       => $receivingItem->item_code,
+        'name'       => $i->name,
+        'unit'       => $receivingItem->uom ?: $i->unit,
+        'cost'       => $receivingItem->unit_cost ?? $i->unit_cost,
+        'qty'        => $receivingItem->available_quantity ?? $receivingItem->quantity_received,
+        'lot_number' => $receivingItem->lot_number,
+        'expiry'     => $receivingItem->expiry_date?->format('Y-m-d'),
+    ])
+    : [[
+        'id'         => $i->id,
+        'code'       => $i->item_code ?? '',
+        'name'       => $i->name,
+        'unit'       => $i->unit,
+        'cost'       => $i->unit_cost,
+        'qty'        => $i->quantity_on_hand,
+        'lot_number' => '',
+        'expiry'     => '',
+    ]]
+)->filter(fn($item) => filled($item['code']))->values()->toArray()) !!};
 
 document.addEventListener('DOMContentLoaded', function () {
     const container = document.getElementById('pas-items');
@@ -428,6 +442,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function applyItemToRow(row, item) {
         const descInput    = row.querySelector('.pas-desc-input');
         const phocodeInput = row.querySelector('.pas-phocode-input');
+        const codeHidden   = row.querySelector('.pas-item-code-hidden');
         const itemIdHidden = row.querySelector('.pas-item-id-hidden');
         const codeInput    = row.querySelector('.pas-product-code-input');
         const unitInput    = row.querySelector('.pas-unit-input');
@@ -437,6 +452,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const qtyInput     = row.querySelector('.pas-qty-input');
         if (descInput)    descInput.value    = item.name;
         if (phocodeInput) phocodeInput.value = item.code || '';
+        if (codeHidden)   codeHidden.value   = item.code || '';
         if (itemIdHidden) itemIdHidden.value = item.id || '';
         if (codeInput)    codeInput.value    = item.code || '';
         if (unitInput)    unitInput.value    = item.unit || '';
@@ -493,6 +509,7 @@ document.addEventListener('DOMContentLoaded', function () {
             descInput.value = '';
             phocodeInput.value = '';
             row.querySelector('.pas-item-id-hidden').value = '';
+            row.querySelector('.pas-item-code-hidden').value = '';
             row.querySelector('.pas-product-code-input').value = '';
             row.querySelector('.pas-unit-input').value  = '';
             row.querySelector('.pas-unitcost-input').value = '';
@@ -515,6 +532,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const phocodeInput = row.querySelector('.pas-phocode-input');
         if (!phocodeInput) return;
 
+        const descInput = row.querySelector('.pas-desc-input');
+        const codeHidden = row.querySelector('.pas-item-code-hidden');
+
         const dd = document.createElement('div');
         dd.className = 'autocomplete-dropdown';
         Object.assign(dd.style, {
@@ -528,9 +548,21 @@ document.addEventListener('DOMContentLoaded', function () {
         function showOptions(query) {
             dd.innerHTML = '';
             const q = query.toLowerCase().trim();
+            const descValue = descInput ? descInput.value.trim() : '';
+            const descLower = descValue.toLowerCase();
             const seen = new Set();
+
+            let exactNameIds = null;
+            if (descValue) {
+                const exactMatches = pasAllItems.filter(function(item) { return item.name.toLowerCase() === descLower; });
+                if (exactMatches.length > 0) {
+                    exactNameIds = new Set(exactMatches.map(function(item) { return item.id; }));
+                }
+            }
+
             const filtered = pasAllItems.filter(function(item) {
                 if (q && !(item.code.toLowerCase().includes(q) || item.name.toLowerCase().includes(q))) return false;
+                if (exactNameIds && !exactNameIds.has(item.id)) return false;
                 if (seen.has(item.code)) return false;
                 seen.add(item.code);
                 return true;
@@ -540,8 +572,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 const opt = document.createElement('div');
                 Object.assign(opt.style, { padding:'10px 12px', cursor:'pointer', borderBottom:'1px solid #f0f0f0' });
                 opt.textContent = item.code + ' — ' + item.name + ' (' + (item.qty || 0) + ' available' + (item.expiry ? ' | Exp: ' + item.expiry : '') + ')';
-                opt.addEventListener('mouseover', () => opt.style.background = '#f5f5f5');
-                opt.addEventListener('mouseout',  () => opt.style.background = 'transparent');
+                opt.addEventListener('mouseover', function() { this.style.background = '#f5f5f5'; });
+                opt.addEventListener('mouseout',  function() { this.style.background = 'transparent'; });
                 opt.addEventListener('click', function() {
                     phocodeInput.value = item.code;
                     dd.style.display = 'none';
@@ -551,6 +583,14 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             dd.style.display = 'block';
         }
+
+        phocodeInput.addEventListener('input', function() {
+            if (codeHidden) codeHidden.value = this.value;
+            showOptions(this.value);
+        });
+        phocodeInput.addEventListener('focus', function() { showOptions(''); });
+        phocodeInput.addEventListener('blur',  function() { setTimeout(function() { dd.style.display = 'none'; }, 200); });
+    }
 
         phocodeInput.addEventListener('input', function() { showOptions(this.value); });
         phocodeInput.addEventListener('focus', function() { showOptions(this.value); });

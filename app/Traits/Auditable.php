@@ -55,7 +55,7 @@ trait Auditable
 
     private static function resolveLabel($model): string
     {
-        return $model->receiving_number
+        return $model->release_number
             ?? $model->release_number
             ?? $model->pas_number
             ?? $model->item_code

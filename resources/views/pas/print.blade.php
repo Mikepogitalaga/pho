@@ -106,8 +106,8 @@
         }
 
             .logo-placeholder img {
-                width: 50px;
-                height: 50px;
+                width: 60px;
+                height: 60px;
                 object-fit: contain;
             }
 
@@ -119,6 +119,8 @@
             text-align: center;
             margin-bottom: 50px;
             font-weith: bold;
+            font-weight: 700;
+            
         }
 
         .top-info {
@@ -225,7 +227,7 @@
             border: 1px solid #000;
             padding: 6px 8px;
             font-style: italic;
-            font-size: 10px;
+            font-size: 12px;
             margin-bottom: 0;
             background-color: #f9f9f9;
         }
@@ -299,7 +301,7 @@
         }
 
         .notes {
-            font-size: 10px;
+            font-size: 12px;
             margin-top: 8px;
         }
 

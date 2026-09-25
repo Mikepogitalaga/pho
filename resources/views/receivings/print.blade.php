@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Receiving Slip – {{ $receiving->po_number ?? $receiving->receiving_number ?? 'Receiving' }}</title>
+    <title>Receiving Slip – {{ $receiving->po_number ?? 'Receiving' }}</title>
     <style>
         @page {
             size: A4 Landscape;
@@ -241,7 +241,7 @@
     <div class="info-gridleft">
         <div class="info-row">
             <div class="info-label">Receiving No.:</div>
-            <div class="info-value">{{ $receiving->po_number ?? $receiving->receiving_number ?? '—' }}</div>
+            <div class="info-value">{{ $receiving->po_number ?? '—' }}</div>
         </div>
         <div class="info-row">
             <div class="info-label">Supplier / Dealer:</div>

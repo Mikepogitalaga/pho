@@ -230,12 +230,17 @@
                                     <ul class="topbar-notify-list">
                                         @foreach($notifications as $note)
                                             <li class="topbar-notify-item">
-                                                <span class="topbar-notify-dot topbar-notify-dot--{{ $note['type'] ?? 'info' }}" aria-hidden="true"></span>
-                                                <div>
-                                                    <p class="topbar-notify-text">{{ $note['message'] }}</p>
-                                                    @if(!empty($note['href']))
-                                                        <a href="{{ $note['href'] }}" class="topbar-notify-link">View details</a>
+                                                <div class="topbar-notify-badge topbar-notify-badge--{{ $note['type'] ?? 'info' }}">
+                                                    {{ $note['label'] ?? 'NOTICE' }}
+                                                </div>
+                                                <div class="topbar-notify-body">
+                                                    <p class="topbar-notify-code">{{ $note['code'] ?? '—' }}</p>
+                                                    <p class="topbar-notify-name">{{ $note['name'] ?? '' }}</p>
+                                                    @if(!empty($note['requester']))
+                                                        <p class="topbar-notify-requester">Requested by {{ $note['requester'] }}</p>
                                                     @endif
+                                                    <p class="topbar-notify-detail">{{ $note['detail'] ?? $note['message'] ?? '' }}</p>
+                                                        <a href="{{ $note['href'] ?? '#' }}" class="topbar-notify-link">View</a>
                                                 </div>
                                             </li>
                                         @endforeach
@@ -337,5 +342,64 @@
 
     <script src="{{ asset('js/app.js') }}" defer></script>
     @stack('scripts')
+
+    <style>
+    .btn-spinner {
+        display: inline-block;
+        width: 0.9em;
+        height: 0.9em;
+        border: 2px solid currentColor;
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: btnSpin 0.65s linear infinite;
+        margin-right: 0.45em;
+        vertical-align: middle;
+    }
+    @keyframes btnSpin {
+        to { transform: rotate(360deg); }
+    }
+    </style>
+    <script>
+    (function () {
+        'use strict';
+        var SAVE_RE = /save|create|update|approve/i;
+
+        function setSaving(btn, on) {
+            if (!btn) return;
+            if (on) {
+                btn.disabled = true;
+                if (btn.tagName === 'INPUT') {
+                    btn.dataset.origVal = btn.value;
+                    btn.value = SAVE_RE.test(btn.value) ? 'Saving...' : btn.value;
+                } else {
+                    btn.dataset.origHtml = btn.innerHTML;
+                    var text = btn.textContent.trim();
+                    btn.innerHTML = '<span class="btn-spinner"></span>' + (SAVE_RE.test(text) ? 'Saving...' : text);
+                }
+            } else {
+                btn.disabled = false;
+                if (btn.tagName === 'INPUT') {
+                    btn.value = btn.dataset.origVal || btn.value;
+                    delete btn.dataset.origVal;
+                } else {
+                    btn.innerHTML = btn.dataset.origHtml || btn.innerHTML;
+                    delete btn.dataset.origHtml;
+                }
+            }
+        }
+
+        document.addEventListener('submit', function (e) {
+            var form = e.target;
+            if (!form || form.tagName !== 'FORM') return;
+            if (e.defaultPrevented) return;
+            var btn = e.submitter || form.querySelector('button[type="submit"], input[type="submit"]');
+            if (!btn || btn.disabled) return;
+            setSaving(btn, true);
+            setTimeout(function () {
+                if (e.defaultPrevented) setSaving(btn, false);
+            }, 0);
+        });
+    })();
+    </script>
 </body>
 </html>

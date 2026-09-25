@@ -231,7 +231,7 @@ class DashboardController extends Controller
 
         // Expiring items within 30 days
         $expiringItemsCountQuery = ReceivingItem::whereNotNull('expiry_date')
-            ->whereDate('expiry_date', '<=', now()->addDays(30))
+            ->whereDate('expiry_date', '<=', now()->addDays(90))
             ->whereDate('expiry_date', '>=', now());
         $expiringItemsCount = $programScoped
             ? $expiringItemsCountQuery->whereHas('item', fn($q) => $this->scopeItemQuery($q))->count()
@@ -239,7 +239,7 @@ class DashboardController extends Controller
 
         $upcomingExpiriesQuery = ReceivingItem::with('item')
             ->whereNotNull('expiry_date')
-            ->whereDate('expiry_date', '<=', now()->addDays(30))
+            ->whereDate('expiry_date', '<=', now()->addDays(90))
             ->whereDate('expiry_date', '>=', now())
             ->orderBy('expiry_date')
             ->limit(10);
@@ -394,7 +394,10 @@ class DashboardController extends Controller
             $productCode = $item->receivingItems()->whereNotNull('item_code')->value('item_code');
             $notifications->push([
                 'type' => 'warning',
-                'message' => 'Low stock: ' . ($productCode ?: 'No code') . " · {$item->name} ({$item->quantity_on_hand} on hand)",
+                'label' => 'LOW STOCK',
+                'code' => $productCode ?: '—',
+                'name' => $item->name,
+                'detail' => "{$item->quantity_on_hand} on hand",
                 'href' => route('items.show', $item),
             ]);
         }
@@ -402,12 +405,13 @@ class DashboardController extends Controller
         foreach ($upcomingExpiries as $expiry) {
             $notifications->push([
                 'type' => 'danger',
-                'message' => 'Expiring soon: ' . ($expiry->item_code ?: 'No code') . " · {$expiry->item->name} on {$expiry->expiry_date->format('M d, Y')}",
+                'label' => 'EXPIRING SOON',
+                'code' => $expiry->item_code ?: '—',
+                'name' => $expiry->item->name,
+                'detail' => 'Expires ' . $expiry->expiry_date->format('M d, Y'),
                 'href' => route('items.show', $expiry->item),
             ]);
         }
-
-        $notificationCount = $notifications->count();
 
         $pendingApprovals = collect();
         if (! $programScoped) {
@@ -417,6 +421,20 @@ class DashboardController extends Controller
                 ->limit(5)
                 ->get();
         }
+
+        foreach ($pendingApprovals as $pas) {
+            $notifications->push([
+                'type' => 'info',
+                'label' => 'PENDING APPROVAL',
+                'code' => $pas->pas_number ?? '—',
+                'name' => $pas->facility_name ?? '—',
+                'requester' => $pas->requester?->name ?? '—',
+                'detail' => 'Submitted ' . ($pas->date_of_pass?->format('M d, Y') ?? '—'),
+                'href' => route('pas.view', $pas),
+            ]);
+        }
+
+        $notificationCount = $notifications->count();
 
         $programScoped = $this->isProgramScoped();
         $myProgramItemsCount = 0;
@@ -459,7 +477,7 @@ class DashboardController extends Controller
 
             $expiringSoonQuery = ReceivingItem::with('item')
                 ->whereNotNull('expiry_date')
-                ->whereDate('expiry_date', '<=', now()->addDays(30))
+                ->whereDate('expiry_date', '<=', now()->addDays(90))
                 ->whereDate('expiry_date', '>=', now())
                 ->orderBy('expiry_date')
                 ->limit(10);
@@ -469,6 +487,13 @@ class DashboardController extends Controller
             $pendingRequests = (clone $pasQuery)->where('request_status', 'pending_approval')->count();
             $approvedRequests = (clone $pasQuery)->where('request_status', 'approved')->count();
             $totalPasSubmitted = (clone $pasQuery)->count();
+
+            $pendingApprovalRecords = (clone $pasQuery)
+                ->where('request_status', 'pending_approval')
+                ->with(['items', 'requester'])
+                ->latest('date_of_pass')
+                ->limit(5)
+                ->get();
 
             $availableCount = $this->scopeItemQuery(Item::whereHas('receivingItems')->where('quantity_on_hand', '>', 0))->count();
             $lowStockCount = $lowStockAlerts->count();
@@ -698,7 +723,10 @@ class DashboardController extends Controller
                 $productCode = $item->receivingItems()->whereNotNull('item_code')->value('item_code');
                 $notifications->push([
                     'type' => 'warning',
-                    'message' => 'Low stock: ' . ($productCode ?: 'No code') . " · {$item->name} ({$item->quantity_on_hand} on hand)",
+                    'label' => 'LOW STOCK',
+                    'code' => $productCode ?: '—',
+                    'name' => $item->name,
+                    'detail' => "{$item->quantity_on_hand} on hand",
                     'href' => route('items.show', $item),
                 ]);
             }
@@ -706,7 +734,7 @@ class DashboardController extends Controller
             $upcomingExpiries = ReceivingItem::with('item')
                 ->whereIn('item_id', $typeItemIds)
                 ->whereNotNull('expiry_date')
-                ->whereDate('expiry_date', '<=', now()->addDays(30))
+                ->whereDate('expiry_date', '<=', now()->addDays(90))
                 ->whereDate('expiry_date', '>=', now())
                 ->orderBy('expiry_date')
                 ->limit(10)
@@ -715,8 +743,23 @@ class DashboardController extends Controller
             foreach ($upcomingExpiries as $expiry) {
                 $notifications->push([
                     'type' => 'danger',
-                    'message' => 'Expiring soon: ' . ($expiry->item_code ?: 'No code') . " · {$expiry->item->name} on {$expiry->expiry_date->format('M d, Y')}",
+                    'label' => 'EXPIRING SOON',
+                    'code' => $expiry->item_code ?: '—',
+                    'name' => $expiry->item->name,
+                    'detail' => 'Expires ' . $expiry->expiry_date->format('M d, Y'),
                     'href' => route('items.show', $expiry->item),
+                ]);
+            }
+
+            foreach ($pendingApprovalRecords as $pas) {
+                $notifications->push([
+                    'type' => 'info',
+                    'label' => 'PENDING APPROVAL',
+                    'code' => $pas->pas_number ?? '—',
+                    'name' => $pas->facility_name ?? '—',
+                    'requester' => $pas->requester?->name ?? '—',
+                    'detail' => 'Submitted ' . ($pas->date_of_pass?->format('M d, Y') ?? '—'),
+                    'href' => route('pas.view', $pas),
                 ]);
             }
         }

@@ -21,39 +21,12 @@ class ReceivingController extends Controller
 
     public function index(Request $request)
     {
-        $query = Receiving::with(['supplier', 'items'])->latest('date_received');
-
-        $search = trim((string) $request->input('search', ''));
-        if ($search !== '') {
-            $query->where('receiving_number', 'like', '%' . $search . '%');
-        }
-
-        $supplier = trim((string) $request->input('supplier', ''));
-        if ($supplier !== '') {
-            $query->whereHas('supplier', function ($q) use ($supplier) {
-                $q->where('company_name', 'like', '%' . $supplier . '%');
-            });
-        }
-
-        $poNumber = trim((string) $request->input('po_number', ''));
-        if ($poNumber !== '') {
-            $query->where('po_number', 'like', '%' . $poNumber . '%');
-        }
+        $query = $this->applyReceivingFilters(
+            Receiving::with(['supplier', 'items'])->latest('date_received'),
+            $request
+        );
 
         $program = trim((string) $request->input('program', ''));
-        if ($program !== '') {
-            $query->where('stock_keeping_unit', 'like', '%' . $program . '%');
-        }
-
-        $startDate = $request->input('start_date');
-        if ($startDate) {
-            $query->whereDate('date_received', '>=', $startDate);
-        }
-
-        $endDate = $request->input('end_date');
-        if ($endDate) {
-            $query->whereDate('date_received', '<=', $endDate);
-        }
 
         $perPage = (int) $request->query('per_page', 15);
 
@@ -70,28 +43,30 @@ class ReceivingController extends Controller
 
     public function export(Request $request)
     {
-        $receivings = Receiving::with(['supplier', 'items.item'])
-            ->latest('date_received')
-            ->get();
+        $receivings = $this->applyReceivingFilters(
+            Receiving::with(['supplier', 'items.item'])->latest('date_received'),
+            $request
+        )->get();
 
         $fileName = 'receivings-' . now()->format('Y-m-d-His') . '.csv';
 
         $headers = [
             'PURCHASE ORDER NO.',
             'SUPPLIER/DEALER',
-            'ICS /PTR /RIS',
-            'Date(PTR/RIS/ICS',
+            'ICS/PTR/RIS',
+            'Date (PTR/RIS/ICS)',
+            'Received By',
             'Product Code',
             'Item Description',
             'Lot/Batch/SR/Model No.',
-            'Expiry Date/Est Useful life',
+            'Expiry Date/Est Useful Life',
             'Quantity',
             'UOM',
-            'cost',
-            'date received',
-            'location',
-            'stock keeping unit(program)',
-            'program coordinator',
+            'Cost',
+            'Date Received',
+            'Location',
+            'Stock Keeping Unit (Program)',
+            'Program Coordinator',
         ];
 
         $callback = function () use ($receivings, $headers) {
@@ -104,6 +79,7 @@ class ReceivingController extends Controller
                     $receiving->supplier?->company_name ?? '—',
                     $receiving->ics_ptr_ris ?? '—',
                     $receiving->document_date?->format('Y-m-d') ?? '—',
+                    $receiving->received_by ?? '—',
                 ];
 
                 if ($receiving->items->isEmpty()) {
@@ -113,7 +89,7 @@ class ReceivingController extends Controller
 
                 foreach ($receiving->items as $item) {
                     fputcsv($handle, array_merge($baseColumns, [
-                        $item->item?->item_code ?? '—',
+                        $item->item_code ?? '—',
                         $item->item_description ?? $item->item?->name ?? '—',
                         $item->lot_number ?? '—',
                         $item->expiry_date?->format('Y-m-d') ?? '—',
@@ -138,41 +114,10 @@ class ReceivingController extends Controller
 
     public function printList(Request $request)
     {
-        $query = Receiving::with(['supplier', 'items.item'])->latest('date_received');
-
-        $search = trim((string) $request->input('search', ''));
-        if ($search !== '') {
-            $query->where('receiving_number', 'like', '%' . $search . '%');
-        }
-
-        $supplier = trim((string) $request->input('supplier', ''));
-        if ($supplier !== '') {
-            $query->whereHas('supplier', function ($q) use ($supplier) {
-                $q->where('company_name', 'like', '%' . $supplier . '%');
-            });
-        }
-
-        $poNumber = trim((string) $request->input('po_number', ''));
-        if ($poNumber !== '') {
-            $query->where('po_number', 'like', '%' . $poNumber . '%');
-        }
-
-        $program = trim((string) $request->input('program', ''));
-        if ($program !== '') {
-            $query->where('stock_keeping_unit', 'like', '%' . $program . '%');
-        }
-
-        $startDate = $request->input('start_date');
-        if ($startDate) {
-            $query->whereDate('date_received', '>=', $startDate);
-        }
-
-        $endDate = $request->input('end_date');
-        if ($endDate) {
-            $query->whereDate('date_received', '<=', $endDate);
-        }
-
-        $receivings = $query->get();
+        $receivings = $this->applyReceivingFilters(
+            Receiving::with(['supplier', 'items.item'])->latest('date_received'),
+            $request
+        )->get();
 
         return view('receivings.list-print', compact('receivings'));
     }
@@ -385,7 +330,7 @@ class ReceivingController extends Controller
                     'action'       => 'updated',
                     'module'       => 'ReleaseItem',
                     'record_id'    => $receiving->id,
-                    'record_label' => 'Receiving '.$receiving->receiving_number.' → synced '.$syncedTotal.' released item(s)',
+                    'record_label' => 'Receiving #'.$receiving->id.' → synced '.$syncedTotal.' released item(s)',
                     'changes'      => ['source' => 'Receiving edit'],
                     'ip_address'   => request()->ip(),
                 ]);
@@ -557,6 +502,53 @@ class ReceivingController extends Controller
         }
 
         return redirect()->route('receivings.index')->with('success', 'Receiving recorded and inventory updated.');
+    }
+
+    private function applyReceivingFilters($query, Request $request)
+    {
+        $search = trim((string) $request->input('search', ''));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('ics_ptr_ris', 'like', '%' . $search . '%')
+                    ->orWhere('po_number', 'like', '%' . $search . '%')
+                    ->orWhere('received_by', 'like', '%' . $search . '%')
+                    ->orWhere('source_document_number', 'like', '%' . $search . '%');
+            });
+        }
+
+        $supplier = trim((string) $request->input('supplier', ''));
+        if ($supplier !== '') {
+            $query->whereHas('supplier', function ($q) use ($supplier) {
+                $q->where('company_name', 'like', '%' . $supplier . '%');
+            });
+        }
+
+        $poNumber = trim((string) $request->input('po_number', ''));
+        if ($poNumber !== '') {
+            $query->where('po_number', 'like', '%' . $poNumber . '%');
+        }
+
+        $receivedBy = trim((string) $request->input('received_by', ''));
+        if ($receivedBy !== '') {
+            $query->where('received_by', 'like', '%' . $receivedBy . '%');
+        }
+
+        $program = trim((string) $request->input('program', ''));
+        if ($program !== '') {
+            $query->where('stock_keeping_unit', 'like', '%' . $program . '%');
+        }
+
+        $startDate = $request->input('start_date');
+        if ($startDate) {
+            $query->whereDate('date_received', '>=', $startDate);
+        }
+
+        $endDate = $request->input('end_date');
+        if ($endDate) {
+            $query->whereDate('date_received', '<=', $endDate);
+        }
+
+        return $query;
     }
 
     /**
