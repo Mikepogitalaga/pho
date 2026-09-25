@@ -174,7 +174,7 @@ class ReceivingController extends Controller
             'items'              => 'required|array|min:1',
             'items.*.item_code'  => 'nullable|string|max:255',
             'items.*.item_description'  => 'required|string|max:255',
-            'items.*.category' => 'nullable|in:DM,MDL,DOH,GSO,ACP',
+            'items.*.category' => 'nullable|in:DM,MDL,Other supplies',
             'items.*.uom'        => 'nullable|string|max:255',
             'items.*.quantity_received' => 'required|integer|min:1',
             'items.*.lot_number' => 'nullable|string|max:255',
@@ -402,7 +402,7 @@ class ReceivingController extends Controller
                 },
             ],
              'items.*.item_description' => 'required|string|max:255',
-             'items.*.category' => 'nullable|in:DM,MDL',
+             'items.*.category' => 'nullable|in:DM,MDL,Other supplies',
              'items.*.uom' => 'nullable|string|max:255',
              'items.*.quantity_received' => 'required|integer|min:1',
              'items.*.lot_number' => 'nullable|string|max:255',
@@ -411,6 +411,7 @@ class ReceivingController extends Controller
              'items.*.location' => 'nullable|string|max:255',
              'items.*.reorder_level' => 'nullable|integer|min:0',
          ]);
+
 
         try {
             DB::transaction(function () use ($request) {

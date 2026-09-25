@@ -58,6 +58,7 @@
                     <option value="">All Categories</option>
                     <option value="MDL" {{ strcasecmp($category, 'MDL') === 0 ? 'selected' : '' }}>MDL</option>
                     <option value="Dm" {{ strcasecmp($category, 'Dm') === 0 ? 'selected' : '' }}>Dm</option>
+                    <option value="Other supplies" {{ strcasecmp($category, 'Other supplies') === 0 ? 'selected' : '' }}>Other supplies</option>
                 </select>
             </div>
             <div class="form-group">

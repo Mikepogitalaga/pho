@@ -109,6 +109,7 @@
                                         <select class="item-category-input" name="items[0][category]">
                                             <option value="DM">DM</option>
                                             <option value="MDL">MDL</option>
+                                            <option value="Other supplies">Other supplies</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
@@ -182,6 +183,7 @@
                                             <option value="DOH" @selected(($oi['category'] ?? $ri->category ?? '') === 'DOH')>DOH</option>
                                             <option value="DM" @selected(($oi['category'] ?? $ri->category ?? 'DM') === 'DM')>DM</option>
                                             <option value="MDL" @selected(($oi['category'] ?? $ri->category ?? '') === 'MDL')>MDL</option>
+                                            <option value="Other supplies" @selected(($oi['category'] ?? $ri->category ?? '') === 'Other supplies')>Other supplies</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
@@ -494,7 +496,7 @@
                 descInput.value = item.name;
                 if (categoryInput) {
                     var cat = item.category || 'DM';
-                    if (cat !== 'DM' && cat !== 'MDL') cat = 'DM';
+                    if (cat !== 'DM' && cat !== 'MDL' && cat !== 'Other supplies') cat = 'DM';
                     categoryInput.value = cat;
                 }
                 if (uomInput)     uomInput.value     = item.uom || '';

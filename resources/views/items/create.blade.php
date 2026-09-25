@@ -31,6 +31,7 @@
                     <select name="category" required>
                         <option value="DM" @selected(old('category') === 'DM')>DM</option>
                         <option value="MDL" @selected(old('category') === 'MDL')>MDL</option>
+                        <option value="Other supplies" @selected(old('category') === 'Other supplies')>Other supplies</option>
                     </select>
                 </div>
                 <div class="form-group">

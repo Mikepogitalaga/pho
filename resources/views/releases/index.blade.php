@@ -88,6 +88,7 @@
                     <option value="">All item categories</option>
                     <option value="MDL" @selected(request('category') === 'MDL')>MDL</option>
                     <option value="DM" @selected(request('category') === 'DM')>DM</option>
+                    <option value="Other supplies" @selected(request('category') === 'Other supplies')>Other supplies</option>
                 </select>
             </div>
 

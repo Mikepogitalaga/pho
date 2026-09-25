@@ -128,6 +128,7 @@
                                         <select class="item-category-input" name="items[0][category]">
                                             <option value="DM">DM</option>
                                             <option value="MDL">MDL</option>
+                                            <option value="Other supplies">Other supplies</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
@@ -211,6 +212,7 @@
                                         <select class="item-category-input" name="items[{{ $index }}][category]">
                                             <option value="DM" @selected(($oldItem['category'] ?? 'DM') === 'DM')>DM</option>
                                             <option value="MDL" @selected(($oldItem['category'] ?? '') === 'MDL')>MDL</option>
+                                            <option value="Other supplies" @selected(($oldItem['category'] ?? '') === 'Other supplies')>Other supplies</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
@@ -545,7 +547,7 @@
                 descriptionInput.value = item.name;
                 if (categoryInput) {
                     var cat = item.category || 'DM';
-                    if (cat !== 'DM' && cat !== 'MDL') cat = 'DM';
+                    if (cat !== 'DM' && cat !== 'MDL' && cat !== 'Other supplies') cat = 'DM';
                     categoryInput.value = cat;
                 }
                 if (uomInput) uomInput.value = item.uom || '';

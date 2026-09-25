@@ -131,7 +131,7 @@ class ReleaseController extends Controller
         }
 
         $category = strtoupper(trim((string) $request->input('category', '')));
-        if (in_array($category, ['MDL', 'DM'], true)) {
+        if (in_array($category, ['MDL', 'DM', 'OTHER SUPPLIES'], true)) {
             $query->whereHas('items', function ($q) use ($category) {
                 $q->where('category', $category);
             });
@@ -220,7 +220,7 @@ class ReleaseController extends Controller
         elseif ($period === 'week') $query->whereBetween('date_released', [now()->startOfWeek(), now()->endOfWeek()]);
         elseif ($period === 'month') $query->whereBetween('date_released', [now()->startOfMonth(), now()->endOfMonth()]);
         if (($supplierType = strtoupper(trim((string) $request->input('supplier_type', '')))) && in_array($supplierType, ['GSO', 'DOH'], true)) $query->whereHas('items.item.receivingItems.receiving.supplier', fn ($q) => $q->where('supplier_type', $supplierType));
-        if (($category = strtoupper(trim((string) $request->input('category', '')))) && in_array($category, ['MDL', 'DM'], true)) $query->whereHas('items', fn ($q) => $q->where('category', $category));
+        if (($category = strtoupper(trim((string) $request->input('category', '')))) && in_array($category, ['MDL', 'DM', 'OTHER SUPPLIES'], true)) $query->whereHas('items', fn ($q) => $q->where('category', $category));
         $status = $request->input('status');
         if ($status) {
             $status = match ($status) { 'released-through-pass' => 'Released through pass', 'released' => 'Released', 'canceled' => 'Canceled', 'returned' => 'Returned', 'unreleased' => 'Unreleased', default => $status };
