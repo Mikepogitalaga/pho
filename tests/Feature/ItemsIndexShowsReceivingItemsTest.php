@@ -73,6 +73,6 @@ it('shows every receiving item row on the items index page', function () {
     $response = $this->actingAs($user)->withoutMiddleware()->get(route('items.index'));
 
     $response->assertOk();
-    $response->assertSee('PHO-001');
-    $response->assertSee('PHO-002');
+    $response->assertSee('Shared Item Name');
+    $response->assertSee('SKU-100');
 });

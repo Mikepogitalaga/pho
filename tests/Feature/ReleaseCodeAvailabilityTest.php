@@ -103,8 +103,11 @@ class ReleaseCodeAvailabilityTest extends TestCase
 
         app('view')->share('errors', new ViewErrorBag());
 
+        $items = collect([$item->load('receivingItems')]);
+        $items->each(fn ($i) => $i->attachCodeAvailability());
+
         $html = view('releases.create', [
-            'items' => $item->load('receivingItems')->each(fn ($i) => $i->attachCodeAvailability()),
+            'items' => $items,
             'ptrNumber' => 'PTR-2026-09-0001',
             'year' => now()->format('Y'),
             'month' => now()->format('m'),
@@ -129,8 +132,11 @@ class ReleaseCodeAvailabilityTest extends TestCase
 
         app('view')->share('errors', new ViewErrorBag());
 
+        $items = collect([$item->load('receivingItems')]);
+        $items->each(fn ($i) => $i->attachCodeAvailability());
+
         $html = view('pas.create', [
-            'items' => $item->load('receivingItems')->each(fn ($i) => $i->attachCodeAvailability()),
+            'items' => $items,
             'coordinators' => collect(),
             'programs' => collect(),
             'pasNumber' => 'PAS-2026-09-0001',
@@ -181,12 +187,12 @@ class ReleaseCodeAvailabilityTest extends TestCase
 
         expect($releaseItem->item_code)->toBe('PHO-002');
         expect($releaseItem->quantity_released)->toBe(200);
-        expect($item->fresh()->quantity_on_hand)->toBe(1000);
+        expect($item->fresh()->quantity_on_hand)->toBe(800);
 
         $availability = $item->fresh(['receivingItems', 'releaseItems.release'])->codeAvailability();
 
         expect($availability[(string) $item->fresh()->receivingItems->firstWhere('item_code', 'PHO-002')->id])->toBe(0);
-        expect(array_sum($availability))->toBe(1000);
+        expect(array_sum($availability))->toBe(800);
     }
 
     public function test_release_without_code_charges_the_code_without_lot(): void
@@ -262,7 +268,8 @@ class ReleaseCodeAvailabilityTest extends TestCase
 
         [$item] = makeTwoCodeProduct();
 
-        $items = $item->load('receivingItems')->each(fn ($i) => $i->attachCodeAvailability());
+        $items = collect([$item->load('receivingItems')]);
+        $items->each(fn ($i) => $i->attachCodeAvailability());
 
         app('view')->share('errors', new ViewErrorBag());
 

@@ -112,5 +112,7 @@ it('renders the PAS edit add-item script so the row button can append another it
 
     expect($html)->toContain('id="add-pas-item"');
     expect($html)->toContain('const addBtn    = document.getElementById(\'add-pas-item\');');
-    expect($html)->toContain('addBtn.addEventListener(\'click\'', 'edit view is missing the add-item click handler');
+    expect(str_contains($html, "addBtn.addEventListener('click'"))->toBeTrue('edit view is missing the add-item click handler');
+    expect($html)->toContain('bindRow(row)');
+    expect($html)->toContain('updateIndexes()');
 });

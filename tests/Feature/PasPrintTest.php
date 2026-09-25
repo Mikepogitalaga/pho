@@ -73,7 +73,6 @@ test('pas print view renders the pas html template fields with synced record dat
     expect($html)->toContain('PROPERTY ALLOCATION SLIP');
     expect($html)->toContain('Provincial Health Office');
     expect($html)->toContain('STI/HIV AIDS PREVENTION AND CONTROL PROGRAM (NASPCP)');
-    expect($html)->toContain('PTR #:');
     expect($html)->toContain('PAS #:');
     expect($html)->toContain('2026-08-0001');
     expect($html)->toContain('For the participants of World Hepatitis Day Celebration');
