@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Program;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -29,6 +30,7 @@ class User extends Authenticatable
         'address',
         'role',
         'is_active',
+        'program_id',
     ];
 
     /**
@@ -94,5 +96,25 @@ class User extends Authenticatable
             'locked_until' => null,
         ])->save();
     }
-}
 
+    public function program()
+    {
+        return $this->belongsTo(Program::class);
+    }
+
+    public function programs()
+    {
+        return $this->belongsToMany(Program::class, 'program_user')->withTimestamps();
+    }
+
+    public function getAllProgramsAttribute()
+    {
+        $programs = $this->programs()->get()->pluck('id');
+
+        if ($this->program_id && !$programs->contains($this->program_id)) {
+            $programs->push($this->program_id);
+        }
+
+        return $programs->unique()->values();
+    }
+}

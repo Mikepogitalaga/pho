@@ -15,7 +15,12 @@ return new class extends Migration
         });
 
         // Copy existing item_code values from items to their receiving_items
-        DB::statement('UPDATE receiving_items ri JOIN items i ON i.id = ri.item_id SET ri.item_code = i.item_code WHERE i.item_code IS NOT NULL');
+        $items = DB::table('items')->whereNotNull('item_code')->get();
+        foreach ($items as $item) {
+            DB::table('receiving_items')
+                ->where('item_id', $item->id)
+                ->update(['item_code' => $item->item_code]);
+        }
 
         // Drop item_code from items
         Schema::table('items', function (Blueprint $table) {

@@ -109,11 +109,12 @@
                                         <select class="item-category-input" name="items[0][category]">
                                             <option value="DM">DM</option>
                                             <option value="MDL">MDL</option>
+                                            <option value="Other supplies">Other supplies</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
                                         <label>UOM</label>
-                                        <input class="item-uom-input" name="items[0][uom]" />
+                                        <input class="item-uom-input" name="items[0][uom]" list="uom-options-receiving" />
                                     </div>
                                 </div>
                                 <div class="form-grid-4">
@@ -138,6 +139,10 @@
                                     <div class="form-group">
                                         <label>Location</label>
                                         <input class="item-location-input" name="items[0][location]" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Reorder Level</label>
+                                        <input type="number" class="item-reorder-level-input" name="items[0][reorder_level]" value="0" min="0" />
                                     </div>
                                 </div>
                             </div>
@@ -164,7 +169,7 @@
                                 <div class="form-grid-4">
                                     <div class="form-group" style="position:relative;">
                                         <label>Product Code</label>
-                                        <input class="item-code-input" name="items[{{ $index }}][item_code]" value="{{ $oi['item_code'] ?? $ri->item_code }}" readonly style="background:var(--surface-strong);cursor:not-allowed;" />
+                                         <input class="item-code-input" name="items[{{ $index }}][item_code]" value="{{ $oi['item_code'] ?? $ri->item_code }}" data-existing="true" />
                                     </div>
                                     <div class="form-group" style="position:relative;">
                                         <label>Item Description</label>
@@ -173,16 +178,14 @@
                                     <div class="form-group">
                                         <label>Category</label>
                                         <select class="item-category-input" name="items[{{ $index }}][category]">
-                                            <option value="GSO" @selected(($oi['category'] ?? $ri->category ?? '') === 'GSO')>GSO</option>
-                                            <option value="ACP" @selected(($oi['category'] ?? $ri->category ?? '') === 'ACP')>ACP</option>
-                                            <option value="DOH" @selected(($oi['category'] ?? $ri->category ?? '') === 'DOH')>DOH</option>
                                             <option value="DM" @selected(($oi['category'] ?? $ri->category ?? 'DM') === 'DM')>DM</option>
                                             <option value="MDL" @selected(($oi['category'] ?? $ri->category ?? '') === 'MDL')>MDL</option>
+                                            <option value="Other supplies" @selected(($oi['category'] ?? $ri->category ?? '') === 'Other supplies')>Other supplies</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
                                         <label>UOM</label>
-                                        <input class="item-uom-input" name="items[{{ $index }}][uom]" value="{{ $oi['uom'] ?? $ri->uom }}" />
+                                        <input class="item-uom-input" name="items[{{ $index }}][uom]" value="{{ $oi['uom'] ?? $ri->uom }}" list="uom-options-receiving" />
                                     </div>
                                 </div>
                                 <div class="form-grid-4">
@@ -208,6 +211,10 @@
                                         <label>Location</label>
                                         <input class="item-location-input" name="items[{{ $index }}][location]" value="{{ $oi['location'] ?? $ri->location ?? $receiving->location }}" />
                                     </div>
+                                    <div class="form-group">
+                                        <label>Reorder Level</label>
+                                        <input type="number" class="item-reorder-level-input" name="items[{{ $index }}][reorder_level]" value="{{ $oi['reorder_level'] ?? ($ri->item?->reorder_level ?? '') }}" min="0" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -225,7 +232,7 @@
 
     <datalist id="item-options-receiving" style="display:none;">
         @foreach($items as $item)
-            <option value="{{ $item->name }}" data-id="{{ $item->id }}" data-category="{{ $item->category }}" data-uom="{{ $item->unit }}" data-cost="{{ $item->unit_cost }}"></option>
+            <option value="{{ $item->name }}" data-id="{{ $item->id }}" data-category="{{ $item->category }}" data-uom="{{ $item->unit }}" data-cost="{{ $item->unit_cost }}" data-reorder-level="{{ $item->reorder_level }}"></option>
         @endforeach
     </datalist>
     <datalist id="program-options" style="display:none;">
@@ -236,6 +243,11 @@
     <datalist id="coordinator-options" style="display:none;">
         @foreach($coordinators as $coordinator)
             <option value="{{ $coordinator->full_name }}" data-programs="{{ $coordinator->assigned_programs }}"></option>
+        @endforeach
+    </datalist>
+    <datalist id="uom-options-receiving" style="display:none;">
+        @foreach($uoms as $uom)
+            <option value="{{ $uom }}"></option>
         @endforeach
     </datalist>
 
@@ -257,6 +269,7 @@
                 category: opt.dataset.category,
                 uom: opt.dataset.uom,
                 cost: opt.dataset.cost,
+                reorderLevel: opt.dataset.reorderLevel,
             };
         });
 
@@ -270,6 +283,19 @@
         var coordinatorsData = Array.from(document.querySelectorAll('#coordinator-options option')).map(function(opt) {
             return { name: opt.value, nameLower: opt.value.toLowerCase(), assignedPrograms: opt.dataset.programs || '' };
         });
+
+        function resolveProgramPrefix(programValue) {
+            var normalized = (programValue || '').trim().toLowerCase();
+            if (!normalized) {
+                return '';
+            }
+
+            var matched = programsData.find(function(program) {
+                return program.nameLower === normalized;
+            });
+
+            return matched ? (matched.description || '') : '';
+        }
 
         function bindAutocompleteList(input, dataList, dropdown, onSelect) {
             function showOptions(q) {
@@ -301,6 +327,50 @@
         var programDropdown   = document.getElementById('programDropdown');
         var coordinatorDropdown = document.getElementById('coordinatorDropdown');
 
+        function refreshAllNewItemCodes() {
+            var prefix = currentCodePrefix;
+            if (!prefix) return;
+            var dbSeq = programSequences[prefix] || 0;
+            var maxExistingReadonly = 0;
+            Array.from(document.querySelectorAll('.item-code-input')).forEach(function(input) {
+                if (input.dataset.existing === 'true') {
+                    var val = input.value || '';
+                    var match = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
+                    if (match) { var seq = parseInt(match[1], 10); if (seq > maxExistingReadonly) maxExistingReadonly = seq; }
+                }
+            });
+            var nextSeq = Math.max(dbSeq, maxExistingReadonly + 1);
+            codeSequences[prefix] = nextSeq;
+            Array.from(document.querySelectorAll('.item-code-input')).forEach(function(input) {
+                if (input.dataset.existing === 'true') return;
+                var shouldSync = input.dataset.generated === 'true' || !(input.value || '').trim();
+                if (!shouldSync) {
+                    return;
+                }
+                input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(nextSeq).padStart(4, '0');
+                input.dataset.generated = 'true';
+                nextSeq++;
+            });
+            codeSequences[prefix] = nextSeq;
+        }
+
+        function bindProgramCodeSync(programInput, onChange) {
+            if (!programInput) {
+                return;
+            }
+
+            function syncProgramCode() {
+                currentCodePrefix = resolveProgramPrefix(programInput.value);
+                if (currentCodePrefix) {
+                    onChange();
+                }
+            }
+
+            programInput.addEventListener('input', syncProgramCode);
+            programInput.addEventListener('change', syncProgramCode);
+            syncProgramCode();
+        }
+
         if (programInput && programDropdown) {
             bindAutocompleteList(programInput, programsData, programDropdown, function(item) {
                 currentCodePrefix = item.description || '';
@@ -308,14 +378,14 @@
                 if (matched && coordinatorInput && !coordinatorInput.value.trim()) coordinatorInput.value = matched.name;
                 refreshAllNewItemCodes();
             });
+            bindProgramCodeSync(programInput, refreshAllNewItemCodes);
         }
         if (coordinatorInput && coordinatorDropdown) {
             bindAutocompleteList(coordinatorInput, coordinatorsData, coordinatorDropdown, function(item) {
                 if (item.assignedPrograms && programInput && !programInput.value.trim()) {
                     var prog = item.assignedPrograms.split(', ')[0] || '';
                     programInput.value = prog;
-                    var matched = programsData.find(function(p) { return p.nameLower === prog.toLowerCase(); });
-                    currentCodePrefix = matched ? matched.description : '';
+                    currentCodePrefix = resolveProgramPrefix(prog);
                     refreshAllNewItemCodes();
                 }
             });
@@ -323,8 +393,63 @@
 
         // Init prefix from existing program value
         if (programInput && programInput.value.trim()) {
-            var matched = programsData.find(function(p) { return p.nameLower === programInput.value.trim().toLowerCase(); });
-            if (matched) currentCodePrefix = matched.description || '';
+            currentCodePrefix = resolveProgramPrefix(programInput.value);
+            if (currentCodePrefix) {
+                refreshAllNewItemCodes();
+            }
+        }
+
+        function recalcNextSeq() {
+            var container = document.getElementById('receiving-items');
+            var maxNewSeqs = {};
+            Array.from(container.querySelectorAll('.item-code-input')).forEach(function(input) {
+                var val = input.value || '';
+                var matchNew = val.match(/^([A-Za-z0-9_-]+)-\d{2}-\d{2}-(\\d{4})$/);
+                if (matchNew) {
+                    var prefix = matchNew[1];
+                    var seq = parseInt(matchNew[2], 10);
+                    if (!maxNewSeqs[prefix] || seq > maxNewSeqs[prefix]) {
+                        maxNewSeqs[prefix] = seq;
+                    }
+                }
+            });
+
+            Object.keys(maxNewSeqs).forEach(function(prefix) {
+                var dbSeq = programSequences[prefix] || 0;
+                codeSequences[prefix] = Math.max(dbSeq, maxNewSeqs[prefix] + 1);
+            });
+        }
+
+        function renumberAllItemCodes() {
+            var container = document.getElementById('receiving-items');
+            var prefix = currentCodePrefix;
+            if (!prefix) return;
+
+            var inputs = Array.from(container.querySelectorAll('.item-code-input'));
+            var dbSeq = programSequences[prefix] || 0;
+            var maxExistingReadonly = 0;
+
+            inputs.forEach(function(input) {
+                if (input.dataset.existing === 'true') {
+                    var val = input.value || '';
+                    var match = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
+                    if (match) {
+                        var s = parseInt(match[1], 10);
+                        if (s > maxExistingReadonly) maxExistingReadonly = s;
+                    }
+                }
+            });
+
+            var seq = Math.max(dbSeq, maxExistingReadonly + 1);
+
+            inputs.forEach(function(input) {
+                if (input.dataset.existing !== 'true' && input.dataset.generated === 'true') {
+                    input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(seq).padStart(4, '0');
+                    seq++;
+                }
+            });
+
+            codeSequences[prefix] = seq;
         }
 
         function getNextSequence(prefix) {
@@ -332,12 +457,11 @@
                 var dbSeq = programSequences[prefix] || 0;
                 var maxExisting = 0;
                 Array.from(document.querySelectorAll('.item-code-input')).forEach(function(input) {
-                    if (input.readOnly) return;
                     var val = input.value || '';
                     var match = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
                     if (match) { var seq = parseInt(match[1], 10); if (seq > maxExisting) maxExisting = seq; }
                 });
-                codeSequences[prefix] = Math.max(dbSeq, maxExisting);
+                codeSequences[prefix] = Math.max(dbSeq, maxExisting > 0 ? maxExisting + 1 : 0);
             }
             return codeSequences[prefix]++;
         }
@@ -348,58 +472,41 @@
             return currentCodePrefix + '-' + currentYear + '-' + currentMonth + '-' + String(seq).padStart(4, '0');
         }
 
-        function refreshAllNewItemCodes() {
-            var prefix = currentCodePrefix;
-            if (!prefix) return;
-            var dbSeq = programSequences[prefix] || 0;
-            var maxExisting = 0;
-            Array.from(document.querySelectorAll('.item-code-input')).forEach(function(input) {
-                if (input.readOnly) return;
-                var val = input.value || '';
-                var match = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
-                if (match) { var seq = parseInt(match[1], 10); if (seq > maxExisting) maxExisting = seq; }
-            });
-            var nextSeq = Math.max(dbSeq, maxExisting);
-            codeSequences[prefix] = nextSeq;
-            Array.from(document.querySelectorAll('.item-code-input')).forEach(function(input) {
-                if (input.readOnly) return;
-                if (!(input.value || '').trim()) {
-                    input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(nextSeq).padStart(4, '0');
-                    input.dataset.generated = 'true';
-                    nextSeq++;
-                }
-            });
-            codeSequences[prefix] = nextSeq;
-        }
-
         function bindItemAutocomplete(row) {
             var descInput     = row.querySelector('.item-description-input');
             var codeInput     = row.querySelector('.item-code-input');
             var categoryInput = row.querySelector('.item-category-input');
             var uomInput      = row.querySelector('.item-uom-input');
             var costInput     = row.querySelector('.item-unit-cost-input');
+            var reorderLevelInput = row.querySelector('.item-reorder-level-input');
             var itemIdHidden  = row.querySelector('.item-id-hidden');
 
             if (!descInput) return;
 
             var dd = document.createElement('div');
             dd.className = 'autocomplete-dropdown';
-            dd.style.cssText = 'position:absolute;background:white;border:1px solid #ddd;max-height:200px;overflow-y:auto;width:100%;z-index:1000;display:none;box-shadow:0 4px 6px rgba(0,0,0,.1);top:100%;left:0;margin-top:4px;';
+            dd.style.cssText = 'position:absolute;background:var(--surface);color:var(--text);border:1px solid rgba(128,128,128,0.35);max-height:200px;overflow-y:auto;width:100%;z-index:1000;display:none;box-shadow:0 4px 6px rgba(0,0,0,.15);top:100%;left:0;margin-top:4px;';
             descInput.parentElement.style.position = 'relative';
             descInput.parentElement.appendChild(dd);
 
             function syncItem(item) {
                 descInput.value = item.name;
-                if (codeInput && !codeInput.readOnly) codeInput.value = item.code || '';
                 if (categoryInput) {
                     var cat = item.category || 'DM';
-                    if (cat !== 'DM' && cat !== 'MDL') cat = 'DM';
+                    if (cat !== 'DM' && cat !== 'MDL' && cat !== 'Other supplies') cat = 'DM';
                     categoryInput.value = cat;
                 }
                 if (uomInput)     uomInput.value     = item.uom || '';
                 if (costInput)    costInput.value    = item.cost || '';
+                if (reorderLevelInput) reorderLevelInput.value = item.reorderLevel || 0;
                 if (itemIdHidden) itemIdHidden.value = item.id || '';
             }
+
+            descInput.addEventListener('input', function() {
+                if (itemIdHidden && itemIdHidden.value) {
+                    itemIdHidden.value = '';
+                }
+            });
 
             function showOptions(q) {
                 dd.innerHTML = '';
@@ -425,8 +532,8 @@
             descInput.addEventListener('focus', function() { showOptions(this.value); });
             descInput.addEventListener('blur',  function() { setTimeout(function() { dd.style.display = 'none'; }, 200); });
 
-            // Clear duplicate error on manual code edit (new rows only)
-            if (codeInput && !codeInput.readOnly) {
+            // Clear duplicate error on manual code edit
+            if (codeInput) {
                 codeInput.addEventListener('input', function() {
                     this.dataset.generated = 'false';
                     this.style.borderColor = '';
@@ -446,32 +553,62 @@
                 body.style.display = hidden ? '' : 'none';
                 toggleButton.textContent = hidden ? 'Hide' : 'Show';
             });
-            removeButton.addEventListener('click', function() { row.remove(); updateIndexes(); });
+            removeButton.addEventListener('click', function() {
+                row.remove();
+                updateIndexes();
+                if (currentCodePrefix) {
+                    renumberAllItemCodes();
+                }
+            });
+        }
+
+        function bindExpiryFix(row) {
+            var expiryInput = row.querySelector('.item-expiry-input');
+            if (!expiryInput) return;
+
+            expiryInput.addEventListener('blur', function() {
+                var val = this.value;
+                if (!val) return;
+                var parts = val.split('-');
+                if (parts.length !== 3) return;
+                var year = parseInt(parts[0], 10);
+                var month = parseInt(parts[1], 10);
+                var day = parseInt(parts[2], 10);
+                if (isNaN(year) || isNaN(month) || isNaN(day)) return;
+
+                var lastDay = new Date(year, month, 0).getDate();
+                if (day > lastDay) {
+                    var fixedMonth = String(month).padStart(2, '0');
+                    var fixedDay = String(lastDay).padStart(2, '0');
+                    this.value = year + '-' + fixedMonth + '-' + fixedDay;
+                }
+            });
         }
 
         function updateIndexes() {
-            Array.from(document.querySelectorAll('#receiving-items .receiving-item-row')).forEach(function(row, index) {
+            var container = document.getElementById('receiving-items');
+            Array.from(container.querySelectorAll('.receiving-item-row')).forEach(function(row, index) {
                 row.dataset.index = index;
                 row.querySelector('.item-row-title').textContent = 'Item ' + (index + 1);
                 row.querySelectorAll('input, select').forEach(function(f) {
                     f.name = f.name.replace(/items\[\d+\]/, 'items[' + index + ']');
                 });
-                row.querySelector('.remove-item-button').style.display = index === 0 ? 'none' : '';
+                var deleteButton = row.querySelector('.remove-item-button');
+                if (deleteButton) {
+                    deleteButton.style.display = index === 0 ? 'none' : '';
+                }
             });
+            recalcNextSeq();
         }
 
-        // Init existing rows
-        Array.from(document.querySelectorAll('#receiving-items .receiving-item-row')).forEach(function(row) {
-            bindItemAutocomplete(row);
-            bindRowActions(row);
-        });
-        updateIndexes();
-
-        // Add new row
-        document.getElementById('add-receiving-item-button').addEventListener('click', function() {
+        function addItemRow() {
             var template = document.getElementById('receiving-item-template');
             var clone    = template.content.cloneNode(true);
             var row      = clone.querySelector('.receiving-item-row');
+            var container = document.getElementById('receiving-items');
+
+            recalcNextSeq();
+
             var codeInput = row.querySelector('.item-code-input');
             if (codeInput) {
                 codeInput.value = generateNextCode();
@@ -479,9 +616,22 @@
             }
             bindItemAutocomplete(row);
             bindRowActions(row);
-            document.getElementById('receiving-items').appendChild(row);
+            bindExpiryFix(row);
+            container.appendChild(row);
             updateIndexes();
+        }
+
+        // Init existing rows
+        Array.from(document.querySelectorAll('#receiving-items .receiving-item-row')).forEach(function(row) {
+            bindItemAutocomplete(row);
+            bindRowActions(row);
+            bindExpiryFix(row);
         });
+        updateIndexes();
+        recalcNextSeq();
+
+        // Add new row
+        document.getElementById('add-receiving-item-button').addEventListener('click', addItemRow);
 
         // Dirty guard
         var formDirty = false;
@@ -504,12 +654,11 @@
         form.addEventListener('submit', function(e) {
             isSubmitting = true;
 
-            // Duplicate product code check (new rows only — existing are readonly)
+            // Duplicate product code check
             var codes = [];
             var hasDuplicate = false;
 
             document.querySelectorAll('.item-code-input').forEach(function(input) {
-                if (input.readOnly) return;
                 var errorSpan = input.parentElement.querySelector('.product-code-error');
                 input.style.borderColor = '';
                 if (errorSpan) errorSpan.style.display = 'none';
@@ -517,26 +666,20 @@
 
             document.querySelectorAll('.item-code-input').forEach(function(input) {
                 var val = input.value.trim();
-                if (val) codes.push({ val: val, input: input, isNew: !input.readOnly });
+                if (val) codes.push({ val: val, input: input });
             });
 
             var seen = {};
             codes.forEach(function(entry) { seen[entry.val] = (seen[entry.val] || 0) + 1; });
 
             codes.forEach(function(entry) {
-                if (seen[entry.val] > 1 && entry.isNew) {
+                if (seen[entry.val] > 1) {
                     hasDuplicate = true;
                     entry.input.style.borderColor = 'var(--danger)';
                     var errorSpan = entry.input.parentElement.querySelector('.product-code-error');
                     if (errorSpan) {
-                        errorSpan.textContent = 'Duplicate product code: "' + entry.val + '"';
+                        errorSpan.textContent = "Product code '" + entry.val + "' is entered more than once in this form.";
                         errorSpan.style.display = 'block';
-                    }
-                    var row = entry.input.closest('.receiving-item-row');
-                    if (row) {
-                        var body = row.querySelector('.item-row-body');
-                        var toggle = row.querySelector('.item-toggle-button');
-                        if (body && body.style.display === 'none') { body.style.display = ''; if (toggle) toggle.textContent = 'Hide'; }
                     }
                 }
             });
@@ -544,8 +687,7 @@
             if (hasDuplicate) {
                 isSubmitting = false;
                 e.preventDefault();
-                var first = document.querySelector('.product-code-error[style*="block"]');
-                if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                alert('Please fix the duplicate product code(s) before saving.');
                 return;
             }
 

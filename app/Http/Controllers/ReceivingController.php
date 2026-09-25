@@ -21,39 +21,12 @@ class ReceivingController extends Controller
 
     public function index(Request $request)
     {
-        $query = Receiving::with(['supplier', 'items'])->latest('date_received');
-
-        $search = trim((string) $request->input('search', ''));
-        if ($search !== '') {
-            $query->where('receiving_number', 'like', '%' . $search . '%');
-        }
-
-        $supplier = trim((string) $request->input('supplier', ''));
-        if ($supplier !== '') {
-            $query->whereHas('supplier', function ($q) use ($supplier) {
-                $q->where('company_name', 'like', '%' . $supplier . '%');
-            });
-        }
-
-        $poNumber = trim((string) $request->input('po_number', ''));
-        if ($poNumber !== '') {
-            $query->where('po_number', 'like', '%' . $poNumber . '%');
-        }
+        $query = $this->applyReceivingFilters(
+            Receiving::with(['supplier', 'items'])->latest('date_received'),
+            $request
+        );
 
         $program = trim((string) $request->input('program', ''));
-        if ($program !== '') {
-            $query->where('stock_keeping_unit', 'like', '%' . $program . '%');
-        }
-
-        $startDate = $request->input('start_date');
-        if ($startDate) {
-            $query->whereDate('date_received', '>=', $startDate);
-        }
-
-        $endDate = $request->input('end_date');
-        if ($endDate) {
-            $query->whereDate('date_received', '<=', $endDate);
-        }
 
         $perPage = (int) $request->query('per_page', 15);
 
@@ -70,28 +43,30 @@ class ReceivingController extends Controller
 
     public function export(Request $request)
     {
-        $receivings = Receiving::with(['supplier', 'items.item'])
-            ->latest('date_received')
-            ->get();
+        $receivings = $this->applyReceivingFilters(
+            Receiving::with(['supplier', 'items.item'])->latest('date_received'),
+            $request
+        )->get();
 
         $fileName = 'receivings-' . now()->format('Y-m-d-His') . '.csv';
 
         $headers = [
             'PURCHASE ORDER NO.',
             'SUPPLIER/DEALER',
-            'ICS /PTR /RIS',
-            'Date(PTR/RIS/ICS',
+            'ICS/PTR/RIS',
+            'Date (PTR/RIS/ICS)',
+            'Received By',
             'Product Code',
             'Item Description',
             'Lot/Batch/SR/Model No.',
-            'Expiry Date/Est Useful life',
+            'Expiry Date/Est Useful Life',
             'Quantity',
             'UOM',
-            'cost',
-            'date received',
-            'location',
-            'stock keeping unit(program)',
-            'program coordinator',
+            'Cost',
+            'Date Received',
+            'Location',
+            'Stock Keeping Unit (Program)',
+            'Program Coordinator',
         ];
 
         $callback = function () use ($receivings, $headers) {
@@ -104,6 +79,7 @@ class ReceivingController extends Controller
                     $receiving->supplier?->company_name ?? '—',
                     $receiving->ics_ptr_ris ?? '—',
                     $receiving->document_date?->format('Y-m-d') ?? '—',
+                    $receiving->received_by ?? '—',
                 ];
 
                 if ($receiving->items->isEmpty()) {
@@ -113,7 +89,7 @@ class ReceivingController extends Controller
 
                 foreach ($receiving->items as $item) {
                     fputcsv($handle, array_merge($baseColumns, [
-                        $item->item?->item_code ?? '—',
+                        $item->item_code ?? '—',
                         $item->item_description ?? $item->item?->name ?? '—',
                         $item->lot_number ?? '—',
                         $item->expiry_date?->format('Y-m-d') ?? '—',
@@ -136,6 +112,16 @@ class ReceivingController extends Controller
         ]);
     }
 
+    public function printList(Request $request)
+    {
+        $receivings = $this->applyReceivingFilters(
+            Receiving::with(['supplier', 'items.item'])->latest('date_received'),
+            $request
+        )->get();
+
+        return view('receivings.list-print', compact('receivings'));
+    }
+
     public function view(Receiving $receiving)
     {
         $receiving->load('items.item');
@@ -143,11 +129,19 @@ class ReceivingController extends Controller
         return view('receivings.view', compact('receiving'));
     }
 
+    public function print(Receiving $receiving)
+    {
+        $receiving->load('items.item');
+
+        return view('receivings.print', compact('receiving'));
+    }
+
     public function edit(Receiving $receiving)
     {
         $receiving->load('items.item');
         $suppliers    = Supplier::orderBy('company_name')->get();
         $items        = Item::orderBy('name')->get();
+        $uoms         = Item::whereNotNull('unit')->where('unit', '!=', '')->orderBy('unit')->distinct()->pluck('unit')->all();
         $programs     = Program::orderBy('name')->get();
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
 
@@ -163,7 +157,7 @@ class ReceivingController extends Controller
             }
         }
 
-        return view('receivings.edit', compact('receiving', 'suppliers', 'items', 'programs', 'coordinators', 'programSequences'));
+        return view('receivings.edit', compact('receiving', 'suppliers', 'items', 'programs', 'coordinators', 'programSequences', 'uoms'));
     }
 
     public function update(Request $request, Receiving $receiving)
@@ -175,16 +169,19 @@ class ReceivingController extends Controller
             'document_date'      => 'nullable|date',
             'date_received'      => 'required|date',
             'received_by'        => 'nullable|string|max:255',
-            'location'           => 'nullable|string|max:255',
             'stock_keeping_unit' => 'nullable|string|max:255',
             'program_coordinator'=> 'nullable|string|max:255',
             'items'              => 'required|array|min:1',
+            'items.*.item_code'  => 'nullable|string|max:255',
             'items.*.item_description'  => 'required|string|max:255',
-            'items.*.quantity_received' => 'required|integer|min:1',
+            'items.*.category' => 'nullable|in:DM,MDL,Other supplies',
             'items.*.uom'        => 'nullable|string|max:255',
+            'items.*.quantity_received' => 'required|integer|min:1',
             'items.*.lot_number' => 'nullable|string|max:255',
             'items.*.expiry_date'=> 'nullable|date',
             'items.*.unit_cost'  => 'nullable|numeric|min:0',
+            'items.*.location'   => 'nullable|string|max:255',
+            'items.*.reorder_level' => 'nullable|integer|min:0',
         ]);
 
         $syncedTotal = 0;
@@ -222,15 +219,15 @@ class ReceivingController extends Controller
                 }
                 if (!$item) {
                     $item = Item::create([
-                        'item_code'           => $itemData['item_code'] ?? null,
                         'name'                => $itemData['item_description'],
                         'category'            => $itemData['category'] ?? null,
                         'unit'                => $itemData['uom'] ?? null,
                         'description'         => $itemData['item_description'],
-                        'location'            => $request->input('location'),
+                        'location'            => $itemData['location'] ?? null,
                         'stock_keeping_unit'  => $request->input('stock_keeping_unit'),
                         'program_coordinator' => $request->input('program_coordinator'),
                         'unit_cost'           => $itemData['unit_cost'] ?? null,
+                        'reorder_level'       => $itemData['reorder_level'] ?? 0,
                         'quantity_on_hand'    => 0,
                     ]);
                 } else {
@@ -239,9 +236,10 @@ class ReceivingController extends Controller
                         'category'            => $itemData['category'] ?? $item->category,
                         'unit'                => $itemData['uom'] ?? $item->unit,
                         'description'         => $itemData['item_description'] ?? $item->description,
-                        'location'            => $request->input('location') ?? $item->location,
+                        'location'            => $itemData['location'] ?? $item->location,
                         'stock_keeping_unit'  => $request->input('stock_keeping_unit') ?? $item->stock_keeping_unit,
                         'program_coordinator' => $request->input('program_coordinator') ?? $item->program_coordinator,
+                        'reorder_level'       => $itemData['reorder_level'] ?? $item->reorder_level,
                     ]);
                     if (!empty($itemData['unit_cost'])) {
                         $item->unit_cost = $itemData['unit_cost'];
@@ -252,14 +250,14 @@ class ReceivingController extends Controller
                 $newQty = (int) $itemData['quantity_received'];
 
                 if ($receivingItemId && $existingItems->has($receivingItemId)) {
-                    // Existing row — reconcile stock delta
                     $existingRow = $existingItems[$receivingItemId];
                     $oldQty      = (int) $existingRow->quantity_received;
-                    $delta       = $newQty - $oldQty;
-                    $oldLot      = $existingRow->lot_number; // lot the releases were made from
+                    $oldItemId   = (int) $existingRow->item_id;
+                    $oldLot      = $existingRow->lot_number;
+                    $newItemId   = (int) $item->id;
 
                      $existingRow->update([
-                        'item_id'           => $item->id,
+                        'item_id'           => $newItemId,
                         'item_code'         => $itemData['item_code'] ?? null,
                         'item_description'  => $itemData['item_description'],
                         'category'          => $itemData['category'] ?? null,
@@ -272,8 +270,13 @@ class ReceivingController extends Controller
                         'location'          => $itemData['location'] ?? null,
                     ]);
 
-                    if ($delta !== 0) {
-                        $item->increment('quantity_on_hand', $delta);
+                    if ($oldItemId !== $newItemId) {
+                        if ($oldItemId) {
+                            Item::where('id', $oldItemId)->decrement('quantity_on_hand', $oldQty);
+                        }
+                        $item->increment('quantity_on_hand', $newQty);
+                    } elseif ($oldQty !== $newQty) {
+                        $item->increment('quantity_on_hand', $newQty - $oldQty);
                     }
 
                     // Propagate description / UOM / unit cost edits onto the
@@ -327,7 +330,7 @@ class ReceivingController extends Controller
                     'action'       => 'updated',
                     'module'       => 'ReleaseItem',
                     'record_id'    => $receiving->id,
-                    'record_label' => 'Receiving '.$receiving->receiving_number.' → synced '.$syncedTotal.' released item(s)',
+                    'record_label' => 'Receiving #'.$receiving->id.' → synced '.$syncedTotal.' released item(s)',
                     'changes'      => ['source' => 'Receiving edit'],
                     'ip_address'   => request()->ip(),
                 ]);
@@ -346,6 +349,7 @@ class ReceivingController extends Controller
     {
         $suppliers = Supplier::orderBy('company_name')->get();
         $items = Item::orderBy('name')->get();
+        $uoms = Item::whereNotNull('unit')->where('unit', '!=', '')->orderBy('unit')->distinct()->pluck('unit')->all();
         $programs = Program::orderBy('name')->get();
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
 
@@ -363,7 +367,7 @@ class ReceivingController extends Controller
 
         $receivingNumber = $this->nextReceivingNumber();
 
-        return view('receivings.create', compact('suppliers', 'items', 'programs', 'coordinators', 'receivingNumber', 'programSequences'));
+        return view('receivings.create', compact('suppliers', 'items', 'programs', 'coordinators', 'receivingNumber', 'programSequences', 'uoms'));
     }
 
     private function nextReceivingNumber(): string
@@ -397,14 +401,17 @@ class ReceivingController extends Controller
                     }
                 },
             ],
-            'items.*.item_description' => 'required|string|max:255',
-            'items.*.category' => 'nullable|in:DM,MDL',
-            'items.*.uom' => 'nullable|string|max:255',
-            'items.*.quantity_received' => 'required|integer|min:1',
-            'items.*.lot_number' => 'nullable|string|max:255',
-            'items.*.expiry_date' => 'nullable|date',
-            'items.*.unit_cost' => 'nullable|numeric|min:0',
-        ]);
+             'items.*.item_description' => 'required|string|max:255',
+             'items.*.category' => 'nullable|in:DM,MDL,Other supplies',
+             'items.*.uom' => 'nullable|string|max:255',
+             'items.*.quantity_received' => 'required|integer|min:1',
+             'items.*.lot_number' => 'nullable|string|max:255',
+             'items.*.expiry_date' => 'nullable|date',
+             'items.*.unit_cost' => 'nullable|numeric|min:0',
+             'items.*.location' => 'nullable|string|max:255',
+             'items.*.reorder_level' => 'nullable|integer|min:0',
+         ]);
+
 
         try {
             DB::transaction(function () use ($request) {
@@ -445,6 +452,7 @@ class ReceivingController extends Controller
                         'stock_keeping_unit' => $request->input('stock_keeping_unit'),
                         'program_coordinator' => $request->input('program_coordinator'),
                         'unit_cost' => $itemData['unit_cost'] ?? null,
+                        'reorder_level' => $itemData['reorder_level'] ?? 0,
                         'quantity_on_hand' => 0,
                     ]);
                 } else {
@@ -456,6 +464,7 @@ class ReceivingController extends Controller
                         'location'            => $itemData['location'] ?? $item->location,
                         'stock_keeping_unit'  => $request->input('stock_keeping_unit') ?? $item->stock_keeping_unit,
                         'program_coordinator' => $request->input('program_coordinator') ?? $item->program_coordinator,
+                        'reorder_level'       => $itemData['reorder_level'] ?? $item->reorder_level,
                     ]);
 
                     if (!empty($itemData['unit_cost'])) {
@@ -494,6 +503,53 @@ class ReceivingController extends Controller
         }
 
         return redirect()->route('receivings.index')->with('success', 'Receiving recorded and inventory updated.');
+    }
+
+    private function applyReceivingFilters($query, Request $request)
+    {
+        $search = trim((string) $request->input('search', ''));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('ics_ptr_ris', 'like', '%' . $search . '%')
+                    ->orWhere('po_number', 'like', '%' . $search . '%')
+                    ->orWhere('received_by', 'like', '%' . $search . '%')
+                    ->orWhere('source_document_number', 'like', '%' . $search . '%');
+            });
+        }
+
+        $supplier = trim((string) $request->input('supplier', ''));
+        if ($supplier !== '') {
+            $query->whereHas('supplier', function ($q) use ($supplier) {
+                $q->where('company_name', 'like', '%' . $supplier . '%');
+            });
+        }
+
+        $poNumber = trim((string) $request->input('po_number', ''));
+        if ($poNumber !== '') {
+            $query->where('po_number', 'like', '%' . $poNumber . '%');
+        }
+
+        $receivedBy = trim((string) $request->input('received_by', ''));
+        if ($receivedBy !== '') {
+            $query->where('received_by', 'like', '%' . $receivedBy . '%');
+        }
+
+        $program = trim((string) $request->input('program', ''));
+        if ($program !== '') {
+            $query->where('stock_keeping_unit', 'like', '%' . $program . '%');
+        }
+
+        $startDate = $request->input('start_date');
+        if ($startDate) {
+            $query->whereDate('date_received', '>=', $startDate);
+        }
+
+        $endDate = $request->input('end_date');
+        if ($endDate) {
+            $query->whereDate('date_received', '<=', $endDate);
+        }
+
+        return $query;
     }
 
     /**

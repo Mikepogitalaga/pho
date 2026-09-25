@@ -13,6 +13,7 @@
             </div>
             <div style="display:flex; gap:0.5rem; align-items:center; margin-left:auto;">
                 <a href="{{ route('receivings.edit', $receiving) }}" class="btn btn-primary">Edit</a>
+                <a href="{{ route('receivings.print', $receiving) }}" class="btn btn-secondary" target="_blank">Print</a>
                 <a href="{{ route('receivings.index') }}" class="btn btn-secondary">Back to Receivings</a>
             </div>
         </div>

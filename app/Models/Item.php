@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Traits\Auditable;
+use App\Traits\ComputesCodeAvailability;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Item extends Model
 {
-    use HasFactory, Auditable;
+    use HasFactory, Auditable, ComputesCodeAvailability;
 
     protected $fillable = [
         'name',
@@ -71,7 +72,7 @@ class Item extends Model
             return 'Expired';
         }
 
-        if ($this->expiry_date->lessThanOrEqualTo(now()->addDays(30))) {
+        if ($this->expiry_date->lessThanOrEqualTo(now()->addDays(90))) {
             return 'Expiring Soon';
         }
 

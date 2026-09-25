@@ -20,7 +20,12 @@
         <div class="form-grid-3">
             <div class="form-group">
                 <label>PAS Number <span style="color:var(--danger)">*</span></label>
-                <input name="pas_number" value="{{ old('pas_number', $pasNumber) }}" required readonly style="background: var(--surface-strong); cursor: not-allowed;">
+                @if(auth()->user()?->program_id)
+                    <input type="hidden" name="pas_number" value="{{ old('pas_number', $pasNumber) }}">
+                    <p style="font-size:0.85rem; color:var(--text-muted);">PAS Number will be assigned by the administrator upon approval.</p>
+                @else
+                    <input name="pas_number" value="{{ old('pas_number', $pasNumber) }}" required readonly style="background: var(--surface-strong); cursor: not-allowed;">
+                @endif
                 @error('pas_number')<span class="field-error">{{ $message }}</span>@enderror
             </div>
             <div class="form-group">
@@ -28,11 +33,13 @@
                 <input type="date" name="date_of_pass" value="{{ old('date_of_pass', now()->toDateString()) }}" required>
                 @error('date_of_pass')<span class="field-error">{{ $message }}</span>@enderror
             </div>
+            @if(! auth()->user()?->program_id)
             <div class="form-group">
                 <label>Date Released</label>
                 <input type="date" name="date_released" value="{{ old('date_released') }}">
                 @error('date_released')<span class="field-error">{{ $message }}</span>@enderror
             </div>
+            @endif
         </div>
 
         {{-- Row 2: Facility Info --}}
@@ -49,20 +56,23 @@
                         </optgroup>
                     @endforeach
                 </select>
+                @if(! auth()->user()?->program_id)
                 <a href="{{ route('facilities.index') }}" class="section-link" style="font-size:0.78rem;margin-top:0.35rem;display:inline-block;">+ Manage Facilities</a>
+                @endif
                 @error('facility_name')<span class="field-error">{{ $message }}</span>@enderror
             </div>
             <div class="form-group">
                 <label>Facility Coordinator <span style="color:var(--danger)">*</span></label>
                 <div style="position:relative;">
                     <input name="facility_coordinator" id="pasCoordinatorInput"
-                        value="{{ old('facility_coordinator') }}" required autocomplete="off" style="width:100%;">
+                        value="{{ old('facility_coordinator', auth()->user()?->program_id ? auth()->user()->name : '') }}" required autocomplete="off" style="width:100%;">
                     <div id="pasCoordinatorDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
                 </div>
                 @error('facility_coordinator')<span class="field-error">{{ $message }}</span>@enderror
             </div>
+            @if(! auth()->user()?->program_id)
             <div class="form-group">
-                <label>Transfer Type <span style="color:var(--danger)">*</span></label>
+                <label>Select Type <span style="color:var(--danger)">*</span></label>
                 <select name="transfer_type" id="pasTransferTypeSelect">
                     <option value="PTR" {{ old('transfer_type', 'PTR') === 'PTR' ? 'selected' : '' }}>PTR</option>
                     <option value="ITR" {{ old('transfer_type') === 'ITR' ? 'selected' : '' }}>ITR</option>
@@ -70,19 +80,30 @@
                 </select>
                 @error('transfer_type')<span class="field-error">{{ $message }}</span>@enderror
             </div>
+            @endif
         </div>
 
         {{-- Row 3: Program & Purpose --}}
         <div class="form-grid-3">
             <div class="form-group">
                 <label>Stock Keeping Unit (Program)</label>
-                <div style="position:relative;">
-                    <input name="program" id="pasProgramInput" value="{{ old('program') }}" autocomplete="off" style="width:100%;">
-                    <div id="pasProgramDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
-                </div>
+                @if(auth()->user()?->program_id)
+                    <select name="program" style="width:100%;">
+                        @foreach($programs as $program)
+                            <option value="{{ $program->name }}" {{ old('program', $programs->first()->name ?? '') === $program->name ? 'selected' : '' }}>
+                                {{ $program->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                @else
+                    <div style="position:relative;">
+                        <input name="program" id="pasProgramInput" value="{{ old('program') }}" autocomplete="off" style="width:100%;">
+                        <div id="pasProgramDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
+                    </div>
+                @endif
                 @error('program')<span class="field-error">{{ $message }}</span>@enderror
             </div>
-            <div class="form-group" style="grid-column: span 2;">
+            <div class="form-group">
                 <label>Purpose / Activity</label>
                 <input name="purpose_activity" value="{{ old('purpose_activity') }}" placeholder="e.g. Immunization Drive, Health Program Distribution">
                 @error('purpose_activity')<span class="field-error">{{ $message }}</span>@enderror
@@ -123,15 +144,18 @@
                                             style="position:absolute;right:0.5rem;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;line-height:1;padding:0.2rem 0.3rem;">&times;</button>
                                     </div>
                                 </div>
+                                @if(! auth()->user()?->program_id)
                                 <div class="form-group">
                                     <label>PHO Code</label>
                                     <div style="position:relative;display:flex;align-items:center;">
                                         <input type="text" class="pas-phocode-input" autocomplete="off" style="width:100%;padding-right:2rem;" value="{{ $oldItem['product_code'] ?? $oldItem['item_id'] ?? '' }}">
+                                        <input type="hidden" class="pas-item-code-hidden" name="items[{{ $index }}][item_code]" value="{{ $oldItem['product_code'] ?? $oldItem['item_id'] ?? '' }}">
                                         <input type="hidden" class="pas-item-id-hidden" name="items[{{ $index }}][item_id]" value="{{ $oldItem['item_id'] ?? '' }}">
                                         <button type="button" class="item-description-clear" title="Clear" style="position:absolute;right:0.5rem;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;line-height:1;padding:0.2rem 0.3rem;">&times;</button>
                                     </div>
                                     <input type="hidden" class="pas-product-code-input" name="items[{{ $index }}][product_code]" value="{{ $oldItem['product_code'] ?? '' }}">
                                 </div>
+                                @endif
                                 <div class="form-group">
                                     <label>Lot Number</label>
                                     <input class="pas-lot-input" name="items[{{ $index }}][lot_number]" value="{{ $oldItem['lot_number'] ?? '' }}">
@@ -169,14 +193,18 @@
             <button type="button" id="add-pas-item" class="btn btn-secondary" style="margin-top:0.75rem;">+ Add Item</button>
         </div>
 
+        @if(! auth()->user()?->program_id)
         <div class="form-group">
             <label>Notes</label>
             <textarea name="notes" rows="3">{{ old('notes') }}</textarea>
         </div>
+        @endif
 
         <div class="form-actions" style="gap:0.75rem;display:flex;flex-wrap:wrap;align-items:center;">
             <button type="submit" class="btn btn-primary">Save PAS</button>
+            @if(! auth()->user()?->program_id)
             <button type="button" id="openReleaseCreateBtn" class="btn btn-secondary">Open Release Create</button>
+            @endif
             <a href="{{ route('pas.index') }}" class="btn btn-ghost" id="cancelBtn">Cancel</a>
         </div>
     </form>
@@ -218,15 +246,18 @@
                             style="position:absolute;right:0.5rem;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;line-height:1;padding:0.2rem 0.3rem;">&times;</button>
                     </div>
                 </div>
+                @if(! auth()->user()?->program_id)
                 <div class="form-group">
                     <label>PHO Code</label>
-                    <div style="position:relative;display:flex;align-items:center;">
-                        <input type="text" class="pas-phocode-input" autocomplete="off" style="width:100%;padding-right:2rem;" value="">
-                        <input type="hidden" class="pas-item-id-hidden" name="items[0][item_id]" value="">
-                        <button type="button" class="item-description-clear" title="Clear" style="position:absolute;right:0.5rem;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;line-height:1;padding:0.2rem 0.3rem;">&times;</button>
-                    </div>
+                        <div style="position:relative;display:flex;align-items:center;">
+                            <input type="text" class="pas-phocode-input" autocomplete="off" style="width:100%;padding-right:2rem;" value="">
+                            <input type="hidden" class="pas-item-code-hidden" name="items[0][item_code]" value="">
+                            <input type="hidden" class="pas-item-id-hidden" name="items[0][item_id]" value="">
+                            <button type="button" class="item-description-clear" title="Clear" style="position:absolute;right:0.5rem;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;line-height:1;padding:0.2rem 0.3rem;">&times;</button>
+                        </div>
                     <input type="hidden" class="pas-product-code-input" name="items[0][product_code]" value="">
                 </div>
+                @endif
                 <div class="form-group">
                     <label>Lot Number</label>
                     <input class="pas-lot-input" name="items[0][lot_number]" value="">
@@ -269,7 +300,7 @@ const pasAllItems = {!! json_encode($items->flatMap(fn($i) => $i->receivingItems
     'name'       => $i->name,
     'unit'       => $receivingItem->uom ?: $i->unit,
     'cost'       => $receivingItem->unit_cost ?? $i->unit_cost,
-    'qty'        => $receivingItem->quantity_received,
+    'qty'        => $receivingItem->available_quantity ?? $receivingItem->quantity_received,
     'lot_number' => $receivingItem->lot_number,
     'expiry'     => $receivingItem->expiry_date?->format('Y-m-d'),
 ]))->filter(fn($item) => filled($item['code']))->values()->toArray()) !!};
@@ -326,16 +357,20 @@ document.addEventListener('DOMContentLoaded', function () {
         bindPasAutocomplete(pasFacilityInput, pasFacilities, pasFacilityDropdown, null);
     }
 
-    bindPasAutocomplete(pasProgramInput, pasPrograms, pasProgramDropdown, function (item) {
-        const matched = pasCoordinators.find(c => c.assignedPrograms.toLowerCase().includes(item.nameLower));
-        if (matched && pasCoordinatorInput && !pasCoordinatorInput.value.trim()) pasCoordinatorInput.value = matched.name;
-    });
+    if (pasProgramInput && pasProgramDropdown) {
+        bindPasAutocomplete(pasProgramInput, pasPrograms, pasProgramDropdown, function (item) {
+            const matched = pasCoordinators.find(c => c.assignedPrograms.toLowerCase().includes(item.nameLower));
+            if (matched && pasCoordinatorInput && !pasCoordinatorInput.value.trim()) pasCoordinatorInput.value = matched.name;
+        });
+    }
 
-    bindPasAutocomplete(pasCoordinatorInput, pasCoordinators, pasCoordinatorDropdown, function (item) {
-        if (item.assignedPrograms && pasProgramInput && !pasProgramInput.value.trim()) {
-            pasProgramInput.value = item.assignedPrograms.split(', ')[0] || '';
-        }
-    });
+    if (pasCoordinatorInput && pasCoordinatorDropdown) {
+        bindPasAutocomplete(pasCoordinatorInput, pasCoordinators, pasCoordinatorDropdown, function (item) {
+            if (item.assignedPrograms && pasProgramInput && !pasProgramInput.value.trim()) {
+                pasProgramInput.value = item.assignedPrograms.split(', ')[0] || '';
+            }
+        });
+    }
     // ---- End Program & Coordinator Autocomplete ----
 
     const container = document.getElementById('pas-items');
@@ -395,6 +430,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function applyItemToRow(row, item) {
         const descInput    = row.querySelector('.pas-desc-input');
         const phocodeInput = row.querySelector('.pas-phocode-input');
+        const codeHidden   = row.querySelector('.pas-item-code-hidden');
         const itemIdHidden = row.querySelector('.pas-item-id-hidden');
         const codeInput    = row.querySelector('.pas-product-code-input');
         const unitInput    = row.querySelector('.pas-unit-input');
@@ -404,6 +440,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const qtyInput     = row.querySelector('.pas-qty-input');
         if (descInput)    descInput.value    = item.name;
         if (phocodeInput) phocodeInput.value = item.code || '';
+        if (codeHidden)   codeHidden.value   = item.code || '';
         if (itemIdHidden) itemIdHidden.value = item.id || '';
         if (codeInput)    codeInput.value    = item.code || '';
         if (unitInput)    unitInput.value    = item.unit || '';
@@ -460,6 +497,7 @@ document.addEventListener('DOMContentLoaded', function () {
             descInput.value = '';
             phocodeInput.value = '';
             row.querySelector('.pas-item-id-hidden').value = '';
+            row.querySelector('.pas-item-code-hidden').value = '';
             row.querySelector('.pas-product-code-input').value = '';
             row.querySelector('.pas-unit-input').value  = '';
             row.querySelector('.pas-unitcost-input').value = '';
@@ -482,6 +520,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const phocodeInput = row.querySelector('.pas-phocode-input');
         if (!phocodeInput) return;
 
+        const descInput = row.querySelector('.pas-desc-input');
+        const codeHidden = row.querySelector('.pas-item-code-hidden');
+
         const dd = document.createElement('div');
         dd.className = 'autocomplete-dropdown';
         dd.style.cssText = 'position:absolute;background:var(--surface,#fff);border:1px solid var(--border,#ddd);max-height:200px;overflow-y:auto;width:100%;z-index:1000;display:none;box-shadow:0 4px 6px rgba(0,0,0,.1);top:100%;left:0;margin-top:4px;';
@@ -491,9 +532,21 @@ document.addEventListener('DOMContentLoaded', function () {
         function showOptions(query) {
             dd.innerHTML = '';
             const q = query.toLowerCase().trim();
+            const descValue = descInput ? descInput.value.trim() : '';
+            const descLower = descValue.toLowerCase();
             const seen = new Set();
+
+            let exactNameIds = null;
+            if (descValue) {
+                const exactMatches = pasAllItems.filter(function(item) { return item.name.toLowerCase() === descLower; });
+                if (exactMatches.length > 0) {
+                    exactNameIds = new Set(exactMatches.map(function(item) { return item.id; }));
+                }
+            }
+
             const filtered = pasAllItems.filter(function(item) {
                 if (q && !(item.code.toLowerCase().includes(q) || item.name.toLowerCase().includes(q))) return false;
+                if (exactNameIds && !exactNameIds.has(item.id)) return false;
                 if (seen.has(item.code)) return false;
                 seen.add(item.code);
                 return true;
@@ -515,8 +568,11 @@ document.addEventListener('DOMContentLoaded', function () {
             dd.style.display = 'block';
         }
 
-        phocodeInput.addEventListener('input', function() { showOptions(this.value); });
-        phocodeInput.addEventListener('focus', function() { showOptions(this.value); });
+        phocodeInput.addEventListener('input', function() {
+            if (codeHidden) codeHidden.value = this.value;
+            showOptions(this.value);
+        });
+        phocodeInput.addEventListener('focus', function() { showOptions(''); });
         phocodeInput.addEventListener('blur',  function() { setTimeout(function() { dd.style.display = 'none'; }, 200); });
     }
 
@@ -587,5 +643,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }).observe(container, { childList: true, subtree: true });
 });
 </script>
+<style>
+@media (max-width: 768px) {
+    .pas-item-row .item-row-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+}
+</style>
 @endpush
 @endsection

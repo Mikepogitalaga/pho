@@ -5,6 +5,7 @@ use App\Models\Item;
 use App\Models\Pas;
 use App\Models\PasItem;
 use App\Models\Program;
+use App\Models\ReceivingItem;
 use App\Models\Supplier;
 use Illuminate\Support\Collection;
 use Illuminate\Support\ViewErrorBag;
@@ -81,17 +82,37 @@ it('renders the PAS edit add-item script so the row button can append another it
     $coordinator->exists = true;
     $coordinator->setRelation('programs', collect([new Program(['name' => 'STI/HIV AIDS PREVENTION AND CONTROL PROGRAM (NASPCP)'])]));
 
+    $item = $pas->items->first()->item;
+    $item->item_code = 'ITM-001';
+
+    $receivingItem = new ReceivingItem([
+        'item_id' => $item->id,
+        'item_code' => 'ITM-001-R1',
+        'quantity_received' => 100,
+        'unit_cost' => 10,
+        'uom' => 'pcs',
+        'lot_number' => 'LOT-1',
+        'expiry_date' => now()->addYear(),
+    ]);
+    $receivingItem->forceFill(['id' => 1]);
+    $receivingItem->exists = true;
+
+    $item->setRelation('receivingItems', collect([$receivingItem]));
+
     $html = view('pas.edit', [
         'pas' => $pas,
-        'items' => collect([$pas->items->first()->item]),
+        'items' => collect([$item]),
         'suppliers' => collect([$pas->supplier]),
         'coordinators' => collect([$coordinator]),
         'programs' => collect([new Program(['name' => 'STI/HIV AIDS PREVENTION AND CONTROL PROGRAM (NASPCP)'])]),
         'itemLotNumbers' => collect(),
         'facilities' => collect([(object) ['name' => 'Apayao State College', 'category' => 'Hospitals']]),
+        'nextSeq' => 1,
     ])->render();
 
     expect($html)->toContain('id="add-pas-item"');
     expect($html)->toContain('const addBtn    = document.getElementById(\'add-pas-item\');');
-    expect($html)->toContain('addBtn.addEventListener(\'click\'', 'edit view is missing the add-item click handler');
+    expect(str_contains($html, "addBtn.addEventListener('click'"))->toBeTrue('edit view is missing the add-item click handler');
+    expect($html)->toContain('bindRow(row)');
+    expect($html)->toContain('updateIndexes()');
 });

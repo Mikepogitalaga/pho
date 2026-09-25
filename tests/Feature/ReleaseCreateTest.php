@@ -29,7 +29,7 @@ function makeReleaseCreateFixture(): array
 
     return [
         'items' => collect([$item]),
-        'ptrNumber' => '14538-PTR-2026-09-0001',
+        'ptrNumber' => 'PTR-2026-09-0001',
         'programs' => collect([(object) ['name' => 'Test Program']]),
         'coordinators' => collect([(object) ['full_name' => 'Test Coordinator', 'assigned_programs' => 'Test Program']]),
         'facilities' => collect([(object) ['name' => 'Test Facility', 'category' => 'Hospitals']]),
@@ -43,7 +43,9 @@ it('renders a release-items helper with the same PHO code autocomplete synchroni
 
     expect($html)->toContain('function applyItemToRow(row, item)');
     expect($html)->toContain('function bindPhocodeAutocomplete(row)');
-    expect($html)->toContain("phocodeInput.addEventListener('input', function () { showOptions(this.value); });");
+    expect($html)->toContain("phocodeInput.addEventListener('input', function () {");
+    expect($html)->toContain('if (codeHidden) codeHidden.value = this.value;');
+    expect($html)->toContain('showOptions(this.value);');
     expect($html)->toContain('applyItemToRow(row, item);');
     expect($html)->toContain('if (expiryInput && match.expiry) expiryInput.value = match.expiry;');
     expect($html)->toContain('function calcTotal(row)');

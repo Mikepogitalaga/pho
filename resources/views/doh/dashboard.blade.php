@@ -124,7 +124,7 @@
                         <li class="activity-item">
                             <span class="activity-dot activity-dot--success" aria-hidden="true"></span>
                             <div class="activity-body">
-                                <p class="activity-title">{{ $receive->receiving_number }}</p>
+                                <p class="activity-title">{{ $receive->po_number ?? $receive->id }}</p>
                                 <p class="activity-meta">{{ $receive->supplier->company_name }} · {{ $receive->date_received->format('M d, Y') }}</p>
                             </div>
                         </li>

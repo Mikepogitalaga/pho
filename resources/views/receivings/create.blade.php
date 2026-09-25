@@ -11,7 +11,7 @@
             <a href="{{ route('receivings.index') }}" class="btn btn-secondary">Back to Receivings</a>
         </div>
 
-        <form action="{{ route('receivings.store') }}" method="POST" class="stack">
+        <form action="{{ route('receivings.store') }}" method="POST" class="stack" id="receivingForm">
             @csrf
 
             @if(session('error'))
@@ -128,11 +128,12 @@
                                         <select class="item-category-input" name="items[0][category]">
                                             <option value="DM">DM</option>
                                             <option value="MDL">MDL</option>
+                                            <option value="Other supplies">Other supplies</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
                                         <label>UOM</label>
-                                        <input class="item-uom-input" name="items[0][uom]" />
+                                        <input class="item-uom-input" name="items[0][uom]" list="uom-options-receiving" />
                                     </div>
                                 </div>
                                 <div class="form-grid-4">
@@ -158,6 +159,10 @@
                                         <label>Location</label>
                                         <input class="item-location-input" name="items[0][location]" />
                                     </div>
+                                    <div class="form-group">
+                                        <label>Reorder Level</label>
+                                        <input type="number" class="item-reorder-level-input" name="items[0][reorder_level]" value="0" min="0" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -177,6 +182,7 @@
                                 'quantity_received' => '',
                                 'unit_cost' => '',
                                 'location' => '',
+                                'reorder_level' => '',
                             ]];
                         }
                     @endphp
@@ -206,11 +212,12 @@
                                         <select class="item-category-input" name="items[{{ $index }}][category]">
                                             <option value="DM" @selected(($oldItem['category'] ?? 'DM') === 'DM')>DM</option>
                                             <option value="MDL" @selected(($oldItem['category'] ?? '') === 'MDL')>MDL</option>
+                                            <option value="Other supplies" @selected(($oldItem['category'] ?? '') === 'Other supplies')>Other supplies</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
                                         <label>UOM</label>
-                                        <input class="item-uom-input" name="items[{{ $index }}][uom]" value="{{ $oldItem['uom'] ?? '' }}" />
+                                        <input class="item-uom-input" name="items[{{ $index }}][uom]" value="{{ $oldItem['uom'] ?? '' }}" list="uom-options-receiving" />
                                     </div>
                                 </div>
                                 <div class="form-grid-4">
@@ -236,6 +243,10 @@
                                         <label>Location</label>
                                         <input class="item-location-input" name="items[{{ $index }}][location]" value="{{ $oldItem['location'] ?? '' }}" />
                                     </div>
+                                    <div class="form-group">
+                                        <label>Reorder Level</label>
+                                        <input type="number" class="item-reorder-level-input" name="items[{{ $index }}][reorder_level]" value="{{ $oldItem['reorder_level'] ?? '' }}" min="0" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -254,7 +265,7 @@
     {{-- Autocomplete data sources --}}
     <datalist id="item-options-receiving" style="display:none;">
         @foreach($items as $item)
-            <option value="{{ $item->name }}" data-category="{{ $item->category }}" data-uom="{{ $item->unit }}" data-cost="{{ $item->unit_cost }}"></option>
+            <option value="{{ $item->name }}" data-category="{{ $item->category }}" data-uom="{{ $item->unit }}" data-cost="{{ $item->unit_cost }}" data-reorder-level="{{ $item->reorder_level }}"></option>
         @endforeach
     </datalist>
 
@@ -267,6 +278,11 @@
     <datalist id="coordinator-options" style="display:none;">
         @foreach($coordinators as $coordinator)
             <option value="{{ $coordinator->full_name }}" data-programs="{{ $coordinator->assigned_programs }}"></option>
+        @endforeach
+    </datalist>
+    <datalist id="uom-options-receiving" style="display:none;">
+        @foreach($uoms as $uom)
+            <option value="{{ $uom }}"></option>
         @endforeach
     </datalist>
 
@@ -287,6 +303,7 @@
                 category: opt.dataset.category,
                 uom: opt.dataset.uom,
                 cost: opt.dataset.cost,
+                reorderLevel: opt.dataset.reorderLevel,
             };
         });
 
@@ -306,6 +323,19 @@
                 assignedPrograms: opt.dataset.programs || '',
             };
         });
+
+        function resolveProgramPrefix(programValue) {
+            var normalized = (programValue || '').trim().toLowerCase();
+            if (!normalized) {
+                return '';
+            }
+
+            var matched = programsData.find(function(program) {
+                return program.nameLower === normalized;
+            });
+
+            return matched ? (matched.description || '') : '';
+        }
 
         function bindAutocompleteList(input, dataList, dropdown, onSelect) {
             function showOptions(searchText) {
@@ -376,6 +406,60 @@
         var programDropdown = document.getElementById('programDropdown');
         var coordinatorDropdown = document.getElementById('coordinatorDropdown');
 
+        function refreshAllItemCodes() {
+            var container = document.getElementById('receiving-items');
+            var prefix = currentCodePrefix;
+            if (!prefix) return;
+
+            var regex = new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$');
+            var maxExistingSeq = 0;
+
+            Array.from(container.querySelectorAll('.item-code-input')).forEach(function(input) {
+                var val = input.value || '';
+                var match = val.match(regex);
+                if (match) {
+                    var seq = parseInt(match[1], 10);
+                    if (seq > maxExistingSeq) {
+                        maxExistingSeq = seq;
+                    }
+                }
+            });
+
+            var dbSeq = programSequences[prefix] || 0;
+            var nextSeq = Math.max(dbSeq, maxExistingSeq);
+            codeSequences[prefix] = nextSeq;
+
+            Array.from(container.querySelectorAll('.item-code-input')).forEach(function(input) {
+                var shouldSync = input.dataset.generated === 'true' || !(input.value || '').trim();
+                if (!shouldSync) {
+                    return;
+                }
+
+                input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(nextSeq).padStart(4, '0');
+                input.dataset.generated = 'true';
+                nextSeq++;
+            });
+
+            codeSequences[prefix] = nextSeq;
+        }
+
+        function bindProgramCodeSync(programInput, onChange) {
+            if (!programInput) {
+                return;
+            }
+
+            function syncProgramCode() {
+                currentCodePrefix = resolveProgramPrefix(programInput.value);
+                if (currentCodePrefix) {
+                    onChange();
+                }
+            }
+
+            programInput.addEventListener('input', syncProgramCode);
+            programInput.addEventListener('change', syncProgramCode);
+            syncProgramCode();
+        }
+
         if (programInput && programDropdown) {
             bindAutocompleteList(programInput, programsData, programDropdown, function(item) {
                 currentCodePrefix = item.description || '';
@@ -387,6 +471,7 @@
                 }
                 refreshAllItemCodes();
             });
+            bindProgramCodeSync(programInput, refreshAllItemCodes);
         }
 
         if (coordinatorInput && coordinatorDropdown) {
@@ -396,8 +481,7 @@
                     if (programs.length > 0) {
                         if (!programInput.value.trim() || programsData.some(function(p) { return p.nameLower === programInput.value.trim().toLowerCase(); })) {
                             programInput.value = programs[0];
-                            var matched = programsData.find(function(p) { return p.nameLower === programs[0].toLowerCase(); });
-                            currentCodePrefix = matched ? matched.description : '';
+                            currentCodePrefix = resolveProgramPrefix(programs[0]);
                             refreshAllItemCodes();
                         }
                     }
@@ -405,39 +489,6 @@
             });
         }
         // ---- End Program & Coordinator Autocomplete ----
-
-        function refreshAllItemCodes() {
-            var container = document.getElementById('receiving-items');
-            var prefix = currentCodePrefix;
-            if (!prefix) return;
-
-            var maxExistingSeq = 0;
-            Array.from(container.querySelectorAll('.item-code-input')).forEach(function(input) {
-                var val = input.value || '';
-                var matchNew = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
-                if (matchNew) {
-                    var seq = parseInt(matchNew[1], 10);
-                    if (seq > maxExistingSeq) maxExistingSeq = seq;
-                }
-            });
-
-            var dbSeq = programSequences[prefix] || 0;
-            var nextSeq = Math.max(dbSeq, maxExistingSeq);
-            codeSequences[prefix] = nextSeq;
-
-            Array.from(container.querySelectorAll('.item-code-input')).forEach(function(input) {
-                var val = input.value || '';
-                var matchNew = val.match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-\\d{2}-\\d{2}-(\\d{4})$'));
-
-                if (!(input.value || '').trim()) {
-                    input.value = prefix + '-' + currentYear + '-' + currentMonth + '-' + String(nextSeq).padStart(4, '0');
-                    input.dataset.generated = 'true';
-                    nextSeq++;
-                }
-            });
-
-            codeSequences[prefix] = nextSeq;
-        }
 
         function getNextSequence(prefix) {
             if (!codeSequences[prefix]) {
@@ -469,9 +520,10 @@
             dropdown = document.createElement('div');
             dropdown.className = 'autocomplete-dropdown';
             dropdown.style.cssText = [
-                'position: absolute; background: white; border: 1px solid #ddd;',
+                'position: absolute; background: var(--surface); color: var(--text);',
+                'border: 1px solid rgba(128,128,128,0.35);',
                 'max-height: 200px; overflow-y: auto; width: 100%; z-index: 1000;',
-                'display: none; box-shadow: 0 4px 6px rgba(0,0,0,.1);',
+                'display: none; box-shadow: 0 4px 6px rgba(0,0,0,.15);',
                 'top: 100%; left: 0; margin-top: 4px;'
             ].join('');
             descriptionInput.parentElement.style.position = 'relative';
@@ -485,6 +537,7 @@
             var categoryInput = row.querySelector('.item-category-input');
             var uomInput = row.querySelector('.item-uom-input');
             var unitCostInput = row.querySelector('.item-unit-cost-input');
+            var reorderLevelInput = row.querySelector('.item-reorder-level-input');
 
             if (!descriptionInput) return;
 
@@ -494,11 +547,12 @@
                 descriptionInput.value = item.name;
                 if (categoryInput) {
                     var cat = item.category || 'DM';
-                    if (cat !== 'DM' && cat !== 'MDL') cat = 'DM';
+                    if (cat !== 'DM' && cat !== 'MDL' && cat !== 'Other supplies') cat = 'DM';
                     categoryInput.value = cat;
                 }
                 if (uomInput) uomInput.value = item.uom || '';
                 if (unitCostInput) unitCostInput.value = item.cost || '';
+                if (reorderLevelInput) reorderLevelInput.value = item.reorderLevel || 0;
             }
 
             descriptionInput.addEventListener('input', function() {
@@ -512,7 +566,7 @@
 
                 var searchLower = searchText.toLowerCase();
                 var filtered = itemsData.filter(function(item) {
-                    return item.nameLower.indexOf(searchLower) !== -1;
+                    return item.nameLower.indexOf(searchLower) === 0;
                 });
 
                 if (filtered.length === 0) {
@@ -599,6 +653,29 @@
             }
         }
 
+        function bindExpiryFix(row) {
+            var expiryInput = row.querySelector('.item-expiry-input');
+            if (!expiryInput) return;
+
+            expiryInput.addEventListener('blur', function() {
+                var val = this.value;
+                if (!val) return;
+                var parts = val.split('-');
+                if (parts.length !== 3) return;
+                var year = parseInt(parts[0], 10);
+                var month = parseInt(parts[1], 10);
+                var day = parseInt(parts[2], 10);
+                if (isNaN(year) || isNaN(month) || isNaN(day)) return;
+
+                var lastDay = new Date(year, month, 0).getDate();
+                if (day > lastDay) {
+                    var fixedMonth = String(month).padStart(2, '0');
+                    var fixedDay = String(lastDay).padStart(2, '0');
+                    this.value = year + '-' + fixedMonth + '-' + fixedDay;
+                }
+            });
+        }
+
         function recalcNextSeq() {
             var container = document.getElementById('receiving-items');
             var maxNewSeqs = {};
@@ -675,6 +752,7 @@
 
             bindAutocomplete(row);
             bindRowActions(row);
+            bindExpiryFix(row);
             container.appendChild(row);
             updateIndexes();
         }
@@ -683,18 +761,10 @@
         Array.from(document.querySelectorAll('#receiving-items .receiving-item-row')).forEach(function(row) {
             bindAutocomplete(row);
             bindRowActions(row);
+            bindExpiryFix(row);
         });
         updateIndexes();
         recalcNextSeq();
-
-        // If a program is already pre-selected on page load, initialize the code prefix
-        if (programInput && programInput.value.trim()) {
-            var matched = programsData.find(function(p) { return p.nameLower === programInput.value.trim().toLowerCase(); });
-            if (matched) {
-                currentCodePrefix = matched.description || '';
-                refreshAllItemCodes();
-            }
-        }
 
         // Add item button
         document.getElementById('add-receiving-item-button').addEventListener('click', addItemRow);
@@ -704,7 +774,7 @@
         var isSubmitting = false; // Add this to track submission
         function markDirty() { formDirty = true; }
 
-        document.querySelector('form').querySelectorAll('input, select, textarea').forEach(function(el) {
+        document.getElementById('receivingForm').querySelectorAll('input, select, textarea').forEach(function(el) {
             el.addEventListener('input', markDirty);
             el.addEventListener('change', markDirty);
         });
@@ -728,7 +798,7 @@
             });
         });
 
-        document.querySelector('form').addEventListener('submit', function(e) {
+        document.getElementById('receivingForm').addEventListener('submit', function(e) {
             // Mark the form as submitting immediately so beforeunload does not
             // warn while the browser is sending a valid save request.
             isSubmitting = true;

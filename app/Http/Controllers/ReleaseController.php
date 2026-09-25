@@ -131,7 +131,7 @@ class ReleaseController extends Controller
         }
 
         $category = strtoupper(trim((string) $request->input('category', '')));
-        if (in_array($category, ['MDL', 'DM'], true)) {
+        if (in_array($category, ['MDL', 'DM', 'OTHER SUPPLIES'], true)) {
             $query->whereHas('items', function ($q) use ($category) {
                 $q->where('category', $category);
             });
@@ -220,7 +220,7 @@ class ReleaseController extends Controller
         elseif ($period === 'week') $query->whereBetween('date_released', [now()->startOfWeek(), now()->endOfWeek()]);
         elseif ($period === 'month') $query->whereBetween('date_released', [now()->startOfMonth(), now()->endOfMonth()]);
         if (($supplierType = strtoupper(trim((string) $request->input('supplier_type', '')))) && in_array($supplierType, ['GSO', 'DOH'], true)) $query->whereHas('items.item.receivingItems.receiving.supplier', fn ($q) => $q->where('supplier_type', $supplierType));
-        if (($category = strtoupper(trim((string) $request->input('category', '')))) && in_array($category, ['MDL', 'DM'], true)) $query->whereHas('items', fn ($q) => $q->where('category', $category));
+        if (($category = strtoupper(trim((string) $request->input('category', '')))) && in_array($category, ['MDL', 'DM', 'OTHER SUPPLIES'], true)) $query->whereHas('items', fn ($q) => $q->where('category', $category));
         $status = $request->input('status');
         if ($status) {
             $status = match ($status) { 'released-through-pass' => 'Released through pass', 'released' => 'Released', 'canceled' => 'Canceled', 'returned' => 'Returned', 'unreleased' => 'Unreleased', default => $status };
@@ -243,6 +243,26 @@ class ReleaseController extends Controller
         return view('releases.print', compact('release'));
     }
 
+    public function edit(Release $release)
+    {
+        $release->load('items.item.receivingItems.receiving');
+        $items = Item::with('receivingItems')->orderBy('name')->get();
+        $items->each(fn($i) => $i->attachCodeAvailability());
+        $facilities = Facility::active()->orderBy('category')->orderBy('name')->get(['name', 'category']);
+        $programs = Program::orderBy('name')->get();
+        $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
+
+        $itemLotNumbers = ReceivingItem::select('item_id', 'lot_number')
+            ->whereNotNull('lot_number')
+            ->whereIn('item_id', $items->pluck('id'))
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->groupBy('item_id')
+            ->map(fn($group) => $group->first()->lot_number);
+
+        return view('releases.edit', compact('release', 'items', 'facilities', 'programs', 'coordinators', 'itemLotNumbers'));
+    }
+
     public function update(Request $request, Release $release)
     {
         $request->validate([
@@ -255,10 +275,19 @@ class ReleaseController extends Controller
             'date_released'              => 'nullable|date',
             'status'                     => 'required|string|in:Unreleased,Released,Released through pass,Canceled,Returned',
             'status_reason'              => 'nullable|string|max:1000',
+            'reason_for_transfer'        => 'nullable|string',
+            'reason_for_transfer_others' => 'nullable|string|max:255',
             'notes'                      => 'nullable|string',
+            'items'                      => 'nullable|array',
+            'items.*.item_id'            => 'nullable|exists:items,id',
+            'items.*.item_description'   => 'required_with:items|string|max:1000',
+            'items.*.quantity_released'  => 'required_with:items|integer|min:1',
+            'items.*.uom'                => 'required_with:items|string|max:255',
+            'items.*.unit_cost'          => 'required_with:items|numeric|min:0',
+            'items.*.lot_number'         => 'nullable|string|max:255',
+            'items.*.expiry_date'        => 'nullable|date',
         ]);
 
-        // Capture BEFORE fill() overwrites it — this is critical for the stock transition
         $previousStatus = $release->getRawOriginal('status') ?? $release->status;
         $newStatus      = $request->input('status');
 
@@ -278,9 +307,142 @@ class ReleaseController extends Controller
                 'source_docs_ptr_po_no', 'facility_name',
                 'received_by', 'date_released', 'status', 'status_reason', 'notes',
             ]));
+
+            if ($request->has('reason_for_transfer')) {
+                $release->reason_for_transfer = $request->input('reason_for_transfer') === 'Others'
+                    ? $request->input('reason_for_transfer_others')
+                    : $request->input('reason_for_transfer');
+            }
             $release->facility_category = $facilityCategory;
 
-            // Reload items fresh so increment/decrement works on correct records
+            // Sync release items — delete removed, update changed, add new
+            $existingItems = $release->items()->get()->keyBy('id');
+            $submittedItems = $request->input('items', []);
+            $submittedIds = [];
+
+            foreach ($submittedItems as $itemData) {
+                $itemId = $itemData['item_id'] ?? null;
+                $description = trim((string) ($itemData['item_description'] ?? ''));
+
+                if (empty($itemId) && $description !== '') {
+                    $matchedItem = Item::whereRaw('LOWER(name) = ?', [Str::lower($description)])
+                        ->orWhereRaw('LOWER(item_code) = ?', [Str::lower($description)])
+                        ->first();
+                    if (! $matchedItem) {
+                        $matchedItem = Item::whereRaw('LOWER(name) like ?', ["%" . Str::lower($description) . "%"])
+                            ->orWhereRaw('LOWER(item_code) like ?', ["%" . Str::lower($description) . "%"])
+                            ->first();
+                    }
+                    $itemId = $matchedItem?->id;
+                }
+
+                if (empty($itemId) && empty($description)) {
+                    continue;
+                }
+
+                $item = $itemId ? Item::find($itemId) : null;
+                $qty  = (int) ($itemData['quantity_released'] ?? 0);
+                $uom  = $itemData['uom'] ?? ($item?->unit ?? '');
+                $cost = $itemData['unit_cost'] ?? ($item?->unit_cost ?? null);
+                $lot  = $itemData['lot_number'] ?? null;
+                $exp  = !empty($itemData['expiry_date']) ? $itemData['expiry_date'] : null;
+
+                if ($itemId && $item) {
+                    $category = $item->category;
+                } else {
+                    $category = $itemData['category'] ?? null;
+                }
+
+                // If item_data contains a hidden _release_item_id, try to update existing
+                $releaseItemId = $itemData['_release_item_id'] ?? null;
+                if ($releaseItemId && $existingItems->has($releaseItemId)) {
+                    $existingItem = $existingItems[$releaseItemId];
+                    $submittedIds[] = $releaseItemId;
+
+                    $oldQty = (int) $existingItem->quantity_released;
+                    $qtyDiff = $qty - $oldQty;
+
+                    $existingItem->update([
+                        'item_id'           => $itemId,
+                        'item_description'  => $description ?: ($item?->name ?? $existingItem->item_description),
+                        'category'          => $category ?: $existingItem->category,
+                        'quantity_released' => $qty,
+                        'uom'               => $uom ?: $existingItem->uom,
+                        'lot_number'        => $lot,
+                        'unit_cost'         => $cost,
+                        'expiry_date'       => $exp,
+                    ]);
+
+                    // Adjust stock for quantity change (only when already active/unreleased — not during status transition)
+                    if ($qtyDiff !== 0) {
+                        $itemIdForStock = $existingItem->item_id;
+                        $stockItem = Item::find($itemIdForStock);
+                        if ($stockItem) {
+                            if ($qtyDiff > 0) {
+                                $stockItem->decrement('quantity_on_hand', $qtyDiff);
+                            } else {
+                                $stockItem->increment('quantity_on_hand', abs($qtyDiff));
+                            }
+                        }
+                    }
+
+                    // Propagate description/UOM/unit_cost changes to ReceivingItems
+                    if ($item && $lot) {
+                        \App\Models\ReceivingItem::where('item_id', $item->id)
+                            ->where('lot_number', $lot)
+                            ->update([
+                                'item_description' => $description ?: $item->name,
+                                'uom'         => $uom,
+                                'unit_cost'   => $cost,
+                            ]);
+                    }
+                } else {
+                    // New release item — check stock
+                    if ($item && $item->quantity_on_hand < $qty) {
+                        throw new \Exception("Not enough stock for item {$item->name}. Available: {$item->quantity_on_hand}, Requested: {$qty}.");
+                    }
+
+                    $newItem = ReleaseItem::create([
+                        'release_id'        => $release->id,
+                        'item_id'           => $itemId,
+                        'item_code'         => $itemData['item_code'] ?? null,
+                        'item_description'  => $description ?: ($item?->name ?? ''),
+                        'category'          => $category,
+                        'quantity_released' => $qty,
+                        'uom'               => $uom,
+                        'lot_number'        => $lot,
+                        'unit_cost'         => $cost,
+                        'expiry_date'       => $exp,
+                    ]);
+                    $submittedIds[] = $newItem->id;
+
+                    // Deduct stock for new item
+                    if ($item) {
+                        $item->decrement('quantity_on_hand', $qty);
+
+                        if ($lot) {
+                            \App\Models\ReceivingItem::where('item_id', $item->id)
+                                ->where('lot_number', $lot)
+                                ->update([
+                                    'item_description' => $description ?: $item->name,
+                                    'uom'         => $uom,
+                                    'unit_cost'   => $cost,
+                                ]);
+                        }
+                    }
+                }
+            }
+
+            // Delete removed release items — restore stock
+            $removedItems = $existingItems->whereNotIn('id', $submittedIds)->values();
+            foreach ($removedItems as $removed) {
+                $stockItem = Item::find($removed->item_id);
+                if ($stockItem) {
+                    $stockItem->increment('quantity_on_hand', (int) $removed->quantity_released);
+                }
+                $removed->delete();
+            }
+
             $release->load('items');
             $this->applyStatusTransition($release, $newStatus, $previousStatus);
             $release->save();
@@ -292,6 +454,7 @@ class ReleaseController extends Controller
     public function create()
     {
         $items = Item::with('receivingItems')->orderBy('name')->get();
+        $items->each(fn($i) => $i->attachCodeAvailability());
         $facilities = Facility::active()->orderBy('category')->orderBy('name')->get(['name', 'category']);
         $programs = Program::orderBy('name')->get();
         $coordinators = Coordinator::with('programs')->orderBy('full_name')->get();
@@ -305,14 +468,14 @@ class ReleaseController extends Controller
             ->groupBy('item_id')
             ->map(fn($group) => $group->first()->lot_number);
 
-        // Auto-generate PTR/ITR/RIS No. in format: 14538-{TYPE}-yyyy-mm-XXXX
+        // Auto-generate PTR/ITR/RIS No. in format: {TYPE}-yyyy-mm-XXXX
         $year = now()->format('Y');
         $month = now()->format('m');
         $ptrType = 'PTR'; // default type
-        $prefix = "14538-{$ptrType}-{$year}-{$month}-";
+        $prefix = "{$ptrType}-{$year}-{$month}-";
 
         // Get the last sequential number across ALL types (PTR, ITR, RIS) for this year-month
-        $nextSeq = $this->nextYearSequence(Release::class, 'ptr_itr_ris_no', "14538-%-{$year}-{$month}-%");
+        $nextSeq = $this->nextYearSequence(Release::class, 'ptr_itr_ris_no', "%-{$year}-{$month}-%");
 
         $ptrNumber = $prefix . $nextSeq;
 
@@ -328,10 +491,10 @@ class ReleaseController extends Controller
 
         $year = now()->format('Y');
         $month = now()->format('m');
-        $prefix = "14538-{$type}-{$year}-{$month}-";
+        $prefix = "{$type}-{$year}-{$month}-";
 
         // Get the last sequential number across ALL types (PTR, ITR, RIS) for this year-month
-        $nextSeq = $this->nextYearSequence(Release::class, 'ptr_itr_ris_no', "14538-%-{$year}-{$month}-%");
+        $nextSeq = $this->nextYearSequence(Release::class, 'ptr_itr_ris_no', "%-{$year}-{$month}-%");
 
         return response()->json(['number' => $prefix . $nextSeq]);
     }
@@ -372,6 +535,8 @@ class ReleaseController extends Controller
             'received_by' => 'required|string|max:255',
             'date_released' => 'nullable|date',
             'status' => 'required|string|max:255',
+            'reason_for_transfer' => 'nullable|string',
+            'reason_for_transfer_others' => 'nullable|string|max:255',
             'items' => 'required|array|min:1',
             'items.*.item_id' => 'required|exists:items,id',
             'items.*.item_description' => 'required|string|max:1000',
@@ -401,6 +566,9 @@ class ReleaseController extends Controller
                     'source_docs_ptr_po_no' => $request->input('source_docs_ptr_po_no'),
                     'facility_name' => $facilityName,
                     'facility_category' => $facilityCategory,
+                    'reason_for_transfer' => $request->input('reason_for_transfer') === 'Others'
+                        ? $request->input('reason_for_transfer_others')
+                        : $request->input('reason_for_transfer'),
                     'received_by' => $request->input('received_by'),
                     'date_released' => $request->input('date_released') ?: null,
                     'notes' => $request->input('notes'),
@@ -421,6 +589,7 @@ class ReleaseController extends Controller
                     ReleaseItem::create([
                         'release_id' => $release->id,
                         'item_id' => $itemData['item_id'],
+                        'item_code' => $itemData['item_code'] ?? null,
                         'item_description' => $itemData['item_description'] ?? $item->name,
                         'category' => $item->category,
                         'quantity_released' => $itemData['quantity_released'],

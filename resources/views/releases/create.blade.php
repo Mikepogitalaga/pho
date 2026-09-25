@@ -48,45 +48,79 @@
                 </div>
             </div>
 
-            {{-- Row 2: Facility & Program --}}
-            <div class="form-grid-3">
-                <div class="form-group">
-                    <label>Name of Facility / End-user <span style="color: var(--danger);">*</span></label>
-                    <select name="facility_name" id="facilityName" required>
-                        <option value="">— Select Facility —</option>
-                        @foreach($facilities->groupBy('category') as $cat => $group)
-                            <optgroup label="{{ $cat ?: 'Other' }}">
-                                @foreach($group as $f)
-                                    <option value="{{ $f->name }}" {{ old('facility_name', request('facility_name')) === $f->name ? 'selected' : '' }}>{{ $f->name }}</option>
-                                @endforeach
-                            </optgroup>
-                        @endforeach
-                    </select>
-                    <a href="{{ route('facilities.index') }}" class="section-link" style="font-size:0.78rem;margin-top:0.35rem;display:inline-block;">+ Manage Facilities</a>
-                    @error('facility_name')
-                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
-                    @enderror
+        {{-- Row 2: Facility & Program --}}
+        <div class="form-grid-3">
+            <div class="form-group">
+                <label>Name of Facility / End-user <span style="color: var(--danger);">*</span></label>
+                <select name="facility_name" id="facilityName" required>
+                    <option value="">— Select Facility —</option>
+                    @foreach($facilities->groupBy('category') as $cat => $group)
+                        <optgroup label="{{ $cat ?: 'Other' }}">
+                            @foreach($group as $f)
+                                <option value="{{ $f->name }}" {{ old('facility_name', request('facility_name')) === $f->name ? 'selected' : '' }}>{{ $f->name }}</option>
+                            @endforeach
+                        </optgroup>
+                    @endforeach
+                </select>
+                <a href="{{ route('facilities.index') }}" class="section-link" style="font-size:0.78rem;margin-top:0.35rem;display:inline-block;">+ Manage Facilities</a>
+                @error('facility_name')
+                    <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                @enderror
+            </div>
+            <div class="form-group">
+                <label>Stock Keeping Unit (Program) <span style="color: var(--danger);">*</span></label>
+                <div style="position:relative;">
+                    <input name="health_program_coordinator" id="releaseProgramInput"
+                        value="{{ old('health_program_coordinator', request('health_program_coordinator')) }}" autocomplete="off" required style="width:100%;">
+                    <div id="releaseProgramDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
                 </div>
-                <div class="form-group">
-                    <label>Stock Keeping Unit (Program) <span style="color: var(--danger);">*</span></label>
-                    <div style="position:relative;">
-                        <input name="health_program_coordinator" id="releaseProgramInput"
-                            value="{{ old('health_program_coordinator', request('health_program_coordinator')) }}" autocomplete="off" required style="width:100%;">
-                        <div id="releaseProgramDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
-                    </div>
-                    @error('health_program_coordinator')
-                        <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
-                    @enderror
-                </div>
-                <div class="form-group">
-                    <label>Program Coordinator</label>
-                    <div style="position:relative;">
-                        <input name="release_coordinator" id="releaseCoordinatorInput"
-                            value="{{ old('release_coordinator', request('release_coordinator')) }}" autocomplete="off" style="width:100%;">
-                        <div id="releaseCoordinatorDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
-                    </div>
+                @error('health_program_coordinator')
+                    <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem;">{{ $message }}</span>
+                @enderror
+            </div>
+            <div class="form-group">
+                <label>Program Coordinator</label>
+                <div style="position:relative;">
+                    <input name="release_coordinator" id="releaseCoordinatorInput"
+                        value="{{ old('release_coordinator', request('release_coordinator')) }}" autocomplete="off" style="width:100%;">
+                    <div id="releaseCoordinatorDropdown" style="position:absolute;top:100%;left:0;width:100%;z-index:1000;display:none;"></div>
                 </div>
             </div>
+        </div>
+
+        {{-- Reason for Transfer --}}
+        <div class="form-group">
+            <label>Reason for Transfer</label>
+            <select name="reason_for_transfer" id="reasonForTransferSelect" required>
+                <option value="">— Select Reason —</option>
+                <option value="Donation" {{ old('reason_for_transfer', request('reason_for_transfer')) === 'Donation' ? 'selected' : '' }}>Donation</option>
+                <option value="Reassignment" {{ old('reason_for_transfer', request('reason_for_transfer')) === 'Reassignment' ? 'selected' : '' }}>Reassignment</option>
+                <option value="Relocate" {{ old('reason_for_transfer', request('reason_for_transfer')) === 'Relocate' ? 'selected' : '' }}>Relocate</option>
+                <option value="Allocation" {{ old('reason_for_transfer', request('reason_for_transfer')) === 'Allocation' ? 'selected' : '' }}>Allocation</option>
+                <option value="Others" {{ old('reason_for_transfer', request('reason_for_transfer')) === 'Others' ? 'selected' : '' }}>Others (specify)</option>
+            </select>
+            @error('reason_for_transfer')
+                <span style="color: var(--danger); font-size: 0.82rem; margin-top: 0.25rem; display: block;">{{ $message }}</span>
+            @enderror
+        </div>
+        <div class="form-group" id="reasonOthersGroup" style="display: none;">
+            <label for="reason_for_transfer_others">Reason (Others)</label>
+            <input type="text" name="reason_for_transfer_others" id="reason_for_transfer_others" value="{{ old('reason_for_transfer_others') }}" placeholder="Specify the reason...">
+        </div>
+
+        <script>
+            (function () {
+                var select = document.getElementById('reasonForTransferSelect');
+                var othersGroup = document.getElementById('reasonOthersGroup');
+                if (select && othersGroup) {
+                    var toggle = function () {
+                        othersGroup.style.display = select.value === 'Others' ? '' : 'none';
+                    };
+                    select.addEventListener('change', toggle);
+                    toggle();
+                }
+            })();
+        </script>
 
             <div class="section-note">
                 Received by, Date, and Status are assigned after saving.
@@ -132,6 +166,7 @@
                                         <label>PHO Code</label>
                                         <div style="position:relative; display:flex; align-items:center;">
                                             <input type="text" class="item-phocode-input" autocomplete="off" style="width:100%; padding-right:2rem;" value="{{ $oldItem['item_code'] ?? $oldItem['product_code'] ?? '' }}">
+                                            <input type="hidden" class="item-code-select" name="items[{{ $index }}][item_code]" value="{{ $oldItem['item_code'] ?? $oldItem['product_code'] ?? '' }}">
                                             <input type="hidden" class="item-id-select" name="items[{{ $index }}][item_id]" value="{{ $oldItem['item_id'] ?? '' }}">
                                             <button type="button" class="item-description-clear" title="Clear"
                                                 style="position:absolute; right:0.5rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
@@ -257,6 +292,7 @@
     </datalist>
 
 @push('scripts')
+
 <script>
 const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItems->isNotEmpty()
     ? $i->receivingItems->map(fn($receivingItem) => [
@@ -265,7 +301,7 @@ const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItem
         'name'       => $i->name,
         'uom'        => $receivingItem->uom ?: $i->unit,
         'cost'       => $receivingItem->unit_cost ?? $i->unit_cost,
-        'qty'        => $i->quantity_on_hand ?? $receivingItem->quantity_received,
+        'qty'        => $receivingItem->available_quantity ?? $receivingItem->quantity_received,
         'category'   => $receivingItem->category ?: $i->category,
         'lot_number' => $receivingItem->lot_number,
         'expiry'     => $receivingItem->expiry_date?->format('Y-m-d'),
@@ -326,7 +362,7 @@ const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItem
         const initialValue = '{{ old('ptr_itr_ris_no') }}';
         const initialTransferType = '{{ request('transfer_type', '') }}'.toUpperCase();
 
-        if (initialValue && !/^14538-/i.test(initialValue)) {
+        if (initialValue && !/^(PTR|ITR|RIS)-\d{4}-\d{2}-/i.test(initialValue)) {
             // Old value is not an auto-generated number → it was a manual
             // ELMIS entry. Restore the selection and keep the typed value.
             ptrTypeSelect.value = 'ELMIS';
@@ -462,6 +498,7 @@ const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItem
     function applyItemToRow(row, item) {
         const descInput     = row.querySelector('.item-description-input');
         const phocodeInput  = row.querySelector('.item-phocode-input');
+        const codeHidden    = row.querySelector('.item-code-select');
         const itemIdHidden  = row.querySelector('.item-id-select');
         const uomInput      = row.querySelector('.item-uom-input');
         const unitCostInput = row.querySelector('.item-unit-cost-input');
@@ -471,6 +508,7 @@ const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItem
 
         if (descInput)     descInput.value     = item.name;
         if (phocodeInput)  phocodeInput.value  = item.code || '';
+        if (codeHidden)    codeHidden.value    = item.code || '';
         if (itemIdHidden)  itemIdHidden.value  = item.id || '';
         if (uomInput)      uomInput.value      = item.uom || '';
         if (unitCostInput) unitCostInput.value = item.cost || '';
@@ -492,6 +530,9 @@ const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItem
     function bindPhocodeAutocomplete(row) {
         const phocodeInput = row.querySelector('.item-phocode-input');
         if (!phocodeInput) return;
+
+        const descInput = row.querySelector('.item-description-input');
+        const codeHidden = row.querySelector('.item-code-select');
 
         const dd = document.createElement('div');
         dd.className = 'autocomplete-dropdown';
@@ -515,9 +556,22 @@ const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItem
         function showOptions(query) {
             dd.innerHTML = '';
             const q = query.toLowerCase().trim();
+            const descValue = descInput ? descInput.value.trim() : '';
+            const descLower = descValue.toLowerCase();
             const seen = new Set();
+
+            let exactNameIds = null;
+            if (descValue) {
+                const exactMatches = allItemsData.filter(function(item) { return item.name.toLowerCase() === descLower; });
+                if (exactMatches.length > 0) {
+                    exactNameIds = new Set(exactMatches.map(function(item) { return item.id; }));
+                }
+            }
+
             const filtered = allItemsData.filter(function(item) {
                 if (q && !((item.code && item.code.toLowerCase().includes(q)) || item.name.toLowerCase().includes(q))) return false;
+                if (!q && descValue && !item.name.toLowerCase().includes(descLower)) return false;
+                if (exactNameIds && !exactNameIds.has(item.id)) return false;
                 if (seen.has(item.code)) return false;
                 seen.add(item.code);
                 return true;
@@ -539,8 +593,11 @@ const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItem
             dd.style.display = 'block';
         }
 
-        phocodeInput.addEventListener('input', function () { showOptions(this.value); });
-        phocodeInput.addEventListener('focus', function () { showOptions(this.value); });
+        phocodeInput.addEventListener('input', function () {
+            if (codeHidden) codeHidden.value = this.value;
+            showOptions(this.value);
+        });
+        phocodeInput.addEventListener('focus', function () { showOptions(''); });
         phocodeInput.addEventListener('blur',  function () { setTimeout(function () { dd.style.display = 'none'; }, 200); });
     }
 
@@ -590,6 +647,8 @@ const allItemsData = {!! json_encode($items->flatMap(fn($i) => $i->receivingItem
                 if (phocodeInput) phocodeInput.value = '';
                 const itemIdHidden = row.querySelector('.item-id-select');
                 if (itemIdHidden) itemIdHidden.value = '';
+                const codeHidden = row.querySelector('.item-code-select');
+                if (codeHidden) codeHidden.value = '';
                 const uomInput = row.querySelector('.item-uom-input');
                 if (uomInput) uomInput.value = '';
                 const unitCostInput = row.querySelector('.item-unit-cost-input');
