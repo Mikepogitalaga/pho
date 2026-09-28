@@ -247,6 +247,16 @@ class DashboardController extends Controller
             ? $upcomingExpiriesQuery->whereHas('item', fn($q) => $this->scopeItemQuery($q))->get()
             : $upcomingExpiriesQuery->get();
 
+        $missingDataItemsQuery = ReceivingItem::with('item')
+            ->where(function ($q) {
+                $q->whereNull('item_code')->orWhere('item_code', '')->orWhereNull('expiry_date');
+            })
+            ->orderByDesc('created_at')
+            ->limit(10);
+        $missingDataItems = $programScoped
+            ? $missingDataItemsQuery->whereHas('item', fn($q) => $this->scopeItemQuery($q))->get()
+            : $missingDataItemsQuery->get();
+
         // Inventory Value
         $inventoryValueQuery = Item::query()
             ->selectRaw('COALESCE(SUM(quantity_on_hand * COALESCE(unit_cost, 0)), 0) as total_value');
@@ -410,6 +420,23 @@ class DashboardController extends Controller
                 'name' => $expiry->item->name,
                 'detail' => 'Expires ' . $expiry->expiry_date->format('M d, Y'),
                 'href' => route('items.show', $expiry->item),
+            ]);
+        }
+
+        foreach ($missingDataItems as $missing) {
+            $missingFields = [];
+            if (empty($missing->item_code)) $missingFields[] = 'item code';
+            if (empty($missing->expiry_date)) $missingFields[] = 'expiration date';
+
+            $notifications->push([
+                'type' => 'danger',
+                'label' => 'MISSING DATA',
+                'code' => $missing->item_code ?: '—',
+                'name' => $missing->item->name ?? 'Item #'.$missing->item_id,
+                'detail' => count($missingFields) === 1
+                    ? ($missingFields[0] === 'item code' ? 'Item code is missing' : 'Expiration date is missing')
+                    : 'Item code and expiration date are missing',
+                'href' => route('items.show', $missing->item),
             ]);
         }
 
@@ -701,6 +728,11 @@ class DashboardController extends Controller
         $pendingApprovalRecords = collect();
 
         $typeItemIds = $this->getItemIdsBySupplierType($type);
+
+        $totalInventoryItems = !empty($typeItemIds)
+            ? Item::whereIn('id', $typeItemIds)->count()
+            : 0;
+
         if (!empty($typeItemIds)) {
             $lowStockItems = Item::whereIn('id', $typeItemIds)
                 ->whereHas('receivingItems')
@@ -741,6 +773,15 @@ class DashboardController extends Controller
                 ->limit(10)
                 ->get();
 
+            $missingDataItems = ReceivingItem::with('item')
+                ->whereIn('item_id', $typeItemIds)
+                ->where(function ($q) {
+                    $q->whereNull('item_code')->orWhere('item_code', '')->orWhereNull('expiry_date');
+                })
+                ->orderByDesc('created_at')
+                ->limit(10)
+                ->get();
+
             foreach ($upcomingExpiries as $expiry) {
                 $notifications->push([
                     'type' => 'danger',
@@ -749,6 +790,23 @@ class DashboardController extends Controller
                     'name' => $expiry->item->name,
                     'detail' => 'Expires ' . $expiry->expiry_date->format('M d, Y'),
                     'href' => route('items.show', $expiry->item),
+                ]);
+            }
+
+            foreach ($missingDataItems as $missing) {
+                $missingFields = [];
+                if (empty($missing->item_code)) $missingFields[] = 'item code';
+                if (empty($missing->expiry_date)) $missingFields[] = 'expiration date';
+
+                $notifications->push([
+                    'type' => 'danger',
+                    'label' => 'MISSING DATA',
+                    'code' => $missing->item_code ?: '—',
+                    'name' => $missing->item->name ?? 'Item #'.$missing->item_id,
+                    'detail' => count($missingFields) === 1
+                        ? ($missingFields[0] === 'item code' ? 'Item code is missing' : 'Expiration date is missing')
+                        : 'Item code and expiration date are missing',
+                    'href' => route('items.show', $missing->item),
                 ]);
             }
 
@@ -772,6 +830,7 @@ class DashboardController extends Controller
             'totalSuppliers',
             'totalReceivingsAll',
             'totalItemsReceived',
+            'totalInventoryItems',
             'monthlyReceivings',
             'monthlyReceivedQty',
             'monthlyLabels',

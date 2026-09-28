@@ -507,7 +507,7 @@
     </div>
 
     @if(! $programScoped && isset($pendingApprovals) && $pendingApprovals->count())
-    <div class="dashboard-tables-grid" style="grid-template-columns: 1fr;">
+    <div class="dashboard-tables-grid dashboard-tables-grid--full">
         <section class="section-card" aria-label="Pending PAS approvals" style="padding: 1.15rem;">
             <div class="section-header compact">
                 <div>
@@ -516,8 +516,8 @@
                 </div>
                 <a href="{{ route('pas.index', ['request_status' => 'pending_approval']) }}" class="section-link">View all</a>
             </div>
-            <div class="table-wrapper" style="overflow-x: auto;">
-                <table class="data-table" style="display: table; width: 100%; min-width: 720px;">
+            <div class="table-wrapper table-wrapper--desktop">
+                <table class="data-table">
                     <thead>
                         <tr>
                             <th>PAS Number</th>

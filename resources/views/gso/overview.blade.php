@@ -7,15 +7,15 @@
 @section('content')
     {{-- KPI Grid --}}
     <section class="dashboard-kpi-grid" role="region" aria-label="GSO supply chain metrics">
-        <article class="kpi-card kpi-card--blue">
+        <article class="kpi-card kpi-card--primary">
             <div class="kpi-card-header">
                 <span class="kpi-card-icon" aria-hidden="true">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
                 </span>
-                <span class="kpi-card-label">GSO Suppliers</span>
+                <span class="kpi-card-label">Total Inventory Items</span>
             </div>
-            <p class="kpi-card-value">{{ number_format($totalSuppliers) }}</p>
-            <p class="kpi-card-foot">Registered GSO vendors</p>
+            <p class="kpi-card-value">{{ number_format($totalInventoryItems) }}</p>
+            <p class="kpi-card-foot">Unique items in inventory</p>
         </article>
 
         <article class="kpi-card kpi-card--teal">
@@ -84,15 +84,15 @@
             <p class="kpi-card-foot">Balance (received − released)</p>
         </article>
 
-        <article class="kpi-card kpi-card--primary">
+        <article class="kpi-card kpi-card--blue">
             <div class="kpi-card-header">
                 <span class="kpi-card-icon" aria-hidden="true">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                 </span>
-                <span class="kpi-card-label">Active GSO Suppliers</span>
+                <span class="kpi-card-label">GSO Suppliers</span>
             </div>
-            <p class="kpi-card-value">{{ $topSuppliers->count() }}</p>
-            <p class="kpi-card-foot">Suppliers with recent receivings</p>
+            <p class="kpi-card-value">{{ number_format($totalSuppliers) }}</p>
+            <p class="kpi-card-foot">Registered GSO vendors</p>
         </article>
     </section>
 

@@ -1077,8 +1077,12 @@ html[data-theme='dark'] .quick-action-card:hover {
 
 html[data-theme='dark'] .quick-action-label { color: #F87171; }
 html[data-theme='dark'] .quick-action-hint { color: #94a3b8; }
-    font-size: 0.86rem;
+.chart-legend {
+    display: inline-flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
     color: var(--text-muted);
+    font-size: 0.85rem;
 }
 
 .dashboard-kpi-grid {
@@ -1412,7 +1416,7 @@ tbody tr:hover {
 .btn-danger:active {
     transform: translateY(0);
 }
-}
+
 
 .btn-danger:hover {
     transform: translateY(-1px);
@@ -1958,7 +1962,7 @@ tbody tr:last-child td {
     box-shadow: 0 1px 3px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.02);
 }
 
-.dark-mode .card[aria-label="Report filters"] {
+html[data-theme='dark'] .card[aria-label="Report filters"] {
     background: linear-gradient(180deg, rgba(30,41,59,0.97) 0%, rgba(51,65,85,0.97) 100%);
     border-color: rgba(148, 163, 184, 0.1);
 }
@@ -2004,17 +2008,17 @@ tbody tr:last-child td {
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
 }
 
-.dark-mode .card[aria-label="Report filters"] .search-input {
+html[data-theme='dark'] .card[aria-label="Report filters"] .search-input {
     background: rgba(30, 41, 59, 0.8);
     border-color: rgba(148, 163, 184, 0.12);
     color: var(--text);
 }
 
-.dark-mode .card[aria-label="Report filters"] .search-input:hover {
+html[data-theme='dark'] .card[aria-label="Report filters"] .search-input:hover {
     border-color: rgba(220, 38, 38, 0.3);
 }
 
-.dark-mode .card[aria-label="Report filters"] .search-input:focus {
+html[data-theme='dark'] .card[aria-label="Report filters"] .search-input:focus {
     border-color: #DC2626;
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
 }
@@ -2067,13 +2071,13 @@ tbody tr:last-child td {
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
-.dark-mode .card[aria-label="Report filters"] .quick-date-btn {
+html[data-theme='dark'] .card[aria-label="Report filters"] .quick-date-btn {
     background: rgba(30, 41, 59, 0.8);
     border-color: rgba(148, 163, 184, 0.12);
     color: var(--text-muted);
 }
 
-.dark-mode .card[aria-label="Report filters"] .quick-date-btn:hover {
+html[data-theme='dark'] .card[aria-label="Report filters"] .quick-date-btn:hover {
     background: var(--primary);
     color: white;
     border-color: var(--primary);
@@ -2180,21 +2184,21 @@ tbody tr:last-child td {
     transform: scale(1.1);
 }
 
-.dark-mode .card[aria-label="Report filters"] .filter-chip {
+html[data-theme='dark'] .card[aria-label="Report filters"] .filter-chip {
     background: rgba(96, 165, 250, 0.1);
     border-color: rgba(96, 165, 250, 0.2);
 }
 
-.dark-mode .card[aria-label="Report filters"] .filter-chip:hover {
+html[data-theme='dark'] .card[aria-label="Report filters"] .filter-chip:hover {
     background: rgba(96, 165, 250, 0.18);
     border-color: rgba(96, 165, 250, 0.35);
 }
 
-.dark-mode .card[aria-label="Report filters"] .filter-chip-label {
+html[data-theme='dark'] .card[aria-label="Report filters"] .filter-chip-label {
     color: var(--primary);
 }
 
-.dark-mode .card[aria-label="Report filters"] .filter-chip-remove {
+html[data-theme='dark'] .card[aria-label="Report filters"] .filter-chip-remove {
     background: rgba(148, 163, 184, 0.15);
     color: var(--text-muted);
 }
@@ -2474,6 +2478,30 @@ html[data-theme='dark'] .chart-card .section-card-title { color: #F87171; }
     display: table;
     width: 100%;
     min-width: 720px;
+    border-collapse: collapse;
+}
+
+.dashboard-tables-grid--full .table-wrapper--desktop .data-table thead {
+    display: table-header-group;
+}
+
+.dashboard-tables-grid--full .table-wrapper--desktop .data-table th,
+.dashboard-tables-grid--full .table-wrapper--desktop .data-table td {
+    padding: 0.75rem 0.85rem;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.dashboard-tables-grid--full .table-wrapper--desktop .data-table th {
+    font-weight: 600;
+    color: #0f172a;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    background: var(--surface-muted);
+}
+
+html[data-theme='dark'] .dashboard-tables-grid--full .table-wrapper--desktop .data-table th {
+    color: #f1f5f9;
 }
 
 /* ===== MOBILE TABLE CARD LAYOUT ===== */

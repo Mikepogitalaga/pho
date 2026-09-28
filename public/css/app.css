@@ -1121,8 +1121,13 @@ html[data-theme='dark'] .quick-action-card:hover {
 
 html[data-theme='dark'] .quick-action-label { color: #F87171; }
 html[data-theme='dark'] .quick-action-hint { color: #94a3b8; }
-    font-size: 0.86rem;
+
+.chart-legend {
+    display: inline-flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
     color: var(--text-muted);
+    font-size: 0.85rem;
 }
 
 .dashboard-kpi-grid {
@@ -1233,6 +1238,30 @@ html[data-theme='dark'] .quick-action-hint { color: #94a3b8; }
     display: table;
     width: 100%;
     min-width: 720px;
+    border-collapse: collapse;
+}
+
+.dashboard-tables-grid--full .table-wrapper--desktop .data-table thead {
+    display: table-header-group;
+}
+
+.dashboard-tables-grid--full .table-wrapper--desktop .data-table th,
+.dashboard-tables-grid--full .table-wrapper--desktop .data-table td {
+    padding: 0.75rem 0.85rem;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.dashboard-tables-grid--full .table-wrapper--desktop .data-table th {
+    font-weight: 600;
+    color: #0f172a;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    background: var(--surface-muted);
+}
+
+html[data-theme='dark'] .dashboard-tables-grid--full .table-wrapper--desktop .data-table th {
+    color: #f1f5f9;
 }
 
 .dashboard-tables-grid .section-card {
@@ -2126,67 +2155,53 @@ nav[role="navigation"] svg {
     .dashboard-tables-grid {
         grid-template-columns: 1fr;
     }
+}
 
-    /* tables become stacked cards on mobile */
-    .table-container {
-        overflow-x: unset;
+.table-row-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+tbody tr {
+    transition: background-color 180ms ease;
+}
+
+tbody tr:hover {
+    background: var(--surface-muted);
+}
+
+tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.form-grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 1024px) {
+    .form-grid-3 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .form-grid-3 {
+        grid-template-columns: 1fr;
     }
 
-    table {
-        min-width: unset;
-    }
-
-    table thead {
-        display: none;
-    }
-
-    table tbody tr {
-        display: flex;
+    .filter-actions {
         flex-direction: column;
-        padding: 0.75rem;
-        border: 1px solid var(--border);
-        border-radius: 0.85rem;
-        margin-bottom: 0.65rem;
-        background: var(--surface);
+        align-items: stretch;
     }
 
-    table tbody tr:last-child {
-        margin-bottom: 0;
+    .quick-date-bar {
+        justify-content: flex-start;
     }
 
-    table td {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.35rem 0;
-        border-bottom: 1px solid var(--border);
-        font-size: 0.9rem;
-        text-align: right;
-    }
-
-    table td:last-child {
-        border-bottom: 0;
-    }
-
-    table td::before {
-        content: attr(data-label);
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--text-muted);
-        flex-shrink: 0;
-        text-align: left;
-    }
-
-    table td.table-actions {
-        justify-content: flex-end;
-        padding-top: 0.5rem;
-    }
-
-    table td.table-actions::before {
-        display: none;
+    .table-row-actions {
+        flex-direction: column;
+        gap: 0.2rem;
     }
 }
 
@@ -2206,7 +2221,7 @@ nav[role="navigation"] svg {
     box-shadow: 0 1px 3px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.02);
 }
 
-.dark-mode .card[aria-label="Report filters"] {
+html[data-theme='dark'] .card[aria-label="Report filters"] {
     background: linear-gradient(180deg, rgba(30,41,59,0.97) 0%, rgba(51,65,85,0.97) 100%);
     border-color: rgba(148, 163, 184, 0.1);
 }
@@ -2252,17 +2267,17 @@ nav[role="navigation"] svg {
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
 }
 
-.dark-mode .card[aria-label="Report filters"] .search-input {
+html[data-theme='dark'] .card[aria-label="Report filters"] .search-input {
     background: rgba(30, 41, 59, 0.8);
     border-color: rgba(148, 163, 184, 0.12);
     color: var(--text);
 }
 
-.dark-mode .card[aria-label="Report filters"] .search-input:hover {
+html[data-theme='dark'] .card[aria-label="Report filters"] .search-input:hover {
     border-color: rgba(220, 38, 38, 0.3);
 }
 
-.dark-mode .card[aria-label="Report filters"] .search-input:focus {
+html[data-theme='dark'] .card[aria-label="Report filters"] .search-input:focus {
     border-color: #DC2626;
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
 }
@@ -2315,13 +2330,13 @@ nav[role="navigation"] svg {
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
 }
 
-.dark-mode .card[aria-label="Report filters"] .quick-date-btn {
+html[data-theme='dark'] .card[aria-label="Report filters"] .quick-date-btn {
     background: rgba(30, 41, 59, 0.8);
     border-color: rgba(220, 38, 38, 0.15);
     color: #F87171;
 }
 
-.dark-mode .card[aria-label="Report filters"] .quick-date-btn:hover {
+html[data-theme='dark'] .card[aria-label="Report filters"] .quick-date-btn:hover {
     background: linear-gradient(135deg, #DC2626, #991B1B);
     color: white;
     border-color: var(--primary);
@@ -2428,21 +2443,21 @@ nav[role="navigation"] svg {
     transform: scale(1.1);
 }
 
-.dark-mode .card[aria-label="Report filters"] .filter-chip {
+html[data-theme='dark'] .card[aria-label="Report filters"] .filter-chip {
     background: rgba(220, 38, 38, 0.1);
     border-color: rgba(220, 38, 38, 0.2);
 }
 
-.dark-mode .card[aria-label="Report filters"] .filter-chip:hover {
+html[data-theme='dark'] .card[aria-label="Report filters"] .filter-chip:hover {
     background: rgba(220, 38, 38, 0.18);
     border-color: rgba(220, 38, 38, 0.35);
 }
 
-.dark-mode .card[aria-label="Report filters"] .filter-chip-label {
+html[data-theme='dark'] .card[aria-label="Report filters"] .filter-chip-label {
     color: #F87171;
 }
 
-.dark-mode .card[aria-label="Report filters"] .filter-chip-remove {
+html[data-theme='dark'] .card[aria-label="Report filters"] .filter-chip-remove {
     background: rgba(220, 38, 38, 0.15);
     color: #F87171;
 }
