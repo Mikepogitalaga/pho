@@ -174,8 +174,8 @@ class ReportController extends Controller
                 'purchase_doh_qty' => $purchaseSegments['DOH'], 'purchase_doh_cost' => $purchaseSegments['DOH'] ? $purchaseSegmentCosts['DOH'] / $purchaseSegments['DOH'] : 0,
                 'available_qty' => $available, 'available_cost' => $availableCost, 'available_average_cost' => $availableAverageCost,
                 'disposal_implementing' => $disposalSegments['Implementing'], 'disposal_hospitals' => $disposalSegments['Hospitals'], 'disposal_rhu' => $disposalSegments['RHU'], 'disposal_nla' => $disposalSegments['NLA'], 'disposal_cost' => $disposalCost,
-                'expired_cost' => $expiredCost, 'ending_qty' => $ending, 'ending_cost' => (float) $ending * $averageCost,
-                'average_cost' => $averageCost, 'check_balance' => (float) $ending * $averageCost,
+                'expired_qty' => (int) $expired, 'expired_cost' => $expiredCost, 'ending_qty' => $ending, 'ending_cost' => (float) $ending * $averageCost,
+                'average_cost' => $averageCost,
                 'additional_count' => 0, 'adjusted_ending' => $adjustedEnding, 'adjusted_amount' => $adjustedEnding * $averageCost,
                 '_include' => $receivingItems->isNotEmpty() || $releaseItems->isNotEmpty(),
             ];
@@ -187,10 +187,9 @@ class ReportController extends Controller
         $summary = [
             'beginning' => array_sum(array_column($rows, 'beginning_qty')), 'purchases' => array_sum(array_column($rows, 'purchase_gso_qty')) + array_sum(array_column($rows, 'purchase_acp_qty')) + array_sum(array_column($rows, 'purchase_doh_qty')),
             'available' => array_sum(array_column($rows, 'available_qty')), 'disposals' => array_sum(array_column($rows, 'disposal_implementing')) + array_sum(array_column($rows, 'disposal_hospitals')) + array_sum(array_column($rows, 'disposal_rhu')) + array_sum(array_column($rows, 'disposal_nla')),
-            'expired' => array_sum(array_column($rows, 'expired_cost')), 'ending' => array_sum(array_column($rows, 'ending_qty')),
+            'expired' => array_sum(array_column($rows, 'expired_qty')), 'ending' => array_sum(array_column($rows, 'ending_qty')),
             'adjusted_ending' => array_sum(array_column($rows, 'adjusted_ending')), 'total_cost' => array_sum(array_column($rows, 'adjusted_amount')),
             'average_cost' => count($rows) ? array_sum(array_column($rows, 'average_cost')) / count($rows) : 0,
-            'check_balance' => array_sum(array_column($rows, 'check_balance')),
         ];
 
         return [$rows, $summary];

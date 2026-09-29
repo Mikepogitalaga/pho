@@ -5,9 +5,6 @@
 @section('pageSubheading', 'Government-standard inventory matrix with live stock, cost, purchase, and disposal balances.')
 
 @section('content')
-@php
-    $availableTotal = array_sum(array_column($rows, 'available_qty'));
-@endphp
 
 
 
@@ -24,7 +21,7 @@
         @foreach([
             ['Beginning', $summary['beginning'], '#2563eb'],
             ['Purchases', $summary['purchases'], '#16a34a'],
-            ['Available', $availableTotal, '#7c3aed'],
+            ['Available', $summary['available'], '#7c3aed'],
             ['Disposed', $summary['disposals'], '#d97706'],
             ['Expired', $summary['expired'], '#dc2626'],
             ['Ending', $summary['adjusted_ending'], '#0891b2'],
@@ -101,40 +98,40 @@
             <thead>
                 {{-- Header totals row --}}
                  <tr style="background:#1e293b; color:#fff; font-weight:700;">
-                    <td class="mtd" style="position:sticky; left:0; background:#1e293b; z-index:1; border-right:1px solid #334155; font-weight:800; letter-spacing:0.05em;">TOTAL</td>
-                    <td class="mtd"></td>
-                    <td class="mtd" style="border-right:2px solid #334155;"></td>
+                     <td class="mtd" style="position:sticky; left:0; background:#1e293b; z-index:1; border-right:1px solid #334155; font-weight:800; letter-spacing:0.05em;">TOTAL</td>
+                     <td class="mtd"></td>
+                     <td class="mtd" style="border-right:2px solid #334155;"></td>
 
-                    <td class="mtd mtd-right" style="background:#1d4ed8;">{{ number_format($summary['beginning']) }}</td>
-                    <td class="mtd mtd-right" style="border-right:2px solid #1e40af; background:#1d4ed8;">{{ number_format(array_sum(array_column($rows, 'beginning_cost')), 2) }}</td>
+                     <td class="mtd mtd-right" style="background:#1d4ed8;">{{ number_format($summary['beginning']) }}</td>
+                     <td class="mtd mtd-right" style="border-right:2px solid #1e40af; background:#1d4ed8;">{{ number_format(array_sum(array_column($rows, 'beginning_cost')), 2) }}</td>
 
-                    <td class="mtd mtd-right" style="background:#15803d;">{{ number_format(array_sum(array_column($rows, 'purchase_gso_qty'))) }}</td>
-                    <td class="mtd mtd-right" style="background:#15803d;"></td>
-                    <td class="mtd mtd-right" style="background:#15803d;">{{ number_format(array_sum(array_column($rows, 'purchase_acp_qty'))) }}</td>
-                    <td class="mtd mtd-right" style="background:#15803d;"></td>
-                    <td class="mtd mtd-right" style="background:#15803d;">{{ number_format(array_sum(array_column($rows, 'purchase_doh_qty'))) }}</td>
-                    <td class="mtd mtd-right" style="border-right:2px solid #166534; background:#15803d;"></td>
+                     <td class="mtd mtd-right" style="background:#15803d;">{{ number_format(array_sum(array_column($rows, 'purchase_gso_qty'))) }}</td>
+                     <td class="mtd mtd-right" style="background:#15803d;"></td>
+                     <td class="mtd mtd-right" style="background:#15803d;">{{ number_format(array_sum(array_column($rows, 'purchase_acp_qty'))) }}</td>
+                     <td class="mtd mtd-right" style="background:#15803d;"></td>
+                     <td class="mtd mtd-right" style="background:#15803d;">{{ number_format(array_sum(array_column($rows, 'purchase_doh_qty'))) }}</td>
+                     <td class="mtd mtd-right" style="border-right:2px solid #166534; background:#15803d;"></td>
 
-                    <td class="mtd mtd-right" style="background:#7c3aed;">{{ number_format($availableTotal) }}</td>
-                    <td class="mtd mtd-right" style="border-right:2px solid #6d28d9; background:#7c3aed;">{{ number_format(array_sum(array_column($rows, 'available_cost')), 2) }}</td>
+                     <td class="mtd mtd-right" style="background:#7c3aed;">{{ number_format($summary['available']) }}</td>
+                     <td class="mtd mtd-right" style="border-right:2px solid #6d28d9; background:#7c3aed;">{{ number_format(array_sum(array_column($rows, 'available_cost')), 2) }}</td>
 
-                    <td class="mtd mtd-right" style="background:#b45309;">{{ number_format(array_sum(array_column($rows, 'disposal_implementing'))) }}</td>
-                    <td class="mtd mtd-right" style="background:#b45309;">{{ number_format(array_sum(array_column($rows, 'disposal_hospitals'))) }}</td>
-                    <td class="mtd mtd-right" style="background:#b45309;">{{ number_format(array_sum(array_column($rows, 'disposal_rhu'))) }}</td>
-                    <td class="mtd mtd-right" style="background:#b45309;">{{ number_format(array_sum(array_column($rows, 'disposal_nla'))) }}</td>
-                    <td class="mtd mtd-right" style="border-right:2px solid #92400e; background:#b45309;">{{ number_format(array_sum(array_column($rows, 'disposal_cost')), 2) }}</td>
+                     <td class="mtd mtd-right" style="background:#b45309;">{{ number_format(array_sum(array_column($rows, 'disposal_implementing'))) }}</td>
+                     <td class="mtd mtd-right" style="background:#b45309;">{{ number_format(array_sum(array_column($rows, 'disposal_hospitals'))) }}</td>
+                     <td class="mtd mtd-right" style="background:#b45309;">{{ number_format(array_sum(array_column($rows, 'disposal_rhu'))) }}</td>
+                     <td class="mtd mtd-right" style="background:#b45309;">{{ number_format(array_sum(array_column($rows, 'disposal_nla'))) }}</td>
+                     <td class="mtd mtd-right" style="border-right:2px solid #92400e; background:#b45309;">{{ number_format(array_sum(array_column($rows, 'disposal_cost')), 2) }}</td>
 
-                    <td class="mtd mtd-right" style="border-right:2px solid #991b1b; background:#dc2626;">{{ number_format(array_sum(array_column($rows, 'expired_cost')), 2) }}</td>
+                     <td class="mtd mtd-right" style="background:#de3f3f">{{ number_format(array_sum(array_column($rows, 'expired_qty'))) }}</td>
+                     <td class="mtd mtd-right" style="border-right:2px solid #130808; background:#de3f3f">{{ number_format(array_sum(array_column($rows, 'expired_cost')), 2) }}</td>
 
-                    <td class="mtd mtd-right" style="background:#0891b2;">{{ number_format($summary['ending']) }}</td>
-                    <td class="mtd mtd-right" style="border-right:2px solid #0e7490; background:#0891b2;">{{ number_format(array_sum(array_column($rows, 'ending_cost')), 2) }}</td>
+                     <td class="mtd mtd-right" style="background:#0891b2;">{{ number_format($summary['ending']) }}</td>
+                     <td class="mtd mtd-right" style="border-right:2px solid #0e7490; background:#0891b2;">{{ number_format(array_sum(array_column($rows, 'ending_cost')), 2) }}</td>
 
-                    <td class="mtd mtd-right">{{ number_format($summary['average_cost'], 2) }}</td>
-                    <td class="mtd mtd-right">₱ {{ number_format($summary['check_balance'], 2) }}</td>
-                    <td class="mtd mtd-right">0.00</td>
-                    <td class="mtd mtd-right">{{ number_format($summary['adjusted_ending']) }}</td>
-                    <td class="mtd mtd-right">{{ number_format(array_sum(array_column($rows, 'adjusted_amount')), 2) }}</td>
-                </tr>
+                      <td class="mtd mtd-right">{{ number_format($summary['average_cost'], 2) }}</td>
+                      <td class="mtd mtd-right"></td>
+                      <td class="mtd mtd-right">{{ number_format($summary['adjusted_ending']) }}</td>
+                      <td class="mtd mtd-right">{{ number_format(array_sum(array_column($rows, 'adjusted_amount')), 2) }}</td>
+                 </tr>
                
                 {{-- Group header row --}}
                 <tr>
@@ -143,10 +140,9 @@
                     <th colspan="6" style="background:#15803d; color:#fff; text-align:center; border-right:2px solid #166534;">PURCHASES</th>
                     <th colspan="2" style="background:#7c3aed; color:#fff; text-align:center; border-right:2px solid #6d28d9;">AVAILABLE STOCKS</th>
                     <th colspan="5" style="background:#b45309; color:#fff; text-align:center; border-right:2px solid #92400e;">DISPOSAL <small style="font-weight:400; font-size:0.7em;">(Net of Released–RTS)</small></th>
-                    <th colspan="1" style="background:#dc2626; color:#fff; text-align:center; border-right:2px solid #991b1b;">EXPIRED</th>
+                    <th colspan="2" style="background:#dc2626; color:#fff; text-align:center; border-right:2px solid #991b1b;">EXPIRED</th>
                     <th colspan="2" style="background:#0891b2; color:#fff; text-align:center; border-right:2px solid #0e7490;">ENDING INVENTORY</th>
                     <th style="background:#f8fafc; color:var(--text-muted); text-align:center; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; min-width:100px;"></th>
-                    <th style="background:#f8fafc; color:var(--text-muted); text-align:center; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; min-width:90px;"></th>
                     <th colspan="1" style="background:#0891B2; color:#FFF; text-align:center; border-right:2px solid #09252d;">ADDITIONAL COUNT</th>
                     <th colspan="2" style="background:#475569; color:#fff; text-align:center;">ADJUSTMENTS</th>
                 </tr>
@@ -174,7 +170,7 @@
                     <th colspan="1"></th>
                     <th colspan="2"></th>
                     <th></th>
-                    <th></th>
+                    <th colspan="1"></th>
                     <th colspan="2"></th>
                 </tr>
                 {{-- Sub-header row --}}
@@ -202,17 +198,17 @@
                     <th class="mth" style="min-width:70px; background:#fffbeb;">RHU</th>
                     <th class="mth" style="min-width:70px; background:#fffbeb;">NLA</th>
                     <th class="mth" style="min-width:110px; border-right:2px solid #fde68a; background:#fffbeb;">TOTAL COST</th>
-                    {{-- Expired --}}
-                    <th class="mth" style="min-width:110px; border-right:2px solid #fecaca; background:#fff1f2;">TOTAL COST</th>
-                    {{-- Ending --}}
-                    <th class="mth" style="min-width:70px; background:#ecfeff;">QTY</th>
-                    <th class="mth" style="min-width:110px; border-right:2px solid #a5f3fc; background:#ecfeff;">TOTAL COST</th>
-                    {{-- Adjustments --}}
-                    <th class="mth" style="min-width:100px; background:#f8fafc;">AVG COST</th>
-                    <th class="mth" style="min-width:90px; background:#f8fafc;">CHECK BAL</th>
+                     {{-- Expired --}}
+                     <th class="mth" style="min-width:70px; background:#fff1f2;">QTY</th>
+                     <th class="mth" style="min-width:110px; border-right:2px solid #e66565; background:#fff1f2;">TOTAL COST</th>
+                     {{-- Ending --}}
+                     <th class="mth" style="min-width:70px; background:#ecfeff;">QTY</th>
+                     <th class="mth" style="min-width:110px; border-right:2px solid #a5f3fc; background:#ecfeff;">TOTAL COST</th>
+                     {{-- Adjustments --}}
+                     <th class="mth" style="min-width:100px; background:#f8fafc;">AVG COST</th>
                      <th class="mth" style="min-width:90px; background:#f8fafc;">QTY</th>
-                    <th class="mth" style="min-width:90px; background:#f8fafc;">ADJ QTY</th>
-                    <th class="mth" style="min-width:110px; background:#f8fafc;">ADJ AMOUNT</th>
+                     <th class="mth" style="min-width:90px; background:#f8fafc;">ADJ QTY</th>
+                     <th class="mth" style="min-width:110px; background:#f8fafc;">ADJ AMOUNT</th>
                 </tr>
                 
             </thead>
@@ -242,20 +238,20 @@
                         <td class="mtd mtd-right" style="background:{{ $i%2===0?'#fffbeb':'#fef3c7'; }}">{{ number_format($row['disposal_nla']) }}</td>
                         <td class="mtd mtd-right" style="border-right:2px solid #fde68a; background:{{ $i%2===0?'#fffbeb':'#fef3c7'; }}">{{ number_format($row['disposal_cost'], 2) }}</td>
 
-                        <td class="mtd mtd-right" style="border-right:2px solid #fecaca; background:{{ $i%2===0?'#fff1f2':'#ffe4e6'; }}; color:#dc2626; font-weight:600;">{{ number_format($row['expired_cost'], 2) }}</td>
+                         <td class="mtd mtd-right" style="background:{{ $i%2===0?'#fff1f2':'#ffe4e6'; }}; color:#dc2626; font-weight:600;">{{ number_format($row['expired_qty']) }}</td>
+                         <td class="mtd mtd-right" style="border-right:2px solid #fecaca; background:{{ $i%2===0?'#fff1f2':'#ffe4e6'; }}; color:#dc2626; font-weight:600;">{{ number_format($row['expired_cost'], 2) }}</td>
 
-                        <td class="mtd mtd-right" style="background:{{ $i%2===0?'#ecfeff':'#cffafe'; }}; font-weight:700;">{{ number_format($row['ending_qty']) }}</td>
-                        <td class="mtd mtd-right" style="border-right:2px solid #a5f3fc; background:{{ $i%2===0?'#ecfeff':'#cffafe'; }}">{{ number_format($row['ending_cost'], 2) }}</td>
+                         <td class="mtd mtd-right" style="background:{{ $i%2===0?'#ecfeff':'#cffafe'; }}; font-weight:700;">{{ number_format($row['ending_qty']) }}</td>
+                         <td class="mtd mtd-right" style="border-right:2px solid #a5f3fc; background:{{ $i%2===0?'#ecfeff':'#cffafe'; }}">{{ number_format($row['ending_cost'], 2) }}</td>
 
-                        <td class="mtd mtd-right">{{ number_format($row['available_average_cost'] ?? $row['average_cost'], 2) }}</td>
-                        <td class="mtd mtd-right" style="color:{{ $row['check_balance'] != 0 ? '#dc2626' : 'inherit' }}; font-weight:{{ $row['check_balance'] != 0 ? '700' : '400' }};">₱ {{ number_format($row['check_balance'], 2) }}</td>
-                         <td class="mtd mtd-right"></td>
-                        <td class="mtd mtd-right">{{ number_format($row['adjusted_ending']) }}</td>
-                        <td class="mtd mtd-right" style="font-weight:700;">{{ number_format($row['adjusted_amount'], 2) }}</td>
+                         <td class="mtd mtd-right">{{ number_format($row['available_average_cost'] ?? $row['average_cost'], 2) }}</td>
+                          <td class="mtd mtd-right"></td>
+                         <td class="mtd mtd-right">{{ number_format($row['adjusted_ending']) }}</td>
+                         <td class="mtd mtd-right" style="font-weight:700;">{{ number_format($row['adjusted_amount'], 2) }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="25" style="text-align:center; padding:3rem 1rem; color:var(--text-muted);">
+                        <td colspan="26" style="text-align:center; padding:3rem 1rem; color:var(--text-muted);">
                             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4" style="margin:0 auto 0.75rem; display:block;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
                             No inventory items found.
                         </td>
