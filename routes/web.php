@@ -17,6 +17,7 @@ use App\Http\Controllers\ProgramManagementController;
 use App\Http\Controllers\PasController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\BackupController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
@@ -130,6 +131,14 @@ Route::middleware('web')->group(function () {
             Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
             Route::post('users/{user}/unlock', [UserController::class, 'unlock'])->name('users.unlock');
             Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
+
+            // Database Safety Backup & Recovery (administrators only)
+            Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
+            Route::post('backups', [BackupController::class, 'store'])->name('backups.store');
+            Route::get('backups/{filename}/download', [BackupController::class, 'download'])->name('backups.download');
+            Route::post('backups/{filename}/restore', [BackupController::class, 'restore'])->name('backups.restore');
+            Route::post('backups/upload-restore', [BackupController::class, 'uploadRestore'])->name('backups.upload-restore');
+            Route::delete('backups/{filename}', [BackupController::class, 'destroy'])->name('backups.destroy');
         });
     });
 });
