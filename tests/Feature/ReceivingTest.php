@@ -70,8 +70,111 @@ test('receiving stores the entered uom on the item record', function () {
 
     app(ReceivingController::class)->store($request);
 
-    $item = \App\Models\Item::where('item_code', 'ITM-002')->first();
+    $item = \App\Models\Item::where('name', 'UOM Item')->first();
 
     expect($item)->not->toBeNull();
     expect($item->unit)->toBe('Box');
+});
+
+test('receiving stores the per-item location on the item record', function () {
+    $user = User::factory()->create();
+    Supplier::create([
+        'company_name' => 'Test Supplier',
+        'contact_person' => 'Jane Doe',
+        'email' => 'supplier@example.com',
+        'phone' => '1234567890',
+        'address' => 'Test Address',
+    ]);
+
+    $request = Request::create('/receivings', 'POST', [
+        'supplier_id' => 1,
+        'po_number' => 'PO-1003',
+        'date_received' => '2026-07-14',
+        'items' => [
+            [
+                'item_code'  => 'ITM-003',
+                'item_description' => 'Location Item',
+                'category' => 'DM',
+                'uom' => 'Bottle',
+                'quantity_received' => 5,
+                'location' => 'Pharmacy Shelf A',
+            ],
+        ],
+    ]);
+
+    $request->setUserResolver(fn () => $user);
+
+    app(ReceivingController::class)->store($request);
+
+    $item = \App\Models\Item::where('name', 'Location Item')->first();
+
+    expect($item)->not->toBeNull();
+    expect($item->location)->toBe('Pharmacy Shelf A');
+});
+
+test('receiving update saves the per-item location on the item record', function () {
+    $user = User::factory()->create();
+    Supplier::create([
+        'company_name' => 'Test Supplier',
+        'contact_person' => 'Jane Doe',
+        'email' => 'supplier@example.com',
+        'phone' => '1234567890',
+        'address' => 'Test Address',
+    ]);
+
+    // Create initial receiving with location
+    $createRequest = Request::create('/receivings', 'POST', [
+        'supplier_id' => 1,
+        'po_number' => 'PO-1004',
+        'date_received' => '2026-07-14',
+        'items' => [
+            [
+                'item_code'  => 'ITM-004',
+                'item_description' => 'Update Location Item',
+                'category' => 'DM',
+                'uom' => 'Bottle',
+                'quantity_received' => 10,
+                'location' => 'Original Location',
+            ],
+        ],
+    ]);
+    $createRequest->setUserResolver(fn () => $user);
+    app(ReceivingController::class)->store($createRequest);
+
+    $item = \App\Models\Item::where('name', 'Update Location Item')->first();
+    expect($item->location)->toBe('Original Location');
+
+    // Now edit the receiving and change the location
+    $receiving = \App\Models\Receiving::latest()->first();
+    $receivingItem = $receiving->items()->first();
+
+    $updateRequest = Request::create('/receivings/' . $receiving->id, 'PUT', [
+        'supplier_id' => 1,
+        'po_number' => 'PO-1004',
+        'ics_ptr_ris' => null,
+        'document_date' => null,
+        'date_received' => '2026-07-15',
+        'received_by' => null,
+        'stock_keeping_unit' => null,
+        'program_coordinator' => null,
+        'notes' => null,
+        'items' => [
+            [
+                'receiving_item_id' => $receivingItem->id,
+                'item_id' => $item->id,
+                'item_code'  => 'ITM-004',
+                'item_description' => 'Update Location Item',
+                'category' => 'DM',
+                'uom' => 'Bottle',
+                'quantity_received' => 10,
+                'location' => 'New Location',
+            ],
+        ],
+    ]);
+    $updateRequest->setUserResolver(fn () => $user);
+
+    app(ReceivingController::class)->update($updateRequest, $receiving);
+
+    $updatedItem = \App\Models\Item::where('name', 'Update Location Item')->first();
+    expect($updatedItem->location)->toBe('New Location');
 });

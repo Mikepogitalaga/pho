@@ -12,6 +12,7 @@ class ReleaseItem extends Model
     protected $fillable = [
         'release_id',
         'item_id',
+        'item_code',
         'item_description',
         'category',
         'quantity_released',

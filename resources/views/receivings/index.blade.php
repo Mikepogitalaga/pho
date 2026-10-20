@@ -4,6 +4,10 @@
 @section('pageHeading', 'Receive Supplies')
 @section('pageSubheading', 'View receiving records and add new supply receipts.')
 
+@php
+    $programUser = ($programNames ?? []) !== [];
+@endphp
+
 @section('content')
     <div class="section-header">
         <div>
@@ -11,7 +15,10 @@
         </div>
         <div class="table-actions" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
             <a href="{{ route('receivings.export') }}" class="btn btn-secondary">Download Excel</a>
-            <a href="{{ route('receivings.create') }}" class="btn btn-primary">New Receiving</a>
+            <a href="{{ route('receivings.print-list') }}" class="btn btn-secondary" target="_blank">Print</a>
+            @unless ($programUser)
+                <a href="{{ route('receivings.create') }}" class="btn btn-primary">New Receiving</a>
+            @endunless
         </div>
     </div>
 
@@ -22,7 +29,7 @@
                 <p class="page-description" style="margin-top: 0.25rem;">Search and filter receiving records by various criteria.</p>
             </div>
             <div class="table-actions">
-                @if(request()->hasAny(['search','supplier','po_number','start_date','end_date','program']))
+                @if(request()->hasAny(['search','supplier','po_number','received_by','start_date','end_date','program']))
                     <a href="{{ route('receivings.index') }}" class="btn btn-secondary" style="min-height: 44px;">Clear All</a>
                 @endif
             </div>
@@ -31,7 +38,7 @@
         <form id="receivingsFilterForm" method="GET" class="search-panel" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: var(--space-4);">
             <div>
                 <label for="receivingSearch" class="sr-only">Search receivings</label>
-                <input id="receivingSearch" type="text" name="search" value="{{ request('search') }}" placeholder="Search by Receiving No." class="search-input" />
+                <input id="receivingSearch" type="text" name="search" value="{{ request('search') }}" placeholder="Search by ICS/PTR/RIS, PO No. or Received By" class="search-input" />
             </div>
             <div>
                 <label for="supplierFilter" class="sr-only">Filter by supplier</label>
@@ -40,6 +47,10 @@
             <div>
                 <label for="poNumberFilter" class="sr-only">Filter by PO No.</label>
                 <input id="poNumberFilter" type="text" name="po_number" value="{{ request('po_number') }}" placeholder="Filter by PO No." class="search-input" />
+            </div>
+            <div>
+                <label for="receivedByFilter" class="sr-only">Filter by Received By</label>
+                <input id="receivedByFilter" type="text" name="received_by" value="{{ request('received_by') }}" placeholder="Filter by Received By" class="search-input" />
             </div>
             <div>
                 <label for="startDate" class="sr-only">Start Date</label>
@@ -51,12 +62,12 @@
             </div>
             <div>
                 <label for="programFilter" class="sr-only">Filter by program</label>
-                <select id="programFilter" name="program" class="search-input">
-                    <option value="">All programs</option>
+                <input id="programFilter" type="text" name="program" value="{{ request('program') }}" placeholder="Filter by program" class="search-input" list="program-options-list" autocomplete="off" />
+                <datalist id="program-options-list" style="display:none;">
                     @foreach($programs as $programOption)
-                        <option value="{{ $programOption->name }}" @selected(request('program') === $programOption->name)>{{ $programOption->name }}</option>
+                        <option value="{{ $programOption->name }}"></option>
                     @endforeach
-                </select>
+                </datalist>
             </div>
             <div style="display: flex; gap: 0.5rem;">
                 <button type="submit" class="btn btn-primary" style="min-height: 44px; flex: 1;">Apply Filters</button>
@@ -112,7 +123,7 @@
                          </tr>
                      @empty
                         <tr>
-                            <td colspan="9" style="padding: 1.25rem;">
+                                <td colspan="8" style="padding: 1.25rem;">
                                 <div class="empty-state">
                                     <strong>No receiving records found.</strong>
                                     <div style="margin-top: 0.35rem;">Create a new receiving slip to start tracking incoming stock.</div>
@@ -130,7 +141,7 @@
     @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const hasFilters = {{ request()->hasAny(['search','supplier','po_number','start_date','end_date','program']) ? 'true' : 'false' }};
+            const hasFilters = {{ request()->hasAny(['search','supplier','po_number','received_by','start_date','end_date','program']) ? 'true' : 'false' }};
             if (hasFilters) {
                 document.getElementById('receivingsTable').scrollIntoView({ behavior: 'smooth', block: 'start' });
             }

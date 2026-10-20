@@ -4,6 +4,11 @@
 @section('pageHeading', 'Release Records')
 @section('pageSubheading', 'Track supply release slips and end-user distribution.')
 
+@php
+    $programUser = $programNames ?? [];
+    $programUser = $programUser !== [];
+@endphp
+
 @section('content')
     <div class="section-header">
         <div>
@@ -13,7 +18,9 @@
         <div class="table-actions">
             <a href="{{ route('releases.print-list', request()->query()) }}" target="_blank" class="btn btn-secondary">Print</a>
             <a href="{{ route('releases.export', request()->query()) }}" class="btn btn-secondary">Download Excel</a>
-            <a href="{{ route('releases.create') }}" class="btn btn-primary">New Release Slip</a>
+            @unless ($programUser)
+                <a href="{{ route('releases.create') }}" class="btn btn-primary">New Release Slip</a>
+            @endunless
         </div>
     </div>
 
@@ -88,17 +95,18 @@
                     <option value="">All item categories</option>
                     <option value="MDL" @selected(request('category') === 'MDL')>MDL</option>
                     <option value="DM" @selected(request('category') === 'DM')>DM</option>
+                    <option value="Other supplies" @selected(request('category') === 'Other supplies')>Other supplies</option>
                 </select>
             </div>
 
             <div>
                 <label for="programFilter" class="sr-only">Filter by program</label>
-                <select id="programFilter" name="program" class="search-input">
-                    <option value="">All programs</option>
+                <input id="programFilter" type="text" name="program" value="{{ request('program') }}" placeholder="Filter by program" class="search-input" list="program-options-list" autocomplete="off" />
+                <datalist id="program-options-list" style="display:none;">
                     @foreach($programs as $programOption)
-                        <option value="{{ $programOption->name }}" @selected(request('program') === $programOption->name)>{{ $programOption->name }}</option>
+                        <option value="{{ $programOption->name }}"></option>
                     @endforeach
-                </select>
+                </datalist>
             </div>
 
             <div style="display: flex; gap: 0.5rem;">
@@ -132,15 +140,15 @@
                               </td>
                               <td data-label="PAS No.">{{ $release->pas_number }}</td>
                               <td data-label="PHO Code" class="col-hide-md">
-                                  {{ $release->items->flatMap(fn($releaseItem) => $releaseItem->item?->receivingItems ?? collect())->pluck('item_code')->filter()->unique()->implode(', ') ?: '—' }}
+                                   {{ $release->items->pluck('item_code')->filter()->unique()->implode(', ') ?: '—' }}
                               </td>
                               <td data-label="Facility / End-user">{{ $release->facility_name }}</td>
                               <td data-label="Program" class="col-hide-md">{{ $release->health_program_coordinator ?? '—' }}</td>
                               <td data-label="Item Description">
                                   <div class="item-desc-cell">
-                                      <div class="item-desc-primary">{{ $release->items->first()?->item_description ?? '—' }}</div>
-                                      @php
-                                          $allDescriptions = $release->items->pluck('item_description')->filter()->values();
+                                       <div class="item-desc-primary">{{ $release->items->first()?->item?->name ?? $release->items->first()?->item_description ?? '—' }}</div>
+                                       @php
+                                           $allDescriptions = $release->items->map(fn($ri) => $ri->item?->name ?? $ri->item_description)->filter()->values();
                                       @endphp
                                       @if($allDescriptions->count() > 1)
                                           <button type="button" class="btn btn-ghost view-items-btn" style="padding:0; min-height:auto; font-size:0.8rem;" data-items='@json($allDescriptions)'>

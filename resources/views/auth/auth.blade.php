@@ -433,6 +433,25 @@
 
 
         /* =========================================================
+           CAPTCHA QUESTION
+        ========================================================= */
+
+        .captcha-question {
+            margin-bottom: 7px;
+
+            padding-left: 5px;
+
+            color: #a10f0f;
+
+            font-size: 11px;
+
+            font-weight: 600;
+
+            letter-spacing: .3px;
+        }
+
+
+        /* =========================================================
            FIELD ERROR
         ========================================================= */
 
@@ -1140,6 +1159,43 @@
                                 @enderror
 
                             </div>
+
+
+                            {{-- CAPTCHA --}}
+                            @if(session('login_captcha_question'))
+
+                                <div class="field" style="margin-bottom:12px;">
+
+                                    <div class="captcha-question">
+                                        {{ session('login_captcha_question') }}
+                                    </div>
+
+                                    <input
+                                        id="login_captcha"
+                                        name="captcha"
+                                        type="text"
+                                        class="{{ $errors->has('captcha') ? 'is-invalid' : '' }}"
+                                        required
+                                        autocomplete="off"
+                                        placeholder="Your answer"
+                                    >
+
+                                    <span class="field-icon">
+                                        <i class="fa-solid fa-shield-halved"></i>
+                                    </span>
+
+
+                                    @error('captcha')
+
+                                        <div class="form-error">
+                                            {{ $message }}
+                                        </div>
+
+                                    @enderror
+
+                                </div>
+
+                            @endif
 
 
                             {{-- REMEMBER / FORGOT --}}

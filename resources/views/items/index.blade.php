@@ -72,15 +72,27 @@
                 <option value="out" @selected($status === 'out')>Out of Stock</option>
             </select>
         </div>
+        @if($userProgramScoped)
         <div style="display:flex; flex-direction:column; gap:0.3rem;">
             <label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted);">Program</label>
             <select name="program" class="search-input">
-                <option value="">All programs</option>
-                @foreach($programs as $programOption)
-                    <option value="{{ $programOption->name }}" @selected($programOption->name === $program)>{{ $programOption->name }}</option>
+                <option value="">All my programs</option>
+                @foreach($userProgramNames as $programOption)
+                    <option value="{{ $programOption }}" @selected(($program ?? '') === $programOption)>{{ $programOption }}</option>
                 @endforeach
             </select>
         </div>
+        @else
+        <div style="display:flex; flex-direction:column; gap:0.3rem;">
+            <label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted);">Program</label>
+            <input type="text" name="program" value="{{ $program }}" placeholder="Filter by program" class="search-input" list="program-options-list" autocomplete="off" />
+            <datalist id="program-options-list" style="display:none;">
+                @foreach($programs as $programOption)
+                    <option value="{{ $programOption->name }}"></option>
+                @endforeach
+            </datalist>
+        </div>
+        @endif
         <div style="display:flex; gap:0.5rem;">
             <button type="submit" class="btn btn-primary" style="gap:0.4rem;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>

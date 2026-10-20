@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Program;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -29,6 +30,7 @@ class User extends Authenticatable
         'address',
         'role',
         'is_active',
+        'program_id',
     ];
 
     /**
@@ -94,5 +96,65 @@ class User extends Authenticatable
             'locked_until' => null,
         ])->save();
     }
-}
 
+    /**
+     * Increment the failed login attempt counter and apply lockout if threshold is reached.
+     */
+    public function incrementFailedLoginAttempts(): void
+    {
+        $attempts = $this->failed_login_attempts + 1;
+        $lockedUntil = null;
+
+        if ($attempts >= 6) {
+            // First lock: 5 minutes; subsequent locks after expiry: 15 minutes
+            $lockMinutes = $this->locked_until && $this->locked_until->isPast() ? 15 : 5;
+            $lockedUntil = now()->addMinutes($lockMinutes);
+        }
+
+        $this->forceFill([
+            'failed_login_attempts' => $attempts,
+            'locked_until' => $lockedUntil,
+        ])->save();
+    }
+
+    /**
+     * Get the throttle delay in seconds based on current failed attempts.
+     * Delay applies to the upcoming attempt.
+     * Returns 0 for attempts 1-3, 2s for attempt 4, 5s for attempt 5+.
+     */
+    public function getThrottleDelay(): int
+    {
+        $upcomingAttempt = $this->failed_login_attempts + 1;
+
+        if ($upcomingAttempt >= 5) {
+            return 5;
+        }
+
+        if ($upcomingAttempt >= 4) {
+            return 2;
+        }
+
+        return 0;
+    }
+
+    public function program()
+    {
+        return $this->belongsTo(Program::class);
+    }
+
+    public function programs()
+    {
+        return $this->belongsToMany(Program::class, 'program_user')->withTimestamps();
+    }
+
+    public function getAllProgramsAttribute()
+    {
+        $programs = $this->programs()->get()->pluck('id');
+
+        if ($this->program_id && !$programs->contains($this->program_id)) {
+            $programs->push($this->program_id);
+        }
+
+        return $programs->unique()->values();
+    }
+}

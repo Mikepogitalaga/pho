@@ -197,7 +197,7 @@
                                           </td>
                                           <td data-label="Facility / End-user">{{ $release->facility_name }}</td>
                                           <td data-label="Date Released">{{ optional($release->date_released)->format('M d, Y') ?? '—' }}</td>
-                                          <td data-label="Item Description">{{ $item->item_description }}</td>
+                                           <td data-label="Item Description">{{ $item->item?->name ?? $item->item_description }}</td>
                                           <td data-label="Category" class="col-hide-md">{{ $item->item?->category ?? '—' }}</td>
                                           <td data-label="Quantity" style="text-align:center;">{{ $item->quantity_released }}</td>
                                           <td data-label="UOM" class="col-hide-md" style="text-align:center;">{{ $item->uom }}</td>

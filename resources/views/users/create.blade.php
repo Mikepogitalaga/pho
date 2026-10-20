@@ -57,6 +57,24 @@
                         <p style="margin:0.3rem 0 0; font-size:0.8rem; color:#ef4444; font-weight:600;">{{ $message }}</p>
                     @enderror
                 </div>
+                <div class="form-group">
+                    <label>Programs</label>
+                    <input type="text" id="programSearch" class="search-input" placeholder="Search programs..." style="margin-bottom:0.4rem;">
+                    <div id="programList" style="max-height:220px; overflow-y:auto; border:1px solid var(--border); border-radius:0.5rem; padding:0.4rem 0.6rem; display:flex; flex-direction:column; gap:0.35rem;">
+                        @foreach($programs as $program)
+                            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; margin:0; font-size:0.92rem;">
+                                <input type="checkbox" name="programs[]" value="{{ $program->id }}" {{ in_array($program->id, old('programs', [])) ? 'checked' : '' }} style="width:auto;">
+                                {{ $program->name }}
+                            </label>
+                        @endforeach
+                    </div>
+                    @error('programs.*')
+                        <p style="margin:0.3rem 0 0; font-size:0.8rem; color:#ef4444; font-weight:600;">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+
+            <div class="form-grid-2">
                 <div class="form-group" style="display:flex; align-items:flex-end;">
                     <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; margin:0;">
                         <input type="hidden" name="is_active" value="0">
@@ -89,4 +107,20 @@
             </div>
         </form>
     </section>
+
+    <script>
+        (function () {
+            const searchInput = document.getElementById('programSearch');
+            const list = document.getElementById('programList');
+            if (!searchInput || !list) return;
+
+            searchInput.addEventListener('input', function () {
+                const term = this.value.toLowerCase();
+                Array.from(list.querySelectorAll('label')).forEach(function (label) {
+                    const text = label.textContent.toLowerCase();
+                    label.style.display = !term || text.includes(term) ? '' : 'none';
+                });
+            });
+        })();
+    </script>
 @endsection

@@ -18,7 +18,7 @@
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
-            font-size: 11px;
+            font-size: 14px;
             color: #000;
             background: #fff;
         }
@@ -82,13 +82,13 @@
 
         .entity-name {
             margin: 0;
-            font-weight: 700;
+            
             font-size: 14px;
         }
 
         .program-name {
             margin-top: 4px;
-            font-weight: 700;
+            
             font-size: 12px;
             text-decoration: underline;
         }
@@ -101,13 +101,13 @@
             justify-content: center;
             position: absolute;
             right: 0;
-            margin-right: 150px;
+            margin-right: 125px;
             margin-top: 10px;
         }
 
             .logo-placeholder img {
-                width: 50px;
-                height: 50px;
+                width: 60px;
+                height: 60px;
                 object-fit: contain;
             }
 
@@ -119,6 +119,8 @@
             text-align: center;
             margin-bottom: 50px;
             font-weith: bold;
+            font-weight: 700;
+            
         }
 
         .top-info {
@@ -141,7 +143,7 @@
 
         .form-row1 label {
             min-width: 160px;
-            font-weight: 1000;
+         
             margin-right: -80px;
         }
 
@@ -160,7 +162,7 @@
         }
         .form-row2 label {
             min-width: 160px;
-            font-weight: 1000;
+           
             margin-right: -100px;
         }
 
@@ -181,21 +183,23 @@
 
         .form-row3 label {
             min-width: 160px;
-            font-weight: 1000;
+         
             margin-right: -25px;
         }
 
         .form-row3 .line {
             border-bottom: 1px solid #000;
             flex-grow: 0;
-            width: 250px;
+            width: 350px;
+            max-width: 350px;
             padding-left: 1px;
             text-align: left;
-         
+            white-space: normal;
+            overflow-wrap: break-word;
         }
         .top-info-right {
             width: 50%;
-            margin-left: 200px;
+            margin-left: 100px;
         }
 
         .form-row {
@@ -206,14 +210,14 @@
 
         .form-row label {
             min-width: 160px;
-            font-weight: 1000;
+           
             margin-right: -110px;
         }
 
         .form-row .line {
             border-bottom: 1px solid #000;
             flex-grow: 0;
-            width: 100px;
+            width: 150px;
             padding-left: 1px;
             text-align: left;
          
@@ -223,7 +227,7 @@
             border: 1px solid #000;
             padding: 6px 8px;
             font-style: italic;
-            font-size: 10px;
+            font-size: 12px;
             margin-bottom: 0;
             background-color: #f9f9f9;
         }
@@ -245,7 +249,7 @@
             border: 1px solid #000;
             padding: 6px;
             text-align: center;
-            font-size: 11px;
+            font-size: 14px;
             vertical-align: middle;
         }
 
@@ -297,7 +301,7 @@
         }
 
         .notes {
-            font-size: 10px;
+            font-size: 12px;
             margin-top: 8px;
         }
 
@@ -349,14 +353,15 @@
 @php
     $items = $pas->items ?? collect();
     $grandTotal = $items->sum(fn ($item) => (float) $item->total_cost);
-    $pasNumber = $pas->pas_number ?? '—';
-    $ptrNumber = $pas->release?->release_number ?? $pas->release?->ptr_itr_ris_no ?? '—';
-    $documentDate = $pas->date_of_pass?->format('F d, Y') ?? now()->format('F d, Y');
+     $pasNumber = $pas->pas_number ?? '—';
+     
+     $documentDate = $pas->date_of_pass?->format('F d, Y') ?? now()->format('F d, Y');
     $programName = $pas->program ?: 'STI/HIV AIDS PREVENTION AND CONTROL PROGRAM (NASPCP)';
     $entityName = 'Provincial Health Office';
     $facilityName = $pas->facility_name ?: $pas->facility_coordinator;
     $supplierName = $pas->supplier?->company_name ?? '—';
     $purposeActivity = $pas->purpose_activity ?: 'For the participants of World Hepatitis Day Celebration';
+    $reasonForTransfer = $pas->reason_for_transfer;
     $chunks = $items->chunk(20);
     $totalPages = max($chunks->count(), 1);
 @endphp
@@ -389,12 +394,15 @@
                     <label>Activity and Purpose:</label>
                     <span class="line">{{ $purposeActivity }}</span>
                 </div>
+                @if($reasonForTransfer)
+                <div class="form-row3">
+                    <label>Reason for Transfer:</label>
+                    <span class="line">{{ $reasonForTransfer }}</span>
+                </div>
+                @endif
             </div>
             <div class="top-info-right">
-                <div class="form-row">
-                    <label>PTR #:</label>
-                   
-                </div>
+                
                 <div class="form-row">
                     <label>PAS #:</label>
                     <span class="line">{{ $pasNumber }}</span>
@@ -480,17 +488,17 @@
                 <div class="signatures">
                     <div class="sig-box">
                         <div class="sig-title">ALLOCATION REQUEST</div>
-                        <div style="font-size: 11px; text-align: center; margin-bottom: 15px;">
+                        <div style="font-size: 12px; text-align: center; margin-bottom: 15px;">
                             I hereby certify that I have this day allocated to<br>
-                            <strong style="text-decoration: underline;">{{ strtoupper((string) $facilityName) }}</strong><br>
-                            <span style="font-size: 10px; font-style: italic;">(Name of Agency/Facility)</span><br>
+                            <strong style="text-decoration: underline;font-size: 14px;">{{ strtoupper((string) $facilityName) }}</strong><br>
+                            <span style="font-size: 12px; font-style: italic;">(Name of Agency/Facility)</span><br>
                             The above supplies &/or property/ies.
                         </div>
 
                         <div class="sig-content">
                             <span class="sig-line"></span><br>
                             <strong>{{ strtoupper((string) $pas->facility_coordinator) }}</strong><br>
-                            <span style="font-size: 10px;">Program Coordinator</span>
+                            <span style="font-size: 12px;">Program Coordinator</span>
                         </div>
 
                         <div style="margin-top: 15px; font-size: 11px;">
@@ -501,7 +509,7 @@
 
                     <div class="sig-box">
                         <div class="sig-title">APPROVED</div>
-                        <div style="font-size: 11px; text-align: center; margin-bottom: 15px;">
+                        <div style="font-size: 12px; text-align: center; margin-bottom: 15px;">
                             This is to certify that I have approved the<br>
                             foregoing transfer of supplies &/or property/ies.
                         </div>
@@ -509,7 +517,7 @@
                         <div class="sig-content" style="margin-top: 45px;">
                             <span class="sig-line"></span><br>
                             <strong>MARK JOLEEN M. CALBAN, MD, MPM-HSD</strong><br>
-                            <span style="font-size: 10px;">Provincial Health Officer II</span>
+                            <span style="font-size: 12px;">Provincial Health Officer II</span>
                         </div>
 
                         <div style="margin-top: 15px; font-size: 11px;">

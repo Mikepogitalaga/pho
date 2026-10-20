@@ -363,7 +363,7 @@
         <div class="ptr-info-grid">
             <div><strong>From:</strong> <span>Provincial Health Office</span></div>
             <div><strong>To:</strong> <span>{{ $release->facility_name ?? '—' }}</span></div>
-            <div><strong>Transfer Type:</strong> <span>{{ $release->ptr_itr_ris_no ? explode('-', $release->ptr_itr_ris_no)[1] ?? 'PTR' : 'PTR' }}</span></div>
+            <div><strong>Transfer Type:</strong> <span>{{ $release->reason_for_transfer ?? 'PTR' }}</span></div>
         </div>
     </div>
 
@@ -394,7 +394,7 @@
         <tr>
             <td>{{ $release->source_docs_ptr_po_no ?? '—' }}</td>
             <td>{{ $release->health_program_coordinator ?? '—' }}</td>
-            <td>{{ $releaseItem->item_description ?? '—' }}</td>
+             <td>{{ $releaseItem->item?->name ?? $releaseItem->item_description ?? '—' }}</td>
             <td>{{ $releaseItem->lot_number ?? '—' }}</td>
             <td>{{ $expiryMap[$releaseItem->id] ?? '—' }}</td>
             <td align="center">{{ number_format($releaseItem->quantity_released) }}</td>
@@ -414,7 +414,7 @@
             <tr class="grand-total-row">
               <td colspan="8" class="text-end fw-bold">GRAND TOTAL</td>
               <td class="col-amt text-end fw-bold">₱ {{ number_format($grandTotal, 2) }}</td>
-              <td colspan="2" class="text-center fw-bold">Receiving Facility's Action</td>
+              <td colspan="2" class="text-center fw-bold"></td>
             </tr>
           </tfoot>
         @endif
@@ -424,7 +424,10 @@
     @if($pageNum === $totalPages)
         <!-- Grand Total Section -->
         <div class="mb-3">
-          <label class="form-label fw-bold">Reason for Transfer: {{ $release->notes ?? '' }}</label>
+          
+          @if($release->notes)
+          <label class="form-label fw-bold">Purpose / Activity: {{ $release->notes ?? '' }}</label>
+          @endif
                    
         </div>
 

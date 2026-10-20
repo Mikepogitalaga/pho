@@ -74,8 +74,10 @@ class ReportController extends Controller
         $category = trim((string) $request->query('category', ''));
         $month = (int) $request->query('month', 0);
         $month = $month >= 1 && $month <= 12 ? $month : 0;
+        $year = (int) $request->query('year', 0);
+        $year = $year >= 2000 && $year <= 2099 ? $year : (int) date('Y');
 
-        return view('reports.master-file', compact('rows', 'summary', 'category', 'month'));
+        return view('reports.master-file', compact('rows', 'summary', 'category', 'month', 'year'));
     }
 
     public function masterFileExport(Request $request)
@@ -93,6 +95,8 @@ class ReportController extends Controller
         $category = trim((string) $request->query('category', ''));
         $month = (int) $request->query('month', 0);
         $month = $month >= 1 && $month <= 12 ? $month : 0;
+        $year = (int) $request->query('year', 0);
+        $year = $year >= 2000 && $year <= 2099 ? $year : (int) date('Y');
         $items = Item::with(['receivingItems.receiving.supplier', 'releaseItems' => function ($q) {
                 $q->whereHas('release', fn ($r) => $r->whereIn('status', ['Released', 'Released through pass']));
             }, 'releaseItems.release'])
@@ -107,31 +111,33 @@ class ReportController extends Controller
 
         $rows = $items->groupBy(function (Item $item) {
             return strtolower(trim((string) $item->name));
-        })->map(function ($itemGroup) use ($category, $month) {
+        })->map(function ($itemGroup) use ($category, $month, $year) {
             $item = $itemGroup->first();
             $allReceivingItems = $itemGroup->flatMap(fn (Item $groupItem) => $groupItem->receivingItems)
-                ->filter(fn ($line) => $this->masterLineMatches($line, 'receiving', $item, $category, 0));
+                ->filter(fn ($line) => $this->masterLineMatches($line, 'receiving', $item, $category, 0, $year));
             $allReleaseItems = $itemGroup->flatMap(fn (Item $groupItem) => $groupItem->releaseItems)
-                ->filter(fn ($line) => $this->masterLineMatches($line, 'release', $item, $category, 0));
-            $receivingItems = $allReceivingItems->filter(fn ($line) => $this->masterLineMatches($line, 'receiving', $item, '', $month));
-            $releaseItems = $allReleaseItems->filter(fn ($line) => $this->masterLineMatches($line, 'release', $item, '', $month));
+                ->filter(fn ($line) => $this->masterLineMatches($line, 'release', $item, $category, 0, $year));
+            $receivingItems = $allReceivingItems->filter(fn ($line) => $this->masterLineMatches($line, 'receiving', $item, '', $month, $year));
+            $releaseItems = $allReleaseItems->filter(fn ($line) => $this->masterLineMatches($line, 'release', $item, '', $month, $year));
             $purchases = $receivingItems->sum('quantity_received');
             $purchaseCost = $receivingItems->sum(fn ($line) => (float) ($line->unit_cost ?? 0) * (int) $line->quantity_received);
             $disposals = $releaseItems->sum('quantity_released');
             $expired = $receivingItems->filter(fn ($line) => $line->expiry_date && $line->expiry_date->isPast())->sum('quantity_received');
             $currentStock = $itemGroup->sum(fn (Item $groupItem) => (int) $groupItem->quantity_on_hand);
-            $receivingAfterPeriod = $this->masterLinesAfterMonth($allReceivingItems, 'receiving', $month);
-            $releaseAfterPeriod = $this->masterLinesAfterMonth($allReleaseItems, 'release', $month);
+            $receivingAfterPeriod = $this->masterLinesAfterMonth($allReceivingItems, 'receiving', $month, $year);
+            $releaseAfterPeriod = $this->masterLinesAfterMonth($allReleaseItems, 'release', $month, $year);
             $expiredAfterPeriod = $allReceivingItems->filter(fn ($line) => $line->expiry_date
                 && $line->expiry_date->isPast()
-                && $this->dateIsAfterMonth($line->expiry_date, $month)
+                && $this->dateIsAfterMonth($line->expiry_date, $month, $year)
             )->sum('quantity_received');
-            $available = $currentStock - $receivingAfterPeriod->sum('quantity_received') + $releaseAfterPeriod->sum('quantity_released') + $expiredAfterPeriod;
+            $available = $currentStock - $this->masterLinesAfterMonth($allReceivingItems, 'receiving', $month, $year)->sum('quantity_received') + $this->masterLinesAfterMonth($allReleaseItems, 'release', $month, $year)->sum('quantity_released') + $expiredAfterPeriod;
             if ($month === 0) {
                 $available = $currentStock + $allReleaseItems->sum('quantity_released') + $allReceivingItems->filter(fn ($line) => $line->expiry_date && $line->expiry_date->isPast())->sum('quantity_received');
-            }
                 $beginning = $available - (int) $purchases;
-                $available = $beginning + (int) $purchases;
+            } else {
+                $beginning = $available - (int) $purchases + (int) $disposals + (int) $expired;
+            }
+            $available = $beginning + (int) $purchases;
             $ending = $available - (int) $disposals - (int) $expired;
             $averageCost = $purchases > 0 ? $purchaseCost / $purchases : (float) ($item->unit_cost ?? 0);
             $productCodes = $allReceivingItems->pluck('item_code')->filter()->unique()->values();
@@ -155,6 +161,7 @@ class ReportController extends Controller
             }
             $beginningCost = (float) $beginning * $averageCost;
             $availableCost = (float) $available * $averageCost;
+            $availableAverageCost = $available > 0 ? $availableCost / $available : ($averageCost > 0 ? $averageCost : 0);
             $expiredCost = (float) $expired * $averageCost;
             $adjustedEnding = $ending;
 
@@ -165,12 +172,12 @@ class ReportController extends Controller
                 'purchase_gso_qty' => $purchaseSegments['GSO'], 'purchase_gso_cost' => $purchaseSegments['GSO'] ? $purchaseSegmentCosts['GSO'] / $purchaseSegments['GSO'] : 0,
                 'purchase_acp_qty' => $purchaseSegments['ACP'], 'purchase_acp_cost' => $purchaseSegments['ACP'] ? $purchaseSegmentCosts['ACP'] / $purchaseSegments['ACP'] : 0,
                 'purchase_doh_qty' => $purchaseSegments['DOH'], 'purchase_doh_cost' => $purchaseSegments['DOH'] ? $purchaseSegmentCosts['DOH'] / $purchaseSegments['DOH'] : 0,
-                'available_qty' => $available, 'available_cost' => $availableCost,
+                'available_qty' => $available, 'available_cost' => $availableCost, 'available_average_cost' => $availableAverageCost,
                 'disposal_implementing' => $disposalSegments['Implementing'], 'disposal_hospitals' => $disposalSegments['Hospitals'], 'disposal_rhu' => $disposalSegments['RHU'], 'disposal_nla' => $disposalSegments['NLA'], 'disposal_cost' => $disposalCost,
-                'expired_cost' => $expiredCost, 'ending_qty' => $ending, 'ending_cost' => (float) $ending * $averageCost,
-                'average_cost' => $averageCost, 'check_balance' => $currentStock - $ending,
+                'expired_qty' => (int) $expired, 'expired_cost' => $expiredCost, 'ending_qty' => $ending, 'ending_cost' => (float) $ending * $averageCost,
+                'average_cost' => $averageCost,
                 'additional_count' => 0, 'adjusted_ending' => $adjustedEnding, 'adjusted_amount' => $adjustedEnding * $averageCost,
-                '_include' => $receivingItems->isNotEmpty() || $releaseItems->isNotEmpty(),
+                '_include' => $allReceivingItems->isNotEmpty() || $allReleaseItems->isNotEmpty(),
             ];
         })->filter(fn (array $row) => $row['_include'])->map(function (array $row) {
             unset($row['_include']);
@@ -180,16 +187,15 @@ class ReportController extends Controller
         $summary = [
             'beginning' => array_sum(array_column($rows, 'beginning_qty')), 'purchases' => array_sum(array_column($rows, 'purchase_gso_qty')) + array_sum(array_column($rows, 'purchase_acp_qty')) + array_sum(array_column($rows, 'purchase_doh_qty')),
             'available' => array_sum(array_column($rows, 'available_qty')), 'disposals' => array_sum(array_column($rows, 'disposal_implementing')) + array_sum(array_column($rows, 'disposal_hospitals')) + array_sum(array_column($rows, 'disposal_rhu')) + array_sum(array_column($rows, 'disposal_nla')),
-            'expired' => array_sum(array_column($rows, 'expired_cost')), 'ending' => array_sum(array_column($rows, 'ending_qty')),
+            'expired' => array_sum(array_column($rows, 'expired_qty')), 'ending' => array_sum(array_column($rows, 'ending_qty')),
             'adjusted_ending' => array_sum(array_column($rows, 'adjusted_ending')), 'total_cost' => array_sum(array_column($rows, 'adjusted_amount')),
             'average_cost' => count($rows) ? array_sum(array_column($rows, 'average_cost')) / count($rows) : 0,
-            'check_balance' => array_sum(array_column($rows, 'check_balance')),
         ];
 
         return [$rows, $summary];
     }
 
-    private function masterLineMatches($line, string $type, Item $item, string $category, int $month): bool
+    private function masterLineMatches($line, string $type, Item $item, string $category, int $month, int $year): bool
     {
         if ($type === 'release' && !in_array($line->release?->status, ['Released', 'Released through pass'], true)) {
             return false;
@@ -209,25 +215,37 @@ class ReportController extends Controller
 
         $date = $type === 'receiving' ? $line->receiving?->date_received : $line->release?->date_released;
 
-        return $date && (int) $date->year === now()->year && (int) $date->month === $month;
+        if (!$date instanceof \DateTimeInterface) {
+            return false;
+        }
+
+        return (int) $date->format('Y') === $year && (int) $date->format('m') === $month;
     }
 
-    private function masterLinesAfterMonth($lines, string $type, int $month)
+    private function masterLinesAfterMonth($lines, string $type, int $month, int $year)
     {
         if ($month === 0) {
             return collect();
         }
 
-        return $lines->filter(function ($line) use ($type, $month) {
+        return $lines->filter(function ($line) use ($type, $month, $year) {
             $date = $type === 'receiving' ? $line->receiving?->date_received : $line->release?->date_released;
 
-            return $date && (int) $date->year === now()->year && (int) $date->month > $month;
+            if (!$date instanceof \DateTimeInterface) {
+                return false;
+            }
+
+            return (int) $date->format('Y') === $year && (int) $date->format('m') > $month;
         });
     }
 
-    private function dateIsAfterMonth($date, int $month): bool
+    private function dateIsAfterMonth($date, int $month, int $year): bool
     {
-        return $month > 0 && (int) $date->year === now()->year && (int) $date->month > $month;
+        if (!$date instanceof \DateTimeInterface) {
+            return false;
+        }
+
+        return $month > 0 && (int) $date->format('Y') === $year && (int) $date->format('m') > $month;
     }
 
     private function liquidationQuery(Request $request)

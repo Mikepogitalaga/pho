@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v={{ file_exists(public_path('css/app.css')) ? filemtime(public_path('css/app.css')) : time() }}">
     @stack('styles')
 </head>
 <body class="app-body">
@@ -26,6 +26,10 @@
             </div>
 
             <nav class="sidebar-nav">
+                @php
+                    $programUser = auth()->check() && ! auth()->user()->isAdmin() && auth()->user()->program_id;
+                @endphp
+
                 <div class="sidebar-nav-group">
                     <p class="sidebar-nav-label">Overview</p>
                     <a href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') && !request()->routeIs('dashboard.doh') && !request()->routeIs('dashboard.gso') ? 'active' : '' }}">
@@ -34,6 +38,7 @@
                         </span>
                         <span class="sidebar-link-text">Dashboard</span>
                     </a>
+                    @if(! $programUser)
                     <a href="{{ route('dashboard.doh') }}" class="sidebar-link {{ request()->routeIs('dashboard.doh') ? 'active' : '' }}">
                         <span class="sidebar-link-icon" aria-hidden="true">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/></svg>
@@ -46,41 +51,24 @@
                         </span>
                         <span class="sidebar-link-text">GSO Dashboard</span>
                     </a>
+                    @endif
+                    @if(! $programUser)
                     <a href="{{ route('analytics.facility-categories') }}" class="sidebar-link {{ request()->routeIs('analytics.*') ? 'active' : '' }}">
                         <span class="sidebar-link-icon" aria-hidden="true">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
                         </span>
                         <span class="sidebar-link-text">Release Analytics</span>
                     </a>
+                    @endif
                 </div>
 
                 <div class="sidebar-nav-group">
                     <p class="sidebar-nav-label">Inventory</p>
                     <a href="{{ route('items.index') }}" class="sidebar-link {{ request()->routeIs('items.*') ? 'active' : '' }}">
                         <span class="sidebar-link-icon" aria-hidden="true">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y22.08" x2="12" y2="12"/></svg>
                         </span>
                         <span class="sidebar-link-text">Items</span>
-                    </a>
-                </div>
-
-                <div class="sidebar-nav-group">
-                    <p class="sidebar-nav-label">Program Management</p>
-                    <a href="{{ route('program-management.index') }}" class="sidebar-link {{ request()->routeIs('program-management.*') ? 'active' : '' }}">
-                        <span class="sidebar-link-icon" aria-hidden="true">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        </span>
-                        <span class="sidebar-link-text">Program Management</span>
-                    </a>
-                </div>
-
-                <div class="sidebar-nav-group">
-                    <p class="sidebar-nav-label">Procurement</p>
-                    <a href="{{ route('suppliers.index') }}" class="sidebar-link {{ request()->routeIs('suppliers.*') ? 'active' : '' }}">
-                        <span class="sidebar-link-icon" aria-hidden="true">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        </span>
-                        <span class="sidebar-link-text">Suppliers</span>
                     </a>
                     <a href="{{ route('receivings.index') }}" class="sidebar-link {{ request()->routeIs('receivings.*') ? 'active' : '' }}">
                         <span class="sidebar-link-icon" aria-hidden="true">
@@ -90,6 +78,30 @@
                     </a>
                 </div>
 
+                @if(! $programUser)
+                <div class="sidebar-nav-group">
+                    <p class="sidebar-nav-label">Program Management</p>
+                    <a href="{{ route('program-management.index') }}" class="sidebar-link {{ request()->routeIs('program-management.*') ? 'active' : '' }}">
+                        <span class="sidebar-link-icon" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        </span>
+                        <span class="sidebar-link-text">Program Management</span>
+                    </a>
+                </div>
+                @endif
+
+                @if(! $programUser)
+                <div class="sidebar-nav-group">
+                    <p class="sidebar-nav-label">Procurement</p>
+                    <a href="{{ route('suppliers.index') }}" class="sidebar-link {{ request()->routeIs('suppliers.*') ? 'active' : '' }}">
+                        <span class="sidebar-link-icon" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        </span>
+                        <span class="sidebar-link-text">Suppliers</span>
+                    </a>
+                </div>
+                @endif
+
                 <div class="sidebar-nav-group">
                     <p class="sidebar-nav-label">Distribution</p>
                     <a href="{{ route('releases.index') }}" class="sidebar-link {{ request()->routeIs('releases.*') ? 'active' : '' }}">
@@ -98,14 +110,21 @@
                         </span>
                         <span class="sidebar-link-text">Releases</span>
                     </a>
-                    <a href="{{ route('pas.index') }}" class="sidebar-link {{ request()->routeIs('pas.*') ? 'active' : '' }}">
+                    <a href="{{ route('pas.index') }}" class="sidebar-link {{ request()->routeIs('pas.*') && !request()->routeIs('pas.my-requests') ? 'active' : '' }}">
                         <span class="sidebar-link-icon" aria-hidden="true">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                         </span>
                         <span class="sidebar-link-text">PAS</span>
                     </a>
+                    <a href="{{ route('pas.my-requests') }}" class="sidebar-link {{ request()->routeIs('pas.my-requests') ? 'active' : '' }}">
+                        <span class="sidebar-link-icon" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                        </span>
+                        <span class="sidebar-link-text">My Requests</span>
+                    </a>
                 </div>
 
+                @if(! $programUser)
                 <div class="sidebar-nav-group">
                     <p class="sidebar-nav-label">Reports</p>
                     <a href="{{ route('reports.master-file') }}" class="sidebar-link {{ request()->routeIs('reports.master-file*') ? 'active' : '' }}">
@@ -127,6 +146,7 @@
                         <span class="sidebar-link-text">Audit Trail</span>
                     </a>
                 </div>
+                @endif
 
                 @if(auth()->user()?->isAdmin())
                     <div class="sidebar-nav-group">
@@ -143,8 +163,29 @@
                             </span>
                             <span class="sidebar-link-text">User Management</span>
                         </a>
+                        <a href="{{ route('login-security.index') }}" class="sidebar-link {{ request()->routeIs('login-security.*') ? 'active' : '' }}">
+                            <span class="sidebar-link-icon" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            </span>
+                            <span class="sidebar-link-text">Login Security</span>
+                        </a>
+                        <a href="{{ route('backups.index') }}" class="sidebar-link {{ request()->routeIs('backups.*') ? 'active' : '' }}">
+                            <span class="sidebar-link-icon" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                            </span>
+                            <span class="sidebar-link-text">Database Backup</span>
+                        </a>
                     </div>
                 @endif
+                <div class="sidebar-nav-group">
+                    <p class="sidebar-nav-label">My Account</p>
+                    <a href="{{ route('profile.edit') }}" class="sidebar-link {{ request()->routeIs('profile.*') ? 'active' : '' }}">
+                        <span class="sidebar-link-icon" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </span>
+                        <span class="sidebar-link-text">My Profile</span>
+                    </a>
+                </div>
             </nav>
 
             <div class="sidebar-footer">
@@ -199,12 +240,17 @@
                                     <ul class="topbar-notify-list">
                                         @foreach($notifications as $note)
                                             <li class="topbar-notify-item">
-                                                <span class="topbar-notify-dot topbar-notify-dot--{{ $note['type'] ?? 'info' }}" aria-hidden="true"></span>
-                                                <div>
-                                                    <p class="topbar-notify-text">{{ $note['message'] }}</p>
-                                                    @if(!empty($note['href']))
-                                                        <a href="{{ $note['href'] }}" class="topbar-notify-link">View details</a>
+                                                <div class="topbar-notify-badge topbar-notify-badge--{{ $note['type'] ?? 'info' }}">
+                                                    {{ $note['label'] ?? 'NOTICE' }}
+                                                </div>
+                                                <div class="topbar-notify-body">
+                                                    <p class="topbar-notify-code">{{ $note['code'] ?? '—' }}</p>
+                                                    <p class="topbar-notify-name">{{ $note['name'] ?? '' }}</p>
+                                                    @if(!empty($note['requester']))
+                                                        <p class="topbar-notify-requester">Requested by {{ $note['requester'] }}</p>
                                                     @endif
+                                                    <p class="topbar-notify-detail">{{ $note['detail'] ?? $note['message'] ?? '' }}</p>
+                                                        <a href="{{ $note['href'] ?? '#' }}" class="topbar-notify-link">View</a>
                                                 </div>
                                             </li>
                                         @endforeach
@@ -233,6 +279,7 @@
                                 <p class="topbar-profile-panel-name">{{ auth()->user()->name ?? 'Supply Officer' }}</p>
                                 <p class="topbar-profile-panel-role">{{ auth()->user()->email ?? 'Provincial Health Office' }}</p>
                                 <hr class="topbar-divider">
+                                <a href="{{ route('profile.edit') }}" class="topbar-menu-link" role="menuitem">My Profile</a>
                                 <a href="{{ route('dashboard') }}" class="topbar-menu-link" role="menuitem">Dashboard</a>
                                 <a href="{{ route('items.index') }}" class="topbar-menu-link" role="menuitem">Inventory Items</a>
                                 <form method="POST" action="{{ route('logout') }}" class="topbar-menu-form">
@@ -258,11 +305,19 @@
                 } elseif (str_starts_with($routeName, 'releases')) {
                     $breadcrumbItems = [['label' => 'Releases']];
                 } elseif (str_starts_with($routeName, 'pas')) {
-                    $breadcrumbItems = [['label' => 'PAS', 'url' => route('pas.index')], ['label' => 'Property Allocation Slips']];
+                    if ($routeName === 'pas.my-requests') {
+                        $breadcrumbItems = [['label' => 'PAS', 'url' => route('pas.index')], ['label' => 'My Requests']];
+                    } else {
+                        $breadcrumbItems = [['label' => 'PAS', 'url' => route('pas.index')], ['label' => 'Property Allocation Slips']];
+                    }
                 } elseif (str_starts_with($routeName, 'program-management')) {
                     $breadcrumbItems = [['label' => 'Program Management']];
                 } elseif (str_starts_with($routeName, 'users')) {
                     $breadcrumbItems = [['label' => 'User Management']];
+                } elseif (str_starts_with($routeName, 'login-security')) {
+                    $breadcrumbItems = [['label' => 'Login Security']];
+                } elseif (str_starts_with($routeName, 'profile')) {
+                    $breadcrumbItems = [['label' => 'My Profile']];
                 } else {
                     $breadcrumbItems = [['label' => 'Dashboard']];
                 }
@@ -299,5 +354,64 @@
 
     <script src="{{ asset('js/app.js') }}" defer></script>
     @stack('scripts')
+
+    <style>
+    .btn-spinner {
+        display: inline-block;
+        width: 0.9em;
+        height: 0.9em;
+        border: 2px solid currentColor;
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: btnSpin 0.65s linear infinite;
+        margin-right: 0.45em;
+        vertical-align: middle;
+    }
+    @keyframes btnSpin {
+        to { transform: rotate(360deg); }
+    }
+    </style>
+    <script>
+    (function () {
+        'use strict';
+        var SAVE_RE = /save|create|update|approve/i;
+
+        function setSaving(btn, on) {
+            if (!btn) return;
+            if (on) {
+                btn.disabled = true;
+                if (btn.tagName === 'INPUT') {
+                    btn.dataset.origVal = btn.value;
+                    btn.value = SAVE_RE.test(btn.value) ? 'Saving...' : btn.value;
+                } else {
+                    btn.dataset.origHtml = btn.innerHTML;
+                    var text = btn.textContent.trim();
+                    btn.innerHTML = '<span class="btn-spinner"></span>' + (SAVE_RE.test(text) ? 'Saving...' : text);
+                }
+            } else {
+                btn.disabled = false;
+                if (btn.tagName === 'INPUT') {
+                    btn.value = btn.dataset.origVal || btn.value;
+                    delete btn.dataset.origVal;
+                } else {
+                    btn.innerHTML = btn.dataset.origHtml || btn.innerHTML;
+                    delete btn.dataset.origHtml;
+                }
+            }
+        }
+
+        document.addEventListener('submit', function (e) {
+            var form = e.target;
+            if (!form || form.tagName !== 'FORM') return;
+            if (e.defaultPrevented) return;
+            var btn = e.submitter || form.querySelector('button[type="submit"], input[type="submit"]');
+            if (!btn || btn.disabled) return;
+            setSaving(btn, true);
+            setTimeout(function () {
+                if (e.defaultPrevented) setSaving(btn, false);
+            }, 0);
+        });
+    })();
+    </script>
 </body>
 </html>

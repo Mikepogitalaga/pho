@@ -61,7 +61,7 @@
         <div class="section-header">
             <div>
                 <h2 class="section-card-title" style="margin: 0;">PHO Codes</h2>
-                <p class="page-description" style="margin-top: 0.25rem;">All product codes for {{ $item->name }}. View and manage deductions per product code.</p>
+                <p class="page-description" style="margin-top: 0.25rem;">All product codes for {{ $item->name }}. View and manage deductions per PHO code.</p>
             </div>
             <div style="display:flex; gap:0.5rem;">
                 <a href="{{ route('items.index') }}" class="btn btn-secondary">Back to Items</a>
@@ -72,7 +72,7 @@
         <div style="display:flex; gap:0.75rem; padding:0.75rem 0; margin-bottom:0.75rem; align-items:end; flex-wrap:wrap;">
             <div style="display:flex; flex-direction:column; gap:0.3rem; flex:1; min-width:200px;">
                 <label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted);">Search PHO Code</label>
-                <input id="productCodeSearch" type="text" class="search-input" placeholder="Type to filter product codes..." />
+                <input id="productCodeSearch" type="text" class="search-input" placeholder="Type to filter PHO codes..." />
             </div>
             <div style="display:flex; flex-direction:column; gap:0.3rem; min-width:160px;">
                 <label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted);">Location</label>
@@ -102,6 +102,7 @@
                 <thead>
                      <tr>
                          <th>PHO Code</th>
+                         <th>Lot/Batch No.</th>
                          <th>Location</th>
                          <th>Current Stock</th>
                          <th class="col-hide-md">Unit Cost</th>
@@ -116,15 +117,26 @@
                      @forelse($items as $groupedItem)
                          <tr class="product-code-row"
                              data-productcode="{{ $groupedItem->receivingItems->pluck('item_code')->filter()->implode(' ') }}"
+                             data-lot_number="{{ $groupedItem->lot_number ?? '' }}"
                              data-location="{{ $groupedItem->location ?? '' }}"
                              data-status="{{ $groupedItem->status }}">
-                              <td class="mobile-card-header">
-                                  @forelse($groupedItem->receivingItems->pluck('item_code')->filter()->unique() as $productCode)
-                                      <a href="{{ route('items.productcode.show', ['item' => $item, 'productCode' => $productCode]) }}" style="display:block;font-weight:600;color:var(--text);font-family:monospace;">{{ $productCode }}</a>
-                                  @empty
-                                      <span style="color:var(--text-muted);">—</span>
-                                  @endforelse
-                              </td>
+                               <td class="mobile-card-header">
+                                   @forelse($groupedItem->receivingItems->pluck('item_code')->filter()->unique() as $productCode)
+                                       <a href="{{ route('items.productcode.show', ['item' => $item, 'productCode' => $productCode]) }}" style="display:block;font-weight:600;color:var(--text);font-family:monospace;">{{ $productCode }}</a>
+                                   @empty
+                                       <span style="color:var(--text-muted);">—</span>
+                                   @endforelse
+                               </td>
+                               <td data-label="lot_number" style="color:var(--text-muted);">
+                                   @php
+                                       $lotNumbers = $groupedItem->receivingItems->pluck('lot_number')->filter()->unique()->values();
+                                   @endphp
+                                   @forelse($lotNumbers as $lotNumber)
+                                       <span style="display: block;">{{ $lotNumber }}</span>
+                                   @empty
+                                       <span style="color:var(--text-muted);">—</span>
+                                   @endforelse
+                               </td>
                               <td data-label="Location" style="color:var(--text-muted);">{{ $groupedItem->location ?? '—' }}</td>
                               <td data-label="Current Stock">
                                   <span style="font-weight:700; color:{{ $groupedItem->quantity_on_hand > 0 ? 'var(--text)' : 'var(--danger)' }};">
@@ -153,16 +165,25 @@
                                   <span class="status-pill {{ $groupedItem->status_class }}">{{ $groupedItem->status }}</span>
                               </td>
                               <td data-label="Expiry"><span class="status-pill {{ $groupedItem->expiry_badge_class }}" style="font-size:0.78rem;">{{ $groupedItem->expiry_label }}</span></td>
-                             <td class="mobile-card-actions" style="text-align:center;">
-                                 @if($groupedItem->item_code)
-                                 <a href="{{ route('items.productcode.show', ['item' => $item, 'productCode' => $groupedItem->item_code]) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.35rem 0.85rem;font-size:0.82rem;gap:0.3rem;">
-                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                     View
-                                 </a>
-                                 @else
-                                     <span style="color:var(--text-muted);">—</span>
-                                 @endif
-                             </td>
+                              <td class="mobile-card-actions" style="text-align:center;">
+                                  @php
+                                      $receivingId = $groupedItem->receivingItems->first()?->receiving_id;
+                                  @endphp
+                                  @if($groupedItem->item_code)
+                                  <a href="{{ route('items.productcode.show', ['item' => $item, 'productCode' => $groupedItem->item_code]) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.35rem 0.85rem;font-size:0.82rem;gap:0.3rem;">
+                                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                      View
+                                  </a>
+                                  @else
+                                      <span style="color:var(--text-muted);">—</span>
+                                  @endif
+                                  @if($receivingId && auth()->user()?->isAdmin())
+                                  <a href="{{ route('receivings.view', $receivingId) }}" class="btn btn-secondary" style="min-height:2rem;padding:0.35rem 0.85rem;font-size:0.82rem;gap:0.3rem; margin-top:0.35rem;">
+                                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                      View Receiving
+                                  </a>
+                                  @endif
+                              </td>
                          </tr>
                     @empty
                         <tr>

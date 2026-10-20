@@ -15,7 +15,10 @@ use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\CoordinatorController;
 use App\Http\Controllers\ProgramManagementController;
 use App\Http\Controllers\PasController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\BackupController;
+use App\Http\Controllers\LoginSecurityController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
@@ -39,7 +42,7 @@ Route::middleware('web')->group(function () {
         ->middleware('auth')
         ->name('logout');
 
-    Route::middleware(['auth', 'active'])->group(function () {
+    Route::middleware(['auth', 'active', 'program-user'])->group(function () {
         Route::get('/', [DashboardController::class, 'index']);
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/dashboard/doh', [DashboardController::class, 'dohIndex'])->name('dashboard.doh');
@@ -62,16 +65,21 @@ Route::middleware('web')->group(function () {
 
         Route::get('receivings', [ReceivingController::class, 'index'])->name('receivings.index');
         Route::get('receivings/export', [ReceivingController::class, 'export'])->name('receivings.export');
+        Route::get('receivings/print', [ReceivingController::class, 'printList'])->name('receivings.print-list');
         Route::get('receivings/create', [ReceivingController::class, 'create'])->name('receivings.create');
+        Route::get('receivings/import-template', [ReceivingController::class, 'importTemplate'])->name('receivings.import-template');
+        Route::post('receivings/import-preview', [ReceivingController::class, 'importPreview'])->name('receivings.import-preview');
         Route::get('receivings/{receiving}/edit', [ReceivingController::class, 'edit'])->name('receivings.edit');
         Route::put('receivings/{receiving}', [ReceivingController::class, 'update'])->name('receivings.update');
         Route::get('receivings/{receiving}', [ReceivingController::class, 'view'])->name('receivings.view');
+        Route::get('receivings/{receiving}/print', [ReceivingController::class, 'print'])->name('receivings.print');
         Route::post('receivings', [ReceivingController::class, 'store'])->name('receivings.store');
 
         Route::get('releases', [ReleaseController::class, 'index'])->name('releases.index');
         Route::get('releases/export', [ReleaseController::class, 'exportList'])->name('releases.export');
         Route::get('releases/print', [ReleaseController::class, 'printList'])->name('releases.print-list');
         Route::get('releases/create', [ReleaseController::class, 'create'])->name('releases.create');
+        Route::get('releases/{release}/edit', [ReleaseController::class, 'edit'])->name('releases.edit');
         Route::get('releases/next-ptr-number/{type}', [ReleaseController::class, 'nextPtrNumber'])->name('releases.next-ptr');
         Route::post('releases', [ReleaseController::class, 'store'])->name('releases.store');
         Route::get('releases/{release}', [ReleaseController::class, 'view'])->name('releases.view');
@@ -90,6 +98,7 @@ Route::middleware('web')->group(function () {
 
         // Property Allocation Slip (PAS) Routes
         Route::get('pas', [PasController::class, 'index'])->name('pas.index');
+        Route::get('pas/my-requests', [PasController::class, 'myRequests'])->name('pas.my-requests');
         Route::get('pas/create', [PasController::class, 'create'])->name('pas.create');
         Route::post('pas', [PasController::class, 'store'])->name('pas.store');
         Route::get('pas/{pas}/edit', [PasController::class, 'edit'])->name('pas.edit');
@@ -99,6 +108,12 @@ Route::middleware('web')->group(function () {
         Route::post('pas/{pas}/status/{status}', [PasController::class, 'updateStatus'])
             ->where('status', 'Pending|Released|Canceled')
             ->name('pas.status');
+        Route::post('pas/{pas}/approve', [PasController::class, 'approveRequest'])->name('pas.approve');
+        Route::post('pas/{pas}/reject', [PasController::class, 'rejectRequest'])->name('pas.reject');
+
+        // Self-service profile (every signed-in account, including program users)
+        Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
 
         // Program Management Routes — single unified page
         Route::get('program-management', [ProgramManagementController::class, 'index'])->name('program-management.index');
@@ -109,16 +124,26 @@ Route::middleware('web')->group(function () {
         Route::put('program-management/coordinators/{coordinator}', [ProgramManagementController::class, 'coordinatorsUpdate'])->name('program-management.coordinators.update');
         Route::delete('program-management/coordinators/{coordinator}', [ProgramManagementController::class, 'coordinatorsDestroy'])->name('program-management.coordinators.destroy');
 
-        // User Management (administrators only)
-        Route::middleware(['admin'])->group(function () {
-            Route::get('users', [UserController::class, 'index'])->name('users.index');
-            Route::get('users/create', [UserController::class, 'create'])->name('users.create');
-            Route::post('users', [UserController::class, 'store'])->name('users.store');
-            Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
-            Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
-            Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-            Route::post('users/{user}/unlock', [UserController::class, 'unlock'])->name('users.unlock');
-            Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
-        });
+            // User Management (administrators only)
+            Route::middleware(['admin'])->group(function () {
+                Route::get('users', [UserController::class, 'index'])->name('users.index');
+                Route::get('users/create', [UserController::class, 'create'])->name('users.create');
+                Route::post('users', [UserController::class, 'store'])->name('users.store');
+                Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+                Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
+                Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+                Route::post('users/{user}/unlock', [UserController::class, 'unlock'])->name('users.unlock');
+                Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
+
+                Route::get('login-security', [LoginSecurityController::class, 'index'])->name('login-security.index');
+
+                // Database Safety Backup & Recovery (administrators only)
+                Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
+                Route::post('backups', [BackupController::class, 'store'])->name('backups.store');
+                Route::get('backups/{filename}/download', [BackupController::class, 'download'])->name('backups.download');
+                Route::post('backups/{filename}/restore', [BackupController::class, 'restore'])->name('backups.restore');
+                Route::post('backups/upload-restore', [BackupController::class, 'uploadRestore'])->name('backups.upload-restore');
+                Route::delete('backups/{filename}', [BackupController::class, 'destroy'])->name('backups.destroy');
+            });
     });
 });

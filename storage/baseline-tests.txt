@@ -1,0 +1,47 @@
+
+   PASS  Tests\Unit\ExampleTest
+   PASS  Tests\Feature\DashboardInventoryValueTest
+   PASS  Tests\Feature\DashboardViewScriptSyntaxTest
+   PASS  Tests\Feature\ItemKpiProgramFilterTest
+   PASS  Tests\Feature\ProfileTest
+  Γ£ô it lets a program user change their password with the current password                                                                0.03s  
+  Γ£ô it rejects a password change when the current password is wrong                                                                       0.03s  
+  Γ£ô it rejects a new password without the current password                                                                                0.03s  
+   PASS  Tests\Feature\ReceivingProgramCodeSyncTest
+   PASS  Tests\Feature\ReceivingTest
+   PASS  Tests\Feature\ReleaseCreateTest
+   PASS  Tests\Feature\ReleaseEditTest
+   PASS  Tests\Feature\UserUpdateWithProgramsTest
+   FAILED  Tests\Feature\CodeSequenceResetTest > PAS number sequence restarts every month and therefore at every new year           ParseError   
+   FAILED  Tests\Feature\CodeSequenceResetTest > PAS item product code (PHO code) does not restart cleanly - digits pile up (knowΓÇª  ParseError   
+   FAILED  Tests\Feature\ExampleTest > the application returns a successful response                                                             
+Failed asserting that 302 is identical to 200.
+   FAILED  Tests\Feature\ItemsIndexShowsReceivingItemsTest > it shows every receiving item row on the items index page                           
+   FAILED  Tests\Feature\PasEditTest > it renders the PAS edit add-item script so the row button can append another item                         
+                <label>Date of PASS <span style="color:var(--danger)">*</span></label>\n
+                <input type="date" name="date_of_pass" value="2026-08-07" required>\n
+   FAILED  Tests\Feature\PasPrintTest > pas print view renders the pas html template fields with synced record data                              
+   FAILED  Tests\Feature\ReleaseCodeAvailabilityTest > release page shows per code availability                                 QueryException   
+  SQLSTATE[HY000]: General error: 1 no such table: users (Connection: sqlite, Database: :memory:, SQL: insert into "users" ("name", "email", "email_verified_at", "password", "remember_token", "updated_at", "created_at") values (Isabella Schoen V, wisoky.catherine@example.net, 2026-09-23 08:10:07, $2y$04$BNwAx7UuaeUP9Q4d0tvZJ.LreTWQEXW3Fv439EbxO12Y7HD7n/M4G, 51mHghPLdu, 2026-09-23 08:10:07, 2026-09-23 08:10:07))
+   FAILED  Tests\Feature\ReleaseCodeAvailabilityTest > pas create page shows per code availability                              QueryException   
+  SQLSTATE[HY000]: General error: 1 no such table: users (Connection: sqlite, Database: :memory:, SQL: insert into "users" ("name", "email", "email_verified_at", "password", "remember_token", "updated_at", "created_at") values (Ulises Brekke III, dena42@example.net, 2026-09-23 08:10:07, $2y$04$BNwAx7UuaeUP9Q4d0tvZJ.LreTWQEXW3Fv439EbxO12Y7HD7n/M4G, ydB5H5oCoK, 2026-09-23 08:10:07, 2026-09-23 08:10:07))
+   FAILED  Tests\Feature\ReleaseCodeAvailabilityTest > release code dropdown shows only matching codes for exact description    QueryException   
+  SQLSTATE[HY000]: General error: 1 no such table: users (Connection: sqlite, Database: :memory:, SQL: insert into "users" ("name", "email", "email_verified_at", "password", "remember_token", "updated_at", "created_at") values (Prof. Vergie Murray MD, schmeler.marion@example.net, 2026-09-23 08:10:07, $2y$04$BNwAx7UuaeUP9Q4d0tvZJ.LreTWQEXW3Fv439EbxO12Y7HD7n/M4G, 6UShVNQUpd, 2026-09-23 08:10:07, 2026-09-23 08:10:07))
+   FAILED  Tests\Feature\ReleaseCodeAvailabilityTest > pas create dropdown shows only matching codes for exact description      QueryException   
+  SQLSTATE[HY000]: General error: 1 no such table: users (Connection: sqlite, Database: :memory:, SQL: insert into "users" ("name", "email", "email_verified_at", "password", "remember_token", "updated_at", "created_at") values (Mr. Solon Ward III, genevieve04@example.net, 2026-09-23 08:10:07, $2y$04$BNwAx7UuaeUP9Q4d0tvZJ.LreTWQEXW3Fv439EbxO12Y7HD7n/M4G, 8IErDFluae, 2026-09-23 08:10:07, 2026-09-23 08:10:07))
+   FAILED  Tests\Feature\ReleaseCodeAvailabilityTest > release charges the specific code                                        QueryException   
+  SQLSTATE[HY000]: General error: 1 no such table: users (Connection: sqlite, Database: :memory:, SQL: insert into "users" ("name", "email", "email_verified_at", "password", "remember_token", "updated_at", "created_at") values (Jo Bahringer, raphael.tillman@example.com, 2026-09-23 08:10:07, $2y$04$BNwAx7UuaeUP9Q4d0tvZJ.LreTWQEXW3Fv439EbxO12Y7HD7n/M4G, QAXLTkAvBH, 2026-09-23 08:10:07, 2026-09-23 08:10:07))
+   FAILED  Tests\Feature\ReleaseCodeAvailabilityTest > release without code charges the code without lot                        QueryException   
+  SQLSTATE[HY000]: General error: 1 no such table: users (Connection: sqlite, Database: :memory:, SQL: insert into "users" ("name", "email", "email_verified_at", "password", "remember_token", "updated_at", "created_at") values (Arlene Brakus, jarvis.jenkins@example.net, 2026-09-23 08:10:07, $2y$04$BNwAx7UuaeUP9Q4d0tvZJ.LreTWQEXW3Fv439EbxO12Y7HD7n/M4G, RF20O3k1ji, 2026-09-23 08:10:07, 2026-09-23 08:10:07))
+   FAILED  Tests\Feature\ReleaseCodeAvailabilityTest > pas create shows correct per code availability                           QueryException   
+  SQLSTATE[HY000]: General error: 1 no such table: users (Connection: sqlite, Database: :memory:, SQL: insert into "users" ("name", "email", "email_verified_at", "password", "remember_token", "updated_at", "created_at") values (Priscilla Friesen, elton.ruecker@example.net, 2026-09-23 08:10:07, $2y$04$BNwAx7UuaeUP9Q4d0tvZJ.LreTWQEXW3Fv439EbxO12Y7HD7n/M4G, ZqlKU9ck5x, 2026-09-23 08:10:07, 2026-09-23 08:10:07))
+   FAILED  Tests\Feature\ReleaseCodeAvailabilityTest > canceled release restores code availability                              QueryException   
+  SQLSTATE[HY000]: General error: 1 no such table: users (Connection: sqlite, Database: :memory:, SQL: insert into "users" ("name", "email", "email_verified_at", "password", "remember_token", "updated_at", "created_at") values (Miss Rosetta Gusikowski, onie90@example.org, 2026-09-23 08:10:07, $2y$04$BNwAx7UuaeUP9Q4d0tvZJ.LreTWQEXW3Fv439EbxO12Y7HD7n/M4G, c1cPiFIjZG, 2026-09-23 08:10:07, 2026-09-23 08:10:07))
+   FAILED  Tests\Feature\ReleaseCodeAvailabilityTest > spreads unknown release across codes first expiry first out              QueryException   
+  SQLSTATE[HY000]: General error: 1 no such table: users (Connection: sqlite, Database: :memory:, SQL: insert into "users" ("name", "email", "email_verified_at", "password", "remember_token", "updated_at", "created_at") values (Fanny Padberg, evelyn.koelpin@example.org, 2026-09-23 08:10:07, $2y$04$BNwAx7UuaeUP9Q4d0tvZJ.LreTWQEXW3Fv439EbxO12Y7HD7n/M4G, OwfWgpv3qz, 2026-09-23 08:10:07, 2026-09-23 08:10:07))
+   FAILED  Tests\Feature\YearlyLast4DigitsResetTest > PAS: the last 4 digits restart at 0001 when the year changes                  ParseError   
+   FAILED  Tests\Feature\YearlyLast4DigitsResetTest > the last 4 digits also restart at the start of every month inside the sameΓÇª   ParseError   
+   FAILED  Tests\Feature\YearlyLast4DigitsResetTest > the same last 4 digits may exist in different years - nothing collides        ParseError   
+   FAILED  Tests\Feature\YearlyLast4DigitsResetTest > the 4-digit tail only stays 4 digits while it is below 9999                   ParseError   
+  Tests:    19 failed, 27 passed (118 assertions)
+

@@ -40,8 +40,10 @@
                 <tr>
                     <th>PAS Number</th>
                     <th class="col-hide-md">Date of PASS</th>
+                    <th class="col-hide-md">Facility / End-user</th>
+                    <th class="col-hide-md">Requester</th>
+                    <th class="col-hide-md">Request Status</th>
                     <th>Date Released</th>
-                    <th class="col-hide-md">Supplier</th>
                     <th>Facility / Coordinator</th>
                     <th class="col-hide-md">Program</th>
                     <th>Purpose / Activity</th>
@@ -53,15 +55,19 @@
                 @forelse($slips as $slip)
                     @php
                         $linkedRelease = $slip->release;
-                        $displayStatus = $slip->status;
-                        if ($slip->status === 'Pending' && $linkedRelease) {
-                            $displayStatus = 'PTR created';
-                        }
+                        $displayStatus = $linkedRelease ? $linkedRelease->status : $slip->status;
+                        $requestStatus = $slip->request_status ?? '—';
                         $badgeClass = match($displayStatus) {
-                            'Released' => 'badge-success',
+                            'Released', 'Released through pass' => 'badge-success',
                             'Canceled' => 'badge-danger',
-                            'PTR created' => 'badge-success',
-                            default    => 'badge-warning',
+                            'Returned' => 'badge-warning',
+                            default    => 'badge-secondary',
+                        };
+                        $requestBadgeClass = match($requestStatus) {
+                            'approved', 'completed' => 'green',
+                            'rejected' => 'red',
+                            'pending_approval' => 'amber',
+                            default => 'secondary',
                         };
                     @endphp
                      <tr>
@@ -69,27 +75,44 @@
                              <strong class="pas-name">{{ $slip->pas_number }}</strong>
                          </td>
                          <td data-label="Date of PASS" class="col-hide-md pas-muted">{{ $slip->date_of_pass?->format('M d, Y') }}</td>
-                         <td data-label="Date Released" class="pas-muted">{{ $slip->date_released?->format('M d, Y') ?? '—' }}</td>
-                         <td data-label="Supplier" class="col-hide-md pas-muted">{{ $slip->supplier?->company_name ?? '—' }}</td>
-                         <td data-label="Facility / Coordinator" class="pas-name">{{ $slip->facility_coordinator }}</td>
-                         <td data-label="Program" class="col-hide-md pas-muted">{{ $slip->program ?? '—' }}</td>
-                         <td data-label="Purpose / Activity" class="pas-muted">{{ $slip->purpose_activity ?? '—' }}</td>
+                           <td data-label="Requester" class="col-hide-md pas-muted"><span>{{ $slip->facility_name ?? '—' }}</span></td>
+                           <td data-label="Requester" class="col-hide-md pas-muted"><span>{{ $slip->requester?->name ?? '—' }}</span></td>
+                          <td data-label="Request Status" class="col-hide-md">
+                               @if($requestStatus !== '—')
+                               <span class="pas-badge pas-badge--{{ $requestBadgeClass }}">
+                                  <span class="pas-badge-dot"></span>
+                                  {{ ucfirst(str_replace('_', ' ', $requestStatus)) }}
+                               </span>
+                               @else
+                               <span class="pas-muted">—</span>
+                               @endif
+                          </td>
+                           <td data-label="Date Released" class="col-hide-md pas-muted">{{ $slip->date_released?->format('M d, Y') ?? '—' }}</td>
+                           <td data-label="Facility / Coordinator" class="pas-name"><span>{{ $slip->facility_coordinator }}</span></td>
+                         <td data-label="Program" class="col-hide-md pas-muted"><span>{{ $slip->program ?? '—' }}</span></td>
+                         <td data-label="Purpose / Activity" class="pas-muted"><span>{{ $slip->purpose_activity ?? '—' }}</span></td>
                          <td data-label="Status">
-                             <span class="pas-badge pas-badge--{{ $displayStatus === 'Released' || $displayStatus === 'PTR created' ? 'green' : ($displayStatus === 'Canceled' ? 'red' : 'amber') }}">
+                              <span class="pas-badge pas-badge--{{ in_array($displayStatus, ['Released', 'Released through pass']) ? 'green' : ($displayStatus === 'Canceled' ? 'red' : 'amber') }}">
                                  <span class="pas-badge-dot"></span>
                                  {{ $displayStatus }}
-                             </span>
+                              </span>
                          </td>
-                        <td class="mobile-card-actions" style="text-align:center;">
+                         <td class="mobile-card-actions" style="text-align:center;">
                             <a href="{{ route('pas.view', $slip) }}" class="btn btn-sm btn-outline">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                                 View
                             </a>
+                            @if(auth()->user()?->isAdmin() && $slip->request_status === 'pending_approval')
+                            <form method="POST" action="{{ route('pas.approve', $slip) }}" style="display:inline;" onsubmit="return confirm('Approve this PAS request?')">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-primary">Approve</button>
+                            </form>
+                            @endif
                         </td>
                     </tr>
                 @empty
                 <tr class="pas-empty-row">
-                    <td colspan="9">
+                    <td colspan="11">
                         <div class="pas-empty">
                             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
                             <p>No property allocation slips found.</p>
@@ -163,6 +186,8 @@
     .pas-badge--red .pas-badge-dot { background: #ef4444; }
     .pas-badge--amber { background: rgba(217,119,6,0.12); color: #92400e; }
     .pas-badge--amber .pas-badge-dot { background: #f59e0b; }
+    .pas-badge--secondary { background: rgba(100,116,139,0.12); color: #475569; }
+    .pas-badge--secondary .pas-badge-dot { background: #94a3b8; }
 
     .pas-actions { display: flex; gap: 0.4rem; justify-content: center; flex-wrap: wrap; }
     .btn-outline {
@@ -180,5 +205,15 @@
     }
     .pas-empty svg { opacity: 0.35; margin-bottom: 0.25rem; }
     .pas-empty p { font-size: 0.95rem; font-weight: 500; margin: 0; }
+
+    @media (max-width: 768px) {
+        .pas-filter-bar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .pas-filter-bar > * {
+            width: 100%;
+        }
+    }
 </style>
 @endsection

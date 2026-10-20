@@ -58,24 +58,6 @@ class LiquidationExport implements FromView, WithEvents
             }
         }
 
-        $inventoryItems = \App\Models\Item::orderBy('name')->get();
-        foreach ($inventoryItems as $invItem) {
-            if ($this->category && $invItem->category !== $this->category) {
-                continue;
-            }
-
-            $key = $invItem->name . '|' . $invItem->unit . '|' . $invItem->unit_cost;
-            if (!isset($allItems[$key])) {
-                $allItems[$key] = [
-                    'description' => $invItem->name,
-                    'uom' => $invItem->unit,
-                    'unit_cost' => $invItem->unit_cost,
-                    'qtys' => [],
-                    'totals' => [],
-                ];
-            }
-        }
-
         ksort($allItems);
 
         uasort($allItems, function ($a, $b) {

@@ -107,7 +107,7 @@
                 <span class="kpi-card-label">Last Received</span>
             </div>
             <p class="kpi-card-value">{{ $latestReceiving ? $latestReceiving->date_received->format('M d') : '—' }}</p>
-            <p class="kpi-card-foot">{{ $latestReceiving ? $latestReceiving->receiving_number : 'No records' }}</p>
+            <p class="kpi-card-foot">{{ $latestReceiving ? ($latestReceiving->po_number ?? $latestReceiving->id) : 'No records' }}</p>
         </article>
     </section>
 

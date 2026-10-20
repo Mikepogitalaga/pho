@@ -85,16 +85,16 @@
                           <td data-label="Changes" class="col-hide-md" style="font-size:0.82rem;">
                              @if(!empty($log->changes))
                                  <div style="display:flex; flex-direction:column; gap:0.3rem;">
-                                     @foreach($log->changes as $field => $change)
-                                         <div>
-                                             <span style="font-weight:600; color:var(--text);">{{ str_replace('_', ' ', $field) }}:</span>
-                                             @if($change['old'] !== null && $change['old'] !== '')
-                                                 <span style="color:var(--danger); text-decoration:line-through; margin-right:0.3rem;">{{ is_array($change['old']) ? json_encode($change['old']) : $change['old'] }}</span>
-                                                 <span style="color:var(--text-muted);">→</span>
-                                             @endif
-                                              <span style="color:var(--success); margin-left:0.3rem;">{{ is_array($change['new']) ? json_encode($change['new']) : $change['new'] }}</span>
-                                         </div>
-                                     @endforeach
+                                      @foreach($log->changes as $field => $change)
+                                          <div>
+                                              <span style="font-weight:600; color:var(--text);">{{ str_replace('_', ' ', $field) }}:</span>
+                                              @if(is_array($change) && $change['old'] !== null && $change['old'] !== '')
+                                                  <span style="color:var(--danger); text-decoration:line-through; margin-right:0.3rem;">{{ is_array($change['old']) ? json_encode($change['old']) : $change['old'] }}</span>
+                                                  <span style="color:var(--text-muted);">→</span>
+                                              @endif
+                                               <span style="color:var(--success); margin-left:0.3rem;">{{ is_array($change) ? (is_array($change['new']) ? json_encode($change['new']) : $change['new']) : $change }}</span>
+                                          </div>
+                                      @endforeach
                                  </div>
                              @elseif($log->action === 'created')
                                  <span style="color:var(--text-muted); font-size:0.8rem;">Record created</span>

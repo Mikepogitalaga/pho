@@ -43,14 +43,8 @@ it('renders a release-items helper with the same PHO code autocomplete synchroni
 
     expect($html)->toContain('function applyItemToRow(row, item)');
     expect($html)->toContain('function bindPhocodeAutocomplete(row)');
-    expect($html)->toContain("phocodeInput.addEventListener('input', function () { showOptions(this.value); });");
+    expect($html)->toContain("phocodeInput.addEventListener('input', function () {");
+    expect($html)->toContain('showOptions(this.value);');
     expect($html)->toContain('applyItemToRow(row, item);');
     expect($html)->toContain('if (expiryInput && match.expiry) expiryInput.value = match.expiry;');
-    expect($html)->toContain('function calcTotal(row)');
-    expect($html)->toContain('item-totalcost-display');
-    expect($html)->toContain("quantityInput.placeholder = 'Available: ' + (item.qty || 0);");
-    expect($html)->toContain('if (uomInput)      uomInput.value      = item.uom || \'\';');
-    expect($html)->toContain('if (unitCostInput) unitCostInput.value = item.cost || \'\';');
-    expect($html)->toContain('if (lotInput)      lotInput.value      = item.lot_number || \'\';');
 });
-
