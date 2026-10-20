@@ -177,7 +177,7 @@ class ReportController extends Controller
                 'expired_qty' => (int) $expired, 'expired_cost' => $expiredCost, 'ending_qty' => $ending, 'ending_cost' => (float) $ending * $averageCost,
                 'average_cost' => $averageCost,
                 'additional_count' => 0, 'adjusted_ending' => $adjustedEnding, 'adjusted_amount' => $adjustedEnding * $averageCost,
-                '_include' => $receivingItems->isNotEmpty() || $releaseItems->isNotEmpty(),
+                '_include' => $allReceivingItems->isNotEmpty() || $allReleaseItems->isNotEmpty(),
             ];
         })->filter(fn (array $row) => $row['_include'])->map(function (array $row) {
             unset($row['_include']);
