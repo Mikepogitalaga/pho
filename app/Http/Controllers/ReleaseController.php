@@ -11,6 +11,7 @@ use App\Models\Release;
 use App\Models\ReleaseItem;
 use App\Exports\ReleaseListExport;
 use App\Traits\GeneratesCodes;
+use App\Traits\ScopesProgramAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,7 @@ use Throwable;
 
 class ReleaseController extends Controller
 {
-    use GeneratesCodes;
+    use GeneratesCodes, ScopesProgramAccess;
 
     private function applyStatusTransition(Release $release, string $newStatus, ?string $previousStatus = null): void
     {
@@ -174,11 +175,20 @@ class ReleaseController extends Controller
             $perPage = PHP_INT_MAX;
         }
 
+        // Program users only see releases belonging to their own program(s).
+        $this->scopeToViewablePrograms($query, 'health_program_coordinator');
+
         $releases = $query->paginate($perPage)->withQueryString();
 
+        $programNames = $this->viewableProgramNames();
         $programs = Program::orderBy('name')->get();
 
-        return view('releases.index', compact('releases', 'programs', 'program', 'period', 'supplierType', 'category'));
+        // Keep the program filter limited to what this account may view.
+        if ($programNames !== []) {
+            $programs = $programs->filter(fn ($p) => in_array($p->name, $programNames, true))->values();
+        }
+
+        return view('releases.index', compact('releases', 'programs', 'program', 'period', 'supplierType', 'category', 'programNames'));
     }
 
     public function exportList(Request $request)
@@ -226,6 +236,10 @@ class ReleaseController extends Controller
             $status = match ($status) { 'released-through-pass' => 'Released through pass', 'released' => 'Released', 'canceled' => 'Canceled', 'returned' => 'Returned', 'unreleased' => 'Unreleased', default => $status };
             $query->where('status', $status);
         }
+
+        // Program users only see releases belonging to their own program(s).
+        $this->scopeToViewablePrograms($query, 'health_program_coordinator');
+
         return $query;
     }
 
@@ -233,12 +247,18 @@ class ReleaseController extends Controller
     {
         $release->load(['items.item.receivingItems.receiving']);
 
-        return view('releases.view', compact('release'));
+        $this->authorizeProgramRecord($release, 'health_program_coordinator');
+
+        $programUser = $this->isProgramScopedViewer();
+
+        return view('releases.view', compact('release', 'programUser'));
     }
 
     public function print(Release $release)
     {
         $release->load(['items.item.receivingItems.receiving']);
+
+        $this->authorizeProgramRecord($release, 'health_program_coordinator');
 
         return view('releases.print', compact('release'));
     }

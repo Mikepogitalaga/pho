@@ -3,6 +3,31 @@
 @section('title', 'Edit PAS ' . $pas->pas_number)
 @section('pageHeading', 'Edit PAS ' . $pas->pas_number)
 
+@php
+    $isProgramUser = (bool) auth()->user()?->program_id;
+@endphp
+
+@push('styles')
+<style>
+/* Program users only fill in Item Description, Quantity and Unit: let those
+   three fields flow into a single grid row. */
+.pas-items--program .item-row-body {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: start;
+}
+.pas-items--program .form-grid-3 { display: contents; }
+
+@media (max-width: 1024px) {
+    .pas-items--program .item-row-body { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 768px) {
+    .pas-items--program .item-row-body { grid-template-columns: 1fr; }
+}
+</style>
+@endpush
+
 @section('content')
 <section class="card">
     <div class="section-header">
@@ -109,10 +134,16 @@
 
         <div>
             <h2 class="section-title">Items <span style="color:var(--danger)">*</span></h2>
-            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem;">These items are for tracking only — inventory stock will NOT be deducted.</p>
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem;">
+                @if($isProgramUser)
+                    Enter the item description, quantity and unit. PHO code, lot number, expiry date and unit cost are completed by the administrator.
+                @else
+                    These items are for tracking only — inventory stock will NOT be deducted.
+                @endif
+            </p>
             @error('items')<span class="field-error" style="display:block;margin-bottom:0.5rem;">{{ $message }}</span>@enderror
 
-            <div id="pas-items" class="stack">
+            <div id="pas-items" class="stack{{ $isProgramUser ? ' pas-items--program' : '' }}">
                 @php
                     $oldItems = collect(old('items'));
                     if ($oldItems->isEmpty()) {
@@ -120,6 +151,7 @@
                             return [
                                 'pas_item_id' => $item->id,
                                 'item_description' => $item->item_description,
+                                'item_code' => $item->item_code,
                                 'product_code' => $item->product_code,
                                 'lot_number' => $item->lot_number,
                                 'expiration_date' => optional($item->expiration_date)->format('Y-m-d'),
@@ -156,28 +188,32 @@
                                         <button type="button" class="item-description-clear" title="Clear" style="position:absolute;right:0.5rem;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;line-height:1;padding:0.2rem 0.3rem;">&times;</button>
                                     </div>
                                 </div>
-                                @if(! auth()->user()?->program_id)
                                 <div class="form-group">
+                                    @if(! $isProgramUser)
                                     <label>PHO Code</label>
                                     <div style="position:relative;display:flex;align-items:center;">
-                                        <input type="text" class="pas-phocode-input" autocomplete="off" style="width:100%;padding-right:2rem;" value="{{ $oldItem['product_code'] ?? $oldItem['item_id'] ?? '' }}">
-                                        <input type="hidden" class="pas-item-code-hidden" name="items[{{ $index }}][item_code]" value="{{ $oldItem['product_code'] ?? $oldItem['item_id'] ?? '' }}">
-                                        <input type="hidden" class="pas-item-id-hidden" name="items[{{ $index }}][item_id]" value="{{ $oldItem['item_id'] ?? '' }}">
+                                        <input type="text" class="pas-phocode-input" autocomplete="off" style="width:100%;padding-right:2rem;" value="{{ $oldItem['item_code'] ?? '' }}">
                                         <button type="button" class="item-description-clear" title="Clear" style="position:absolute;right:0.5rem;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;line-height:1;padding:0.2rem 0.3rem;">&times;</button>
                                     </div>
+                                    @endif
+                                    <input type="hidden" class="pas-item-code-hidden" name="items[{{ $index }}][item_code]" value="{{ $oldItem['item_code'] ?? '' }}">
+                                    <input type="hidden" class="pas-item-id-hidden" name="items[{{ $index }}][item_id]" value="{{ $oldItem['item_id'] ?? '' }}">
                                     <input type="hidden" class="pas-product-code-input" name="items[{{ $index }}][product_code]" value="{{ $oldItem['product_code'] ?? '' }}">
                                 </div>
-                                @endif
+                                @if(! $isProgramUser)
                                 <div class="form-group">
                                     <label>Lot Number</label>
                                     <input class="pas-lot-input" name="items[{{ $index }}][lot_number]" value="{{ $oldItem['lot_number'] ?? '' }}">
                                 </div>
+                                @endif
                             </div>
                             <div class="form-grid-3">
+                                @if(! $isProgramUser)
                                 <div class="form-group">
                                     <label>Expiration Date</label>
                                     <input type="date" class="pas-expiry-input" name="items[{{ $index }}][expiration_date]" value="{{ $oldItem['expiration_date'] ?? '' }}">
                                 </div>
+                                @endif
                                 <div class="form-group">
                                     <label>Quantity <span style="color:var(--danger)">*</span></label>
                                     <input type="number" class="pas-qty-input" name="items[{{ $index }}][quantity]" value="{{ $oldItem['quantity'] ?? '' }}" min="1" placeholder="Available: 0" required>
@@ -187,6 +223,7 @@
                                     <input class="pas-unit-input" name="items[{{ $index }}][unit]" value="{{ $oldItem['unit'] ?? '' }}" required>
                                 </div>
                             </div>
+                            @if(! $isProgramUser)
                             <div class="form-grid-3">
                                 <div class="form-group">
                                     <label>Unit Cost <span style="color:var(--danger)">*</span></label>
@@ -197,6 +234,7 @@
                                     <input type="text" class="pas-totalcost-display" readonly placeholder="Auto-calculated" style="background:var(--surface-strong);cursor:not-allowed;">
                                 </div>
                             </div>
+                            @endif
                         </div>
                     </div>
                 @endforeach
@@ -253,28 +291,32 @@
                         <button type="button" class="item-description-clear" title="Clear" style="position:absolute;right:0.5rem;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;line-height:1;padding:0.2rem 0.3rem;">&times;</button>
                     </div>
                 </div>
-                @if(! auth()->user()?->program_id)
                 <div class="form-group">
+                    @if(! $isProgramUser)
                     <label>PHO Code</label>
                     <div style="position:relative;display:flex;align-items:center;">
                         <input type="text" class="pas-phocode-input" autocomplete="off" style="width:100%;padding-right:2rem;" value="">
-                        <input type="hidden" class="pas-item-code-hidden" name="items[0][item_code]" value="">
-                        <input type="hidden" class="pas-item-id-hidden" name="items[0][item_id]" value="">
                         <button type="button" class="item-description-clear" title="Clear" style="position:absolute;right:0.5rem;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;line-height:1;padding:0.2rem 0.3rem;">&times;</button>
                     </div>
+                    @endif
+                    <input type="hidden" class="pas-item-code-hidden" name="items[0][item_code]" value="">
+                    <input type="hidden" class="pas-item-id-hidden" name="items[0][item_id]" value="">
                     <input type="hidden" class="pas-product-code-input" name="items[0][product_code]" value="">
                 </div>
-                @endif
+                @if(! $isProgramUser)
                 <div class="form-group">
                     <label>Lot Number</label>
                     <input class="pas-lot-input" name="items[0][lot_number]" value="">
                 </div>
+                @endif
             </div>
             <div class="form-grid-3">
+                @if(! $isProgramUser)
                 <div class="form-group">
                     <label>Expiration Date</label>
                     <input type="date" class="pas-expiry-input" name="items[0][expiration_date]" value="">
                 </div>
+                @endif
                 <div class="form-group">
                     <label>Quantity <span style="color:var(--danger)">*</span></label>
                     <input type="number" class="pas-qty-input" name="items[0][quantity]" value="" min="1" required>
@@ -284,6 +326,7 @@
                     <input class="pas-unit-input" name="items[0][unit]" value="" required>
                 </div>
             </div>
+            @if(! $isProgramUser)
             <div class="form-grid-3">
                 <div class="form-group">
                     <label>Unit Cost <span style="color:var(--danger)">*</span></label>
@@ -294,6 +337,7 @@
                     <input type="text" class="pas-totalcost-display" readonly placeholder="Auto-calculated" style="background:var(--surface-strong);cursor:not-allowed;">
                 </div>
             </div>
+            @endif
         </div>
     </div>
 </template>
@@ -306,6 +350,7 @@ const pasAllItems = {!! json_encode($items->flatMap(fn($i) => $i->receivingItems
         'id'         => $i->id,
         'code'       => $receivingItem->item_code,
         'name'       => $i->name,
+        'sku'        => $i->stock_keeping_unit,
         'unit'       => $receivingItem->uom ?: $i->unit,
         'cost'       => $receivingItem->unit_cost ?? $i->unit_cost,
         'qty'        => $receivingItem->available_quantity ?? $receivingItem->quantity_received,
@@ -316,13 +361,19 @@ const pasAllItems = {!! json_encode($items->flatMap(fn($i) => $i->receivingItems
         'id'         => $i->id,
         'code'       => $i->item_code ?? '',
         'name'       => $i->name,
+        'sku'        => $i->stock_keeping_unit,
         'unit'       => $i->unit,
         'cost'       => $i->unit_cost,
         'qty'        => $i->quantity_on_hand,
         'lot_number' => '',
         'expiry'     => '',
     ]]
-)->filter(fn($item) => filled($item['code']))->values()->toArray()) !!};
+)->filter(fn($item) => filled($item['code']) || filled($item['name']))->values()->toArray()) !!};
+const pasIsProgramUser = {{ auth()->user()?->program_id ? 'true' : 'false' }};
+const pasUsageData      = {!! json_encode($pasUsage ?? []) !!};
+const pasUsageByCode      = pasUsageData.by_code || {};
+const pasUsageByDescription = pasUsageData.by_description || {};
+const pasUsageById        = pasUsageData.by_id || {};
 
 document.addEventListener('DOMContentLoaded', function () {
     const container = document.getElementById('pas-items');
@@ -420,7 +471,7 @@ document.addEventListener('DOMContentLoaded', function () {
         dd.innerHTML = '';
         const q = query.toLowerCase().trim();
         const seen = new Set();
-        const filtered = pasAllItems.filter(it => {
+        const filtered = itemsForProgram().filter(it => {
             if (q && !it.name.toLowerCase().includes(q)) return false;
             if (seen.has(it.name.toLowerCase())) return false;
             seen.add(it.name.toLowerCase());
@@ -432,7 +483,7 @@ document.addEventListener('DOMContentLoaded', function () {
             opt.textContent = it.name;
             Object.assign(opt.style, { padding:'10px 12px', cursor:'pointer', borderBottom:'1px solid #f0f0f0' });
             opt.addEventListener('mouseover', () => opt.style.background = '#f5f5f5');
-            opt.addEventListener('mouseout',  () => opt.style.background = 'transparent');
+            opt.addEventListener('mouseout', () => opt.style.background = 'transparent');
             opt.addEventListener('click', () => { descInput.value = it.name; dd.style.display = 'none'; onSelect(); });
             dd.appendChild(opt);
         });
@@ -464,11 +515,166 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function calcTotal(row) {
-        const qty  = parseFloat(row.querySelector('.pas-qty-input').value) || 0;
-        const cost = parseFloat(row.querySelector('.pas-unitcost-input').value) || 0;
+        const qtyInput  = row.querySelector('.pas-qty-input');
+        const costInput = row.querySelector('.pas-unitcost-input');
+        const qty  = parseFloat(qtyInput && qtyInput.value) || 0;
+        const cost = parseFloat(costInput && costInput.value) || 0;
         const disp = row.querySelector('.pas-totalcost-display');
-        disp.value = qty && cost ? (qty * cost).toFixed(2) : '';
+        if (disp) disp.value = qty && cost ? (qty * cost).toFixed(2) : '';
     }
+
+    // Program users do not see the PHO code, lot, expiry and unit cost fields,
+    // so those inputs may be absent from a row.
+    function setRowValue(row, selector, value) {
+        const el = row.querySelector(selector);
+        if (el) el.value = value;
+    }
+
+    // Resolve the inventory entry behind a row (by PHO code, then item id, then description)
+    function getRowItemEntry(row) {
+        const codeHidden = row.querySelector('.pas-item-code-hidden');
+        const idHidden   = row.querySelector('.pas-item-id-hidden');
+        const descInput  = row.querySelector('.pas-desc-input');
+        if (codeHidden && codeHidden.value) {
+            const byCode = pasAllItems.find(it => (it.code || '') === codeHidden.value);
+            if (byCode) return byCode;
+        }
+        if (idHidden && idHidden.value) {
+            const byId = pasAllItems.find(it => String(it.id) === String(idHidden.value));
+            if (byId) return byId;
+        }
+        if (descInput && descInput.value.trim()) {
+            const v = descInput.value.trim().toLowerCase();
+            const byName = pasAllItems.find(it => (it.name || '').toLowerCase() === v);
+            if (byName) return byName;
+        }
+        return null;
+    }
+
+    // Row-level availability key. Admins track stock per PHO code, so each row
+    // competes only with other rows carrying the same code. Program users have
+    // no code, so rows pool by item description instead.
+    const usageKey = e => {
+        if (!e) return '';
+        if (!pasIsProgramUser) {
+            if (e.code) return 'code:' + String(e.code);
+            return 'id:' + String(e.id);
+        }
+        return 'desc:' + String(e.name || '').toLowerCase();
+    };
+
+    // Total stock a row may draw from. For program users this sums every code
+    // behind the description, because the program cannot choose between them.
+    function stockForKey(entry, key) {
+        if (pasIsProgramUser) {
+            const name = String(entry.name || '').toLowerCase();
+            return pasAllItems.reduce(
+                (sum, it) => sum + ((String(it.name || '').toLowerCase() === name) ? (parseFloat(it.qty) || 0) : 0),
+                0
+            );
+        }
+
+        // Admin: prefer the entry's own code, falling back to item id.
+        if (String(key).startsWith('code:')) {
+            const code = String(key).slice(5);
+            return pasAllItems.reduce(
+                (sum, it) => sum + ((String(it.code || '') === code) ? (parseFloat(it.qty) || 0) : 0),
+                0
+            );
+        }
+
+        return parseFloat(entry.qty) || 0;
+    }
+
+    // Past PAS usage for a row, matched the same way (per code for admins,
+    // per description for program users). Missing keys mean no usage recorded.
+    function pastUsageForKey(key) {
+        if (!key) return 0;
+        if (String(key).startsWith('desc:')) {
+            const name = String(key).slice(5);
+            if (Object.prototype.hasOwnProperty.call(pasUsageByDescription, name)) {
+                return parseFloat(pasUsageByDescription[name]) || 0;
+            }
+        }
+        if (String(key).startsWith('code:')) {
+            const code = String(key).slice(5);
+            if (Object.prototype.hasOwnProperty.call(pasUsageByCode, code)) {
+                return parseFloat(pasUsageByCode[code]) || 0;
+            }
+        }
+        if (String(key).startsWith('id:')) {
+            const id = String(key).slice(3);
+            if (Object.prototype.hasOwnProperty.call(pasUsageById, id)) {
+                return parseFloat(pasUsageById[id]) || 0;
+            }
+        }
+        return 0;
+    }
+
+    // Each row's "Available" placeholder shows the stock it can draw from minus
+    // the quantities already allocated in other PAS records and in the other
+    // rows of this form competing for the same stock.
+    function refreshAvailability() {
+        const rows    = Array.from(container.querySelectorAll('.pas-item-row'));
+        const entries = rows.map(getRowItemEntry);
+        const keys    = entries.map(usageKey);
+        rows.forEach((row, i) => {
+            const qtyInput = row.querySelector('.pas-qty-input');
+            if (!qtyInput) return;
+            if (!entries[i] || !keys[i]) { qtyInput.placeholder = 'Available: 0'; return; }
+            const baseQty = Math.max(stockForKey(entries[i], keys[i]) - pastUsageForKey(keys[i]), 0);
+            let used = 0;
+            rows.forEach((r, j) => {
+                if (i === j || keys[j] !== keys[i]) return;
+                const q = r.querySelector('.pas-qty-input');
+                used += parseFloat(q && q.value) || 0;
+            });
+            qtyInput.placeholder = 'Available: ' + Math.max(baseQty - used, 0);
+        });
+    }
+
+    // --- Stock Keeping Unit (Program) filtering ---
+    // The program(s) currently chosen on the form.
+    function selectedPrograms() {
+        const select = document.querySelector('select[name="program"]');
+        const raw = select ? (select.value || '') : (document.getElementById('pasProgramInput')?.value || '');
+        return raw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    }
+
+    // Items offered in the description / PHO code pickers, narrowed to the
+    // selected Stock Keeping Unit (Program). No program = show everything.
+    function itemsForProgram() {
+        const names = selectedPrograms();
+        if (!names.length) return pasAllItems;
+        return pasAllItems.filter(it => names.includes((it.sku || '').toLowerCase()));
+    }
+
+    // Clear item rows whose item does not belong to the selected program.
+    function enforceProgramOnRows() {
+        const names = selectedPrograms();
+        if (!names.length) return;
+        container.querySelectorAll('.pas-item-row').forEach(row => {
+            const entry = getRowItemEntry(row);
+            if (!entry || names.includes((entry.sku || '').toLowerCase())) return;
+            const descInput = row.querySelector('.pas-desc-input');
+            const phocodeInput = row.querySelector('.pas-phocode-input');
+            if (descInput) descInput.value = '';
+            if (phocodeInput) phocodeInput.value = '';
+            setRowValue(row, '.pas-item-id-hidden', '');
+            setRowValue(row, '.pas-item-code-hidden', '');
+            setRowValue(row, '.pas-product-code-input', '');
+            setRowValue(row, '.pas-unit-input', '');
+            setRowValue(row, '.pas-unitcost-input', '');
+            setRowValue(row, '.pas-lot-input', '');
+            setRowValue(row, '.pas-expiry-input', '');
+            setRowValue(row, '.pas-totalcost-display', '');
+        });
+        refreshAvailability();
+    }
+
+    const pasProgramSelect = document.querySelector('select[name="program"]');
+    if (pasProgramSelect) pasProgramSelect.addEventListener('change', enforceProgramOnRows);
+    if (pasProgramInput) pasProgramInput.addEventListener('change', enforceProgramOnRows);
 
     function bindRow(row) {
         const body       = row.querySelector('.item-row-body');
@@ -485,12 +691,14 @@ document.addEventListener('DOMContentLoaded', function () {
         const syncFromDesc = () => {
             const name = descInput.value.trim();
             const lower = name.toLowerCase();
-            let match = pasAllItems.find(it => it.name.toLowerCase() === lower || it.code.toLowerCase() === lower);
+            const pool = itemsForProgram();
+            let match = pool.find(it => it.name.toLowerCase() === lower || (it.code || '').toLowerCase() === lower);
             if (!match) {
-                match = pasAllItems.find(it => it.name.toLowerCase().includes(lower) || it.code.toLowerCase().includes(lower));
+                match = pool.find(it => it.name.toLowerCase().includes(lower) || (it.code || '').toLowerCase().includes(lower));
             }
             if (match) {
                 applyItemToRow(row, match);
+                refreshAvailability();
             }
         };
 
@@ -501,23 +709,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
         bindPhocodeAutocomplete(row);
 
-        qtyInput.addEventListener('input',  () => calcTotal(row));
-        costInput.addEventListener('input', () => calcTotal(row));
+        qtyInput.addEventListener('input',  () => { calcTotal(row); refreshAvailability(); });
+        if (costInput) costInput.addEventListener('input', () => calcTotal(row));
 
         clearBtn.addEventListener('mousedown', e => e.preventDefault());
         clearBtn.addEventListener('click', () => {
             descInput.value = '';
-            phocodeInput.value = '';
-            row.querySelector('.pas-item-id-hidden').value = '';
-            row.querySelector('.pas-item-code-hidden').value = '';
-            row.querySelector('.pas-product-code-input').value = '';
-            row.querySelector('.pas-unit-input').value  = '';
-            row.querySelector('.pas-unitcost-input').value = '';
-            row.querySelector('.pas-lot-input').value   = '';
-            row.querySelector('.pas-expiry-input').value = '';
-            row.querySelector('.pas-totalcost-display').value = '';
+            if (phocodeInput) phocodeInput.value = '';
+            setRowValue(row, '.pas-item-id-hidden', '');
+            setRowValue(row, '.pas-item-code-hidden', '');
+            setRowValue(row, '.pas-product-code-input', '');
+            setRowValue(row, '.pas-unit-input', '');
+            setRowValue(row, '.pas-unitcost-input', '');
+            setRowValue(row, '.pas-lot-input', '');
+            setRowValue(row, '.pas-expiry-input', '');
+            setRowValue(row, '.pas-totalcost-display', '');
             dd.style.display = 'none';
             descInput.focus();
+            refreshAvailability();
         });
 
         toggleBtn.addEventListener('click', () => {
@@ -525,7 +734,9 @@ document.addEventListener('DOMContentLoaded', function () {
             toggleBtn.textContent = body.style.display === 'none' ? 'Show' : 'Hide';
         });
 
-        removeBtn.addEventListener('click', () => { row.remove(); updateIndexes(); });
+        removeBtn.addEventListener('click', () => { row.remove(); updateIndexes(); refreshAvailability(); });
+
+        refreshAvailability();
     }
 
     function bindPhocodeAutocomplete(row) {
@@ -554,30 +765,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
             let exactNameIds = null;
             if (descValue) {
-                const exactMatches = pasAllItems.filter(function(item) { return item.name.toLowerCase() === descLower; });
+                const exactMatches = itemsForProgram().filter(function(item) { return item.name.toLowerCase() === descLower; });
                 if (exactMatches.length > 0) {
                     exactNameIds = new Set(exactMatches.map(function(item) { return item.id; }));
                 }
             }
 
-            const filtered = pasAllItems.filter(function(item) {
-                if (q && !(item.code.toLowerCase().includes(q) || item.name.toLowerCase().includes(q))) return false;
+            const filtered = itemsForProgram().filter(function(item) {
+                if (q && !((item.code || '').toLowerCase().includes(q) || item.name.toLowerCase().includes(q))) return false;
                 if (exactNameIds && !exactNameIds.has(item.id)) return false;
-                if (seen.has(item.code)) return false;
-                seen.add(item.code);
+                const seenKey = item.code || ('#' + item.id);
+                if (seen.has(seenKey)) return false;
+                seen.add(seenKey);
                 return true;
             });
             if (!filtered.length) { dd.style.display = 'none'; return; }
             filtered.forEach(function(item) {
                 const opt = document.createElement('div');
                 Object.assign(opt.style, { padding:'10px 12px', cursor:'pointer', borderBottom:'1px solid #f0f0f0' });
-                opt.textContent = item.code + ' — ' + item.name + ' (' + (item.qty || 0) + ' available' + (item.expiry ? ' | Exp: ' + item.expiry : '') + ')';
+                opt.textContent = (item.code ? item.code + ' — ' + item.name : item.name) + ' (' + (item.qty || 0) + ' available' + (item.expiry ? ' | Exp: ' + item.expiry : '') + ')';
                 opt.addEventListener('mouseover', function() { this.style.background = '#f5f5f5'; });
                 opt.addEventListener('mouseout',  function() { this.style.background = 'transparent'; });
                 opt.addEventListener('click', function() {
                     phocodeInput.value = item.code;
                     dd.style.display = 'none';
                     applyItemToRow(row, item);
+                    refreshAvailability();
                 });
                 dd.appendChild(opt);
             });
@@ -586,14 +799,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         phocodeInput.addEventListener('input', function() {
             if (codeHidden) codeHidden.value = this.value;
+            refreshAvailability();
             showOptions(this.value);
         });
         phocodeInput.addEventListener('focus', function() { showOptions(''); });
-        phocodeInput.addEventListener('blur',  function() { setTimeout(function() { dd.style.display = 'none'; }, 200); });
-    }
-
-        phocodeInput.addEventListener('input', function() { showOptions(this.value); });
-        phocodeInput.addEventListener('focus', function() { showOptions(this.value); });
         phocodeInput.addEventListener('blur',  function() { setTimeout(function() { dd.style.display = 'none'; }, 200); });
     }
 
@@ -606,6 +815,7 @@ document.addEventListener('DOMContentLoaded', function () {
         bindRow(row);
         container.appendChild(row);
         updateIndexes();
+        refreshAvailability();
     });
 });
 </script>

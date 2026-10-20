@@ -13,6 +13,8 @@ use App\Models\Supplier;
 use App\Traits\GeneratesCodes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Throwable;
 
 class PasController extends Controller
@@ -21,7 +23,9 @@ class PasController extends Controller
 
     public function index(Request $request)
     {
-        $query = Pas::with(['supplier', 'release', 'requester'])->latest('date_of_pass');
+        $query = Pas::with(['supplier', 'release', 'requester'])
+            ->orderByDesc('date_of_pass')
+            ->orderByDesc('id');
 
         $search = trim((string) $request->input('search', ''));
         if ($search !== '') {
@@ -112,7 +116,14 @@ class PasController extends Controller
         $nextSeq = $this->nextYearSequence(Pas::class, 'pas_number', "PAS-{$year}-{$month}-%");
         $pasNumber = "PAS-{$year}-{$month}-{$nextSeq}";
 
-        return view('pas.create', compact('items', 'coordinators', 'programs', 'pasNumber', 'itemLotNumbers', 'facilities'));
+        // Quantities already allocated by other non-canceled PAS records.
+        // Returned twice: keyed by PHO code (used on the admin form, which
+        // tracks stock per code) and by item description (used by program
+        // users, who do not see or submit a PHO code). Rows saved without an
+        // item link are matched to an item through their description.
+        $pasUsage = $this->pasUsageSummary();
+
+        return view('pas.create', compact('items', 'coordinators', 'programs', 'pasNumber', 'itemLotNumbers', 'facilities', 'pasUsage'));
     }
 
     public function store(Request $request)
@@ -130,7 +141,7 @@ class PasController extends Controller
             'items.*.item_description' => 'required|string|max:1000',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit' => 'required|string|max:100',
-            'items.*.unit_cost' => 'required|numeric|min:0',
+            'items.*.unit_cost' => auth()->user()?->program_id ? 'nullable|numeric|min:0' : 'required|numeric|min:0',
         ];
 
         if (! auth()->user()?->program_id) {
@@ -176,19 +187,20 @@ class PasController extends Controller
 
                 foreach ($request->input('items') as $row) {
                     $qty = (int) $row['quantity'];
-                    $unitCost = (float) $row['unit_cost'];
+                    $restricted = $this->restrictedItemValues((array) $row, null);
 
                     PasItem::create([
                         'pas_id' => $pas->id,
-                        'item_id' => $row['item_id'] ?? null,
+                        'item_id' => $this->resolveItemId($row['item_id'] ?? null, $row['item_description'] ?? null),
                         'item_description' => $row['item_description'],
                         'product_code' => 'PC'.$yy.$mm.str_pad($productSeq++, 4, '0', STR_PAD_LEFT),
-                        'lot_number' => $row['lot_number'] ?? null,
-                        'expiration_date' => ! empty($row['expiration_date']) ? $row['expiration_date'] : null,
+                        'item_code' => $restricted['item_code'],
+                        'lot_number' => $restricted['lot_number'],
+                        'expiration_date' => $restricted['expiration_date'],
                         'quantity' => $qty,
                         'unit' => $row['unit'],
-                        'unit_cost' => $unitCost,
-                        'total_cost' => $qty * $unitCost,
+                        'unit_cost' => $restricted['unit_cost'],
+                        'total_cost' => $qty * (float) $restricted['unit_cost'],
                     ]);
                 }
             });
@@ -242,7 +254,13 @@ class PasController extends Controller
 
         $nextSeq = (int) $this->nextYearSequence(PasItem::class, 'product_code', 'PC'.now()->format('ym').'%');
 
-        return view('pas.edit', compact('pas', 'items', 'suppliers', 'coordinators', 'programs', 'facilities', 'itemLotNumbers', 'nextSeq'));
+        // Quantities already allocated by other non-canceled PAS records.
+        // This PAS's own rows are excluded because the form already tracks
+        // them. Keyed by PHO code for the admin form and by item description
+        // for program users, who cannot enter a PHO code.
+        $pasUsage = $this->pasUsageSummary($pas->id);
+
+        return view('pas.edit', compact('pas', 'items', 'suppliers', 'coordinators', 'programs', 'facilities', 'itemLotNumbers', 'nextSeq', 'pasUsage'));
     }
 
     public function update(Request $request, Pas $pas)
@@ -260,7 +278,7 @@ class PasController extends Controller
             'items.*.item_description' => 'required|string|max:1000',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit' => 'required|string|max:100',
-            'items.*.unit_cost' => 'required|numeric|min:0',
+            'items.*.unit_cost' => auth()->user()?->program_id ? 'nullable|numeric|min:0' : 'required|numeric|min:0',
         ];
 
         if (! auth()->user()?->program_id) {
@@ -302,23 +320,26 @@ class PasController extends Controller
             foreach ($request->input('items') as $row) {
                 $pasItemId = isset($row['pas_item_id']) && $row['pas_item_id'] !== '' ? (int) $row['pas_item_id'] : null;
                 $qty = (int) $row['quantity'];
-                $unitCost = (float) $row['unit_cost'];
+                $itemId = $this->resolveItemId($row['item_id'] ?? null, $row['item_description'] ?? null);
 
                 $existing = ($pasItemId && $existingItems->has($pasItemId)) ? $existingItems[$pasItemId] : null;
                 $productCode = ($existing && $existing->product_code)
                     ? $existing->product_code
                     : 'PC'.$yy.$mm.str_pad($productSeq++, 4, '0', STR_PAD_LEFT);
 
+                $restricted = $this->restrictedItemValues((array) $row, $existing);
+
                 $data = [
-                    'item_id' => $row['item_id'] ?? null,
+                    'item_id' => $itemId,
+                    'item_code' => $restricted['item_code'],
                     'item_description' => $row['item_description'],
                     'product_code' => $productCode,
-                    'lot_number' => $row['lot_number'] ?? null,
-                    'expiration_date' => ! empty($row['expiration_date']) ? $row['expiration_date'] : null,
+                    'lot_number' => $restricted['lot_number'],
+                    'expiration_date' => $restricted['expiration_date'],
                     'quantity' => $qty,
                     'unit' => $row['unit'],
-                    'unit_cost' => $unitCost,
-                    'total_cost' => $qty * $unitCost,
+                    'unit_cost' => $restricted['unit_cost'],
+                    'total_cost' => $qty * (float) $restricted['unit_cost'],
                 ];
 
                 if ($pasItemId && $existingItems->has($pasItemId)) {
@@ -363,6 +384,117 @@ class PasController extends Controller
         $pas->save();
 
         return redirect()->route('pas.view', $pas)->with('success', 'PAS status updated.');
+    }
+
+    /**
+     * Resolve the inventory item behind a PAS row. Falls back to matching the
+     * description against item names when the row was saved without a link.
+     */
+    protected function resolveItemId($itemId, $description): ?int
+    {
+        if (! empty($itemId)) {
+            return (int) $itemId;
+        }
+
+        $description = trim((string) $description);
+        if ($description === '') {
+            return null;
+        }
+
+        $item = Item::whereRaw('LOWER(name) = ?', [Str::lower($description)])->first();
+        if (! $item) {
+            $item = Item::whereRaw('LOWER(name) like ?', ['%'.Str::lower($description).'%'])->first();
+        }
+
+        return $item?->id;
+    }
+
+    /**
+     * The PAS item columns a program user cannot fill in (PHO code, lot,
+     * expiry and unit cost). Program users only submit an item description,
+     * quantity and unit, so these stay blank for the administrator to complete
+     * later. On edit, values the administrator already saved are preserved.
+     */
+    protected function restrictedItemValues(array $row, ?PasItem $existing): array
+    {
+        if (auth()->user()?->program_id) {
+            return [
+                'item_code' => $existing?->item_code,
+                'lot_number' => $existing?->lot_number,
+                'expiration_date' => $existing?->expiration_date,
+                'unit_cost' => $existing?->unit_cost,
+            ];
+        }
+
+        return [
+            'item_code' => $row['item_code'] ?? null,
+            'lot_number' => $row['lot_number'] ?? null,
+            'expiration_date' => ! empty($row['expiration_date']) ? $row['expiration_date'] : null,
+            'unit_cost' => (float) ($row['unit_cost'] ?? 0),
+        ];
+    }
+
+    /**
+     * Quantities already allocated by other non-canceled PAS records, keyed
+     * three ways: by PHO code (the admin form tracks stock per code), by item
+     * description (program users neither see nor submit a PHO code, so their
+     * available quantity must pool every code behind one description), and by
+     * item id (fallback for rows with neither a code nor a resolvable item).
+     *
+     * Canceled PAS rows are ignored. When editing, the PAS being edited is
+     * excluded because the form already carries its own rows.
+     */
+    protected function pasUsageSummary(?int $excludePasId = null): array
+    {
+        $rows = PasItem::query()
+            ->whereHas('pas', function ($q) use ($excludePasId) {
+                $q->where(function ($q) {
+                    $q->where('property_allocation_slips.status', '!=', 'Canceled')
+                        ->orWhereNull('property_allocation_slips.status');
+                });
+                if ($excludePasId) {
+                    $q->where('property_allocation_slips.id', '!=', $excludePasId);
+                }
+            })
+            ->leftJoin('items', 'items.id', '=', 'pas_items.item_id')
+            ->leftJoin(
+                DB::raw('(SELECT MIN(id) as id, LOWER(name) as lname FROM items GROUP BY lname) as name_items'),
+                'name_items.lname',
+                '=',
+                DB::raw('LOWER(pas_items.item_description)')
+            )
+            ->selectRaw('pas_items.item_code as item_code, COALESCE(pas_items.item_id, name_items.id) as uid, COALESCE(NULLIF(LOWER(TRIM(pas_items.item_description)), \'\'), LOWER(items.name)) as dkey, SUM(pas_items.quantity) as total')
+            ->groupBy('item_code', 'uid', 'dkey')
+            ->get();
+
+        $byCode = [];
+        $byDescription = [];
+        $byId = [];
+
+        foreach ($rows as $row) {
+            $total = (float) ($row->total ?? 0);
+            if ($total <= 0) {
+                continue;
+            }
+
+            $code = trim((string) ($row->item_code ?? ''));
+            $description = trim((string) ($row->dkey ?? ''));
+            $uid = $row->uid !== null ? (int) $row->uid : 0;
+
+            if ($code !== '') {
+                $byCode[$code] = ($byCode[$code] ?? 0) + $total;
+            }
+
+            if ($description !== '') {
+                $byDescription[$description] = ($byDescription[$description] ?? 0) + $total;
+            }
+
+            if ($uid > 0) {
+                $byId[$uid] = ($byId[$uid] ?? 0) + $total;
+            }
+        }
+
+        return ['by_code' => $byCode, 'by_description' => $byDescription, 'by_id' => $byId];
     }
 
     public function myRequests(Request $request)

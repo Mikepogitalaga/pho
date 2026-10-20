@@ -4,6 +4,11 @@
 @section('pageHeading', 'Release Records')
 @section('pageSubheading', 'Track supply release slips and end-user distribution.')
 
+@php
+    $programUser = $programNames ?? [];
+    $programUser = $programUser !== [];
+@endphp
+
 @section('content')
     <div class="section-header">
         <div>
@@ -13,7 +18,9 @@
         <div class="table-actions">
             <a href="{{ route('releases.print-list', request()->query()) }}" target="_blank" class="btn btn-secondary">Print</a>
             <a href="{{ route('releases.export', request()->query()) }}" class="btn btn-secondary">Download Excel</a>
-            <a href="{{ route('releases.create') }}" class="btn btn-primary">New Release Slip</a>
+            @unless ($programUser)
+                <a href="{{ route('releases.create') }}" class="btn btn-primary">New Release Slip</a>
+            @endunless
         </div>
     </div>
 

@@ -224,7 +224,6 @@ class ItemController extends Controller
 
         $items = $itemGroups->flatMap(function ($groupedItem) {
             $receivingByCode = $groupedItem->receivingItems
-                ->filter(fn ($receivingItem) => filled($receivingItem->item_code))
                 ->groupBy('item_code');
 
             if ($receivingByCode->isEmpty()) {

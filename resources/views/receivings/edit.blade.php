@@ -4,6 +4,37 @@
 @section('pageHeading', 'Edit Receiving')
 @section('pageSubheading', 'Update receiving slip details. Stock will be adjusted automatically.')
 
+@push('styles')
+<style>
+.item-description-input {
+    width: 100%;
+    min-height: 42px;
+    height: 42px;
+    padding: 0.65rem 0.85rem;
+    line-height: 1.45;
+    border: 1px solid var(--border, #cbd5e1);
+    border-radius: 0.6rem;
+    background: var(--surface-muted, #f8fafc);
+    color: var(--text, #1e293b);
+    resize: none;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: 0.88rem;
+    transition: height 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+.item-description-input:focus,
+.item-description-input.expanded {
+    white-space: normal !important;
+    overflow-y: auto !important;
+    border-color: rgba(37, 99, 235, 0.45);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+</style>
+@endpush
+
 @section('content')
     <section class="card">
 
@@ -102,7 +133,7 @@
                                     </div>
                                     <div class="form-group" style="position:relative;">
                                         <label>Item Description</label>
-                                        <input class="item-description-input" name="items[0][item_description]" required autocomplete="off" />
+                                        <textarea class="item-description-input" name="items[0][item_description]" required autocomplete="off" rows="1" placeholder="Enter or search description..."></textarea>
                                     </div>
                                     <div class="form-group">
                                         <label>Category</label>
@@ -173,7 +204,7 @@
                                     </div>
                                     <div class="form-group" style="position:relative;">
                                         <label>Item Description</label>
-                                        <input class="item-description-input" name="items[{{ $index }}][item_description]" value="{{ $oi['item_description'] ?? $ri->item_description }}" required autocomplete="off" />
+                                        <textarea class="item-description-input" name="items[{{ $index }}][item_description]" required autocomplete="off" rows="1" placeholder="Enter or search description...">{{ $oi['item_description'] ?? $ri->item_description }}</textarea>
                                     </div>
                                     <div class="form-group">
                                         <label>Category</label>
@@ -585,12 +616,50 @@
             });
         }
 
+        function bindDescriptionExpand(row) {
+            var desc = row.querySelector('.item-description-input');
+            if (!desc) return;
+
+            function autoExpand() {
+                desc.classList.add('expanded');
+                desc.style.whiteSpace = 'normal';
+                desc.style.height = 'auto';
+                var scrollH = desc.scrollHeight;
+                var targetHeight = Math.max(42, Math.min(scrollH + 4, 200));
+                desc.style.height = targetHeight + 'px';
+                desc.title = desc.value || '';
+            }
+
+            function collapse() {
+                desc.classList.remove('expanded');
+                desc.style.whiteSpace = 'nowrap';
+                desc.style.height = '42px';
+                desc.title = desc.value || '';
+                desc.scrollTop = 0;
+            }
+
+            desc.addEventListener('focus', autoExpand);
+            desc.addEventListener('click', autoExpand);
+            desc.addEventListener('input', autoExpand);
+            desc.addEventListener('blur', collapse);
+
+            desc.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                }
+            });
+
+            if (desc.value) {
+                desc.title = desc.value;
+            }
+        }
+
         function updateIndexes() {
             var container = document.getElementById('receiving-items');
             Array.from(container.querySelectorAll('.receiving-item-row')).forEach(function(row, index) {
                 row.dataset.index = index;
                 row.querySelector('.item-row-title').textContent = 'Item ' + (index + 1);
-                row.querySelectorAll('input, select').forEach(function(f) {
+                row.querySelectorAll('input, select, textarea').forEach(function(f) {
                     f.name = f.name.replace(/items\[\d+\]/, 'items[' + index + ']');
                 });
                 var deleteButton = row.querySelector('.remove-item-button');
@@ -617,6 +686,7 @@
             bindItemAutocomplete(row);
             bindRowActions(row);
             bindExpiryFix(row);
+            bindDescriptionExpand(row);
             container.appendChild(row);
             updateIndexes();
         }
@@ -626,6 +696,7 @@
             bindItemAutocomplete(row);
             bindRowActions(row);
             bindExpiryFix(row);
+            bindDescriptionExpand(row);
         });
         updateIndexes();
         recalcNextSeq();

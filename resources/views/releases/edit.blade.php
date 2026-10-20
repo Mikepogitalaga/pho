@@ -1,5 +1,36 @@
 @extends('layouts.app')
 
+@push('styles')
+<style>
+.item-description-input {
+    width: 100%;
+    min-height: 42px;
+    height: 42px;
+    padding: 0.65rem 2rem 0.65rem 0.85rem;
+    line-height: 1.45;
+    border: 1px solid var(--border, #cbd5e1);
+    border-radius: 0.6rem;
+    background: var(--surface-muted, #f8fafc);
+    color: var(--text, #1e293b);
+    resize: none;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: 0.88rem;
+    transition: height 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+.item-description-input:focus,
+.item-description-input.expanded {
+    white-space: normal !important;
+    overflow-y: auto !important;
+    border-color: rgba(37, 99, 235, 0.45);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+</style>
+@endpush
+
 @section('title', 'Edit Release Slip')
 @section('pageHeading', 'Edit Release Slip')
 @section('pageSubheading', 'Update release slip details. Stock will be adjusted automatically.')
@@ -186,11 +217,11 @@
                                     <div class="form-grid-3">
                                         <div class="form-group">
                                             <label>Item Description <span style="color: var(--danger);">*</span></label>
-                                            <div style="position:relative; display:flex; align-items:center;">
-                                                <input type="text" class="item-description-input" name="items[{{ $index }}][item_description]"
-                                                    value="{{ $oldItem['item_description'] ?? '' }}" autocomplete="off" style="width:100%; padding-right:2rem;" required>
+                                            <div style="position:relative; display:flex; align-items:flex-start;">
+                                                <textarea class="item-description-input" name="items[{{ $index }}][item_description]"
+                                                    rows="1" autocomplete="off" required placeholder="Enter or search description...">{{ $oldItem['item_description'] ?? '' }}</textarea>
                                                 <button type="button" class="item-description-clear" title="Clear"
-                                                    style="position:absolute; right:0.5rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
+                                                    style="position:absolute; right:0.5rem; top:0.65rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
                                             </div>
                                         </div>
                                         <div class="form-group">
@@ -261,10 +292,10 @@
                         <div class="form-grid-3">
                             <div class="form-group">
                                 <label>Item Description <span style="color: var(--danger);">*</span></label>
-                                <div style="position:relative; display:flex; align-items:center;">
-                                    <input type="text" class="item-description-input" name="items[0][item_description]" value="" autocomplete="off" style="width:100%; padding-right:2rem;" required>
+                                <div style="position:relative; display:flex; align-items:flex-start;">
+                                    <textarea class="item-description-input" name="items[0][item_description]" rows="1" autocomplete="off" required placeholder="Enter or search description..."></textarea>
                                     <button type="button" class="item-description-clear" title="Clear"
-                                        style="position:absolute; right:0.5rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
+                                        style="position:absolute; right:0.5rem; top:0.65rem; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; line-height:1; padding:0.2rem 0.3rem;">&times;</button>
                                 </div>
                             </div>
                             <div class="form-group">
@@ -460,7 +491,7 @@
             Array.from(releaseItems.querySelectorAll('.release-item-row')).forEach((row, index) => {
                 row.dataset.index = index;
                 row.querySelector('.item-row-title').textContent = 'Item ' + (index + 1);
-                row.querySelectorAll('input, select').forEach(f => {
+                row.querySelectorAll('input, select, textarea').forEach(f => {
                     f.name = f.name.replace(/items\[\d+\]/, 'items[' + index + ']');
                 });
                 const del = row.querySelector('.remove-item-button');
@@ -529,7 +560,10 @@
             const lotInput      = row.querySelector('.item-lot-input');
             const expiryInput   = row.querySelector('.item-expiry-input');
 
-            if (descInput)     descInput.value     = item.name;
+            if (descInput) {
+                descInput.value = item.name;
+                descInput.title = item.name;
+            }
             if (phocodeInput)  phocodeInput.value  = item.code || '';
             if (itemIdHidden)  itemIdHidden.value  = item.id || '';
             if (uomInput)      uomInput.value      = item.uom || '';
@@ -632,10 +666,47 @@
                     }
                 };
 
-                descInput.addEventListener('input',  e => showItemOptions(descInput, dd, e.target.value, syncItemSelection));
-                descInput.addEventListener('focus',  () => showItemOptions(descInput, dd, descInput.value, syncItemSelection));
-                descInput.addEventListener('blur',   () => setTimeout(() => dd.style.display = 'none', 200));
-                descInput.addEventListener('change', syncItemSelection);
+                const autoExpand = () => {
+                    descInput.classList.add('expanded');
+                    descInput.style.whiteSpace = 'normal';
+                    descInput.style.height = 'auto';
+                    const scrollH = descInput.scrollHeight;
+                    const targetHeight = Math.max(42, Math.min(scrollH + 4, 200));
+                    descInput.style.height = targetHeight + 'px';
+                    descInput.title = descInput.value || '';
+                };
+
+                const collapse = () => {
+                    descInput.classList.remove('expanded');
+                    descInput.style.whiteSpace = 'nowrap';
+                    descInput.style.height = '42px';
+                    descInput.title = descInput.value || '';
+                    descInput.scrollTop = 0;
+                };
+
+                descInput.addEventListener('focus', () => {
+                    autoExpand();
+                    showItemOptions(descInput, dd, descInput.value, syncItemSelection);
+                });
+                descInput.addEventListener('click', autoExpand);
+                descInput.addEventListener('input', e => {
+                    autoExpand();
+                    showItemOptions(descInput, dd, e.target.value, syncItemSelection);
+                });
+                descInput.addEventListener('blur', () => {
+                    collapse();
+                    setTimeout(() => dd.style.display = 'none', 200);
+                });
+                descInput.addEventListener('change', () => {
+                    syncItemSelection();
+                    descInput.title = descInput.value || '';
+                });
+                descInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                    }
+                });
+                collapse();
             }
 
             bindPhocodeAutocomplete(row);

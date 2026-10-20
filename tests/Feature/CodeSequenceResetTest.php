@@ -176,17 +176,16 @@ test('the full item code the receiving form assembles is PREFIX-YY-MM-NNNN and r
 });
 
 /*
- * KNOWN ISSUE found by this probe (nothing was changed):
- * pas_items.product_code is built as 'PC' + YY + MM + NNNN with NO separator,
- * while GeneratesCodes::nextYearSequence() reads the running number with the
- * greedy regex /(\d+)$/. That regex also swallows the YYMM digits, so every
- * new code is stacked on top of the previous one and keeps growing:
+ * Previously pas_items.product_code was built as 'PC' + YY + MM + NNNN with NO
+ * separator, while GeneratesCodes::nextYearSequence() read the running number
+ * with the greedy regex /(\d+)$/. That regex also swallowed the YYMM digits, so
+ * every new code was stacked on top of the previous one and kept growing:
  *   PC26090001 -> PC260926090002 -> PC2609260926090003 -> ...
- * The same corruption is already present in the live database.
- * PAS / PTR / receiving item codes are unaffected because their groups are
- * separated by dashes, so /(\d+)$/ only captures the 4-digit sequence.
+ * The helper now parses exactly the last $pad digits, so the sequence stays
+ * 4 digits. PAS / PTR / receiving item codes were always unaffected because
+ * their groups are separated by dashes.
  */
-test('PAS item product code (PHO code) does not restart cleanly - digits pile up (known issue)', function () {
+test('PAS item product code (PHO code) sequence stays 4 digits and restarts cleanly', function () {
     $admin = User::factory()->create(); // no program_id => PAS number is typed in manually
 
     $storePas = function (string $pasNumber, string $date) use ($admin) {
@@ -215,10 +214,10 @@ test('PAS item product code (PHO code) does not restart cleanly - digits pile up
     expect($storePas('PAS-2026-09-0001', '2026-09-05'))->toBe('PC26090001'); // first of the month is fine
 
     $this->travelTo(Carbon::parse('2026-09-06 09:00:00'));
-    expect($storePas('PAS-2026-09-0002', '2026-09-06'))->toBe('PC260926090002'); // YYMM absorbed again
+    expect($storePas('PAS-2026-09-0002', '2026-09-06'))->toBe('PC26090002'); // YYMM no longer absorbed
 
     $this->travelTo(Carbon::parse('2026-09-07 09:00:00'));
-    expect($storePas('PAS-2026-09-0003', '2026-09-07'))->toBe('PC2609260926090003'); // keeps growing
+    expect($storePas('PAS-2026-09-0003', '2026-09-07'))->toBe('PC26090003'); // stays 4 digits
 
     // The month/year prefix is still honoured, so a new year does start clean.
     $this->travelTo(Carbon::parse('2027-01-05 09:00:00'));

@@ -10,14 +10,17 @@ use App\Models\Receiving;
 use App\Models\ReceivingItem;
 use App\Models\ReleaseItem;
 use App\Models\Supplier;
+use App\Imports\ReceivingImport;
 use App\Traits\GeneratesCodes;
+use App\Traits\ScopesProgramAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ReceivingController extends Controller
 {
-    use GeneratesCodes;
+    use GeneratesCodes, ScopesProgramAccess;
 
     public function index(Request $request)
     {
@@ -25,6 +28,9 @@ class ReceivingController extends Controller
             Receiving::with(['supplier', 'items'])->latest('date_received'),
             $request
         );
+
+        // Program users only see receivings belonging to their own program(s).
+        $this->scopeToViewablePrograms($query, 'stock_keeping_unit');
 
         $program = trim((string) $request->input('program', ''));
 
@@ -36,17 +42,27 @@ class ReceivingController extends Controller
 
         $receivings = $query->paginate($perPage)->withQueryString();
 
+        $programNames = $this->viewableProgramNames();
         $programs = Program::orderBy('name')->get();
 
-        return view('receivings.index', compact('receivings', 'programs', 'program'));
+        // Keep the program filter limited to what this account may view.
+        if ($programNames !== []) {
+            $programs = $programs->filter(fn ($p) => in_array($p->name, $programNames, true))->values();
+        }
+
+        return view('receivings.index', compact('receivings', 'programs', 'program', 'programNames'));
     }
 
     public function export(Request $request)
     {
-        $receivings = $this->applyReceivingFilters(
+        $query = $this->applyReceivingFilters(
             Receiving::with(['supplier', 'items.item'])->latest('date_received'),
             $request
-        )->get();
+        );
+
+        $this->scopeToViewablePrograms($query, 'stock_keeping_unit');
+
+        $receivings = $query->get();
 
         $fileName = 'receivings-' . now()->format('Y-m-d-His') . '.csv';
 
@@ -114,10 +130,14 @@ class ReceivingController extends Controller
 
     public function printList(Request $request)
     {
-        $receivings = $this->applyReceivingFilters(
+        $query = $this->applyReceivingFilters(
             Receiving::with(['supplier', 'items.item'])->latest('date_received'),
             $request
-        )->get();
+        );
+
+        $this->scopeToViewablePrograms($query, 'stock_keeping_unit');
+
+        $receivings = $query->get();
 
         return view('receivings.list-print', compact('receivings'));
     }
@@ -126,12 +146,18 @@ class ReceivingController extends Controller
     {
         $receiving->load('items.item');
 
-        return view('receivings.view', compact('receiving'));
+        $this->authorizeProgramRecord($receiving, 'stock_keeping_unit');
+
+        $programUser = $this->isProgramScopedViewer();
+
+        return view('receivings.view', compact('receiving', 'programUser'));
     }
 
     public function print(Receiving $receiving)
     {
         $receiving->load('items.item');
+
+        $this->authorizeProgramRecord($receiving, 'stock_keeping_unit');
 
         return view('receivings.print', compact('receiving'));
     }
@@ -600,4 +626,161 @@ class ReceivingController extends Controller
 
         return $synced;
     }
+
+    // ------------------------------------------------------------------
+    // Excel Import: Template Download
+    // ------------------------------------------------------------------
+
+    public function importTemplate()
+    {
+        $headers = [
+            'Purchase Order / Source Document No.',
+            'SUPPLIER/DEALER',
+            'ICS /PTR /RIS',
+            'Date(PTR/RIS/ICS)',
+            'Product Code',
+            'Item Description',
+            'Lot_number',
+            'expiry_date',
+            'Quantity_received',
+            'UOM',
+            'unit_cost',
+            'Date Received',
+            'Location',
+            'Stock Keeping Unit(Program)',
+            'Program Coordinator',
+        ];
+
+        $exampleRows = [
+            [
+                'PO-2026-0001',
+                'MEDIPHARM SUPPLIES CORP',
+                'RIS-2026-101',
+                '2026-10-01',
+                'DM-26-10-0001',
+                'Paracetamol 500mg Tablet',
+                'LOT2024A',
+                '2027-12-31',
+                100,
+                'bottle',
+                12.50,
+                date('Y-m-d'),
+                'Shelf A-1',
+                'Maternal & Child Health',
+                'Dr. Maria Santos',
+            ],
+            [
+                'PO-2026-0001',
+                'MEDIPHARM SUPPLIES CORP',
+                'RIS-2026-101',
+                '2026-10-01',
+                '',
+                'Surgical Gloves Size 7.5 (Box of 100)',
+                'BATCH-8821',
+                '2028-05-30',
+                50,
+                'box',
+                85.00,
+                date('Y-m-d'),
+                'Shelf B-2',
+                'Maternal & Child Health',
+                'Dr. Maria Santos',
+            ],
+        ];
+
+        $filename = 'receiving-items-template.csv';
+
+        $callback = function () use ($headers, $exampleRows) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, $headers);
+            foreach ($exampleRows as $row) {
+                fputcsv($handle, $row);
+            }
+            fclose($handle);
+        };
+
+        return response()->streamDownload($callback, $filename, [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
+    // ------------------------------------------------------------------
+    // Excel Import: Preview Parse (AJAX / JSON)
+    // ------------------------------------------------------------------
+
+    public function importPreview(Request $request)
+    {
+        $request->validate([
+            'import_file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+        ]);
+
+        try {
+            $import = new ReceivingImport();
+            Excel::import($import, $request->file('import_file'));
+
+            $rows   = $import->getRows();
+            $errors = $import->getRowErrors();
+
+            if (empty($rows)) {
+                return response()->json([
+                    'success'   => false,
+                    'message'   => 'The file appears to be empty or contains no readable data rows.',
+                    'rows'      => [],
+                    'rowErrors' => [],
+                ], 422);
+            }
+
+            // Extract primary receiving header information from rows
+            $headerData = [
+                'po_number'           => '',
+                'supplier_dealer'     => '',
+                'ics_ptr_ris'         => '',
+                'document_date'       => '',
+                'date_received'       => '',
+                'stock_keeping_unit'  => '',
+                'program_coordinator' => '',
+            ];
+
+            foreach ($rows as $r) {
+                foreach ($headerData as $k => $v) {
+                    if (empty($headerData[$k]) && !empty($r[$k])) {
+                        $headerData[$k] = $r[$k];
+                    }
+                }
+            }
+
+            return response()->json([
+                'success'    => true,
+                'headerData' => $headerData,
+                'rows'       => $rows,
+                'rowErrors'  => $errors,
+                'count'      => count($rows),
+                'errorCount' => count($errors),
+            ]);
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            $messages = [];
+            foreach ($failures as $failure) {
+                foreach ($failure->errors() as $err) {
+                    $messages[] = 'Row ' . $failure->row() . ': ' . $err;
+                }
+            }
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Validation errors in the file.',
+                'details'   => $messages,
+                'rows'      => [],
+                'rowErrors' => [],
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Receiving Excel import failed', ['exception' => $e]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Could not read the file: ' . $e->getMessage(),
+                'rows'    => [],
+                'rowErrors' => [],
+            ], 422);
+        }
+    }
 }
+

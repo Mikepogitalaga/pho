@@ -102,6 +102,7 @@
                 <thead>
                      <tr>
                          <th>PHO Code</th>
+                         <th>Lot/Batch No.</th>
                          <th>Location</th>
                          <th>Current Stock</th>
                          <th class="col-hide-md">Unit Cost</th>
@@ -116,15 +117,26 @@
                      @forelse($items as $groupedItem)
                          <tr class="product-code-row"
                              data-productcode="{{ $groupedItem->receivingItems->pluck('item_code')->filter()->implode(' ') }}"
+                             data-lot_number="{{ $groupedItem->lot_number ?? '' }}"
                              data-location="{{ $groupedItem->location ?? '' }}"
                              data-status="{{ $groupedItem->status }}">
-                              <td class="mobile-card-header">
-                                  @forelse($groupedItem->receivingItems->pluck('item_code')->filter()->unique() as $productCode)
-                                      <a href="{{ route('items.productcode.show', ['item' => $item, 'productCode' => $productCode]) }}" style="display:block;font-weight:600;color:var(--text);font-family:monospace;">{{ $productCode }}</a>
-                                  @empty
-                                      <span style="color:var(--text-muted);">—</span>
-                                  @endforelse
-                              </td>
+                               <td class="mobile-card-header">
+                                   @forelse($groupedItem->receivingItems->pluck('item_code')->filter()->unique() as $productCode)
+                                       <a href="{{ route('items.productcode.show', ['item' => $item, 'productCode' => $productCode]) }}" style="display:block;font-weight:600;color:var(--text);font-family:monospace;">{{ $productCode }}</a>
+                                   @empty
+                                       <span style="color:var(--text-muted);">—</span>
+                                   @endforelse
+                               </td>
+                               <td data-label="lot_number" style="color:var(--text-muted);">
+                                   @php
+                                       $lotNumbers = $groupedItem->receivingItems->pluck('lot_number')->filter()->unique()->values();
+                                   @endphp
+                                   @forelse($lotNumbers as $lotNumber)
+                                       <span style="display: block;">{{ $lotNumber }}</span>
+                                   @empty
+                                       <span style="color:var(--text-muted);">—</span>
+                                   @endforelse
+                               </td>
                               <td data-label="Location" style="color:var(--text-muted);">{{ $groupedItem->location ?? '—' }}</td>
                               <td data-label="Current Stock">
                                   <span style="font-weight:700; color:{{ $groupedItem->quantity_on_hand > 0 ? 'var(--text)' : 'var(--danger)' }};">

@@ -12,7 +12,9 @@
                 <p class="page-description">PO: {{ $receiving->po_number ?? '—' }} · Supplier: {{ $receiving->supplier->company_name ?? '—' }}</p>
             </div>
             <div style="display:flex; gap:0.5rem; align-items:center; margin-left:auto;">
-                <a href="{{ route('receivings.edit', $receiving) }}" class="btn btn-primary">Edit</a>
+                @unless (($programUser ?? false))
+                    <a href="{{ route('receivings.edit', $receiving) }}" class="btn btn-primary">Edit</a>
+                @endunless
                 <a href="{{ route('receivings.print', $receiving) }}" class="btn btn-secondary" target="_blank">Print</a>
                 <a href="{{ route('receivings.index') }}" class="btn btn-secondary">Back to Receivings</a>
             </div>

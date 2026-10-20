@@ -156,50 +156,42 @@
      <div class="table-wrapper pas-table-wrap">
          <table class="data-table pas-table">
               <thead>
-                  <tr>
-                      <th style="width:50px;text-align:center;">#</th>
-                      <th>Item Description</th>
-                      @if(! auth()->user()?->program_id)
-                      <th class="col-hide-md">PHO Code</th>
-                      <th class="col-hide-md">Lot Number</th>
-                      <th class="col-hide-md">Expiration</th>
-                      @endif
-                      <th style="text-align:center;">Qty</th>
-                      @if(! auth()->user()?->program_id)
-                      <th class="col-hide-md">Unit</th>
-                      <th class="col-hide-md">Unit Cost</th>
-                      @endif
-                      <th style="text-align:right;">Total Cost</th>
-                  </tr>
+                   <tr>
+                       <th style="width:50px;text-align:center;">#</th>
+                       <th>Item Description</th>
+                       <th class="col-hide-md">PHO Code</th>
+                       <th class="col-hide-md">Lot Number</th>
+                       <th class="col-hide-md">Expiration</th>
+                       <th style="text-align:center;">Qty</th>
+                       <th class="col-hide-md">Unit</th>
+                       <th class="col-hide-md">Unit Cost</th>
+                       <th style="text-align:right;">Total Cost</th>
+                   </tr>
               </thead>
              <tbody>
                  @php $grandTotal = 0; @endphp
                   @forelse($pas->items as $i => $item)
                       @php $grandTotal += (float) $item->total_cost; @endphp
-                      <tr>
-                          <td class="pas-row-num">{{ $i + 1 }}</td>
-                          <td data-label="Item Description">{{ $item->item_description }}</td>
-                          @if(! auth()->user()?->program_id)
-                          <td data-label="PHO Code" class="col-hide-md">
-                              <span style="font-weight:600; font-family:monospace; color:var(--text);">{{ $item->product_code ?? $item->item?->item_code ?? '—' }}</span>
-                          </td>
-                          <td data-label="Lot Number" class="col-hide-md pas-muted">{{ $item->lot_number ?? '—' }}</td>
-                          <td data-label="Expiration" class="col-hide-md pas-muted">{{ $item->expiration_date?->format('M d, Y') ?? '—' }}</td>
-                          @endif
-                          <td data-label="Qty" style="text-align:center;">
-                              <span style="font-weight:600;">{{ number_format($item->quantity) }}</span>
-                          </td>
-                          @if(! auth()->user()?->program_id)
-                          <td data-label="Unit" class="col-hide-md pas-muted">{{ $item->unit }}</td>
-                          <td data-label="Unit Cost" class="col-hide-md">{{ number_format($item->unit_cost, 2) }}</td>
-                          @endif
-                          <td data-label="Total Cost" style="text-align:right; font-weight:700; color:var(--text);">
-                              ₱ {{ number_format($item->total_cost, 2) }}
-                          </td>
-                      </tr>
+                       <tr>
+                           <td class="pas-row-num">{{ $i + 1 }}</td>
+                           <td data-label="Item Description">{{ $item->item_description }}</td>
+                           <td data-label="PHO Code" class="col-hide-md">
+                               <span style="font-weight:600; font-family:monospace; color:var(--text);">{{ $item->item_code ?? $item->product_code ?? '—' }}</span>
+                           </td>
+                           <td data-label="Lot Number" class="col-hide-md pas-muted">{{ $item->lot_number ?? '—' }}</td>
+                           <td data-label="Expiration" class="col-hide-md pas-muted">{{ $item->expiration_date?->format('M d, Y') ?? '—' }}</td>
+                           <td data-label="Qty" style="text-align:center;">
+                               <span style="font-weight:600;">{{ number_format($item->quantity) }}</span>
+                           </td>
+                           <td data-label="Unit" class="col-hide-md pas-muted">{{ $item->unit }}</td>
+                           <td data-label="Unit Cost" class="col-hide-md">{{ number_format($item->unit_cost, 2) }}</td>
+                           <td data-label="Total Cost" style="text-align:right; font-weight:700; color:var(--text);">
+                               ₱ {{ number_format($item->total_cost, 2) }}
+                           </td>
+                       </tr>
                   @empty
                       <tr class="pas-empty-row">
-                          <td colspan="{{ auth()->user()?->program_id ? 4 : 9 }}">
+                          <td colspan="9">
                              <div class="pas-empty">
                                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
                                  <p>No items recorded.</p>

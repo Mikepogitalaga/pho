@@ -247,12 +247,14 @@ class DashboardController extends Controller
             ? $upcomingExpiriesQuery->whereHas('item', fn($q) => $this->scopeItemQuery($q))->get()
             : $upcomingExpiriesQuery->get();
 
-        $missingDataItemsQuery = ReceivingItem::with('item')
+        $missingDataItemsQuery = ReceivingItem::with(['item', 'receiving'])
             ->where(function ($q) {
-                $q->whereNull('item_code')->orWhere('item_code', '')->orWhereNull('expiry_date');
+                $q->whereNull('item_code')
+                    ->orWhereRaw('TRIM(item_code) = ?', [''])
+                    ->orWhereNull('expiry_date')
+                    ->orWhereNull('lot_number');
             })
-            ->orderByDesc('created_at')
-            ->limit(10);
+            ->orderByDesc('created_at');
         $missingDataItems = $programScoped
             ? $missingDataItemsQuery->whereHas('item', fn($q) => $this->scopeItemQuery($q))->get()
             : $missingDataItemsQuery->get();
@@ -424,27 +426,57 @@ class DashboardController extends Controller
         }
 
         foreach ($missingDataItems as $missing) {
+            $allFields = [
+                'product code' => $missing->item_code,
+                'expiry date'  => $missing->expiry_date,
+                'lot number'   => $missing->lot_number,
+            ];
             $missingFields = [];
-            if (empty($missing->item_code)) $missingFields[] = 'item code';
-            if (empty($missing->expiry_date)) $missingFields[] = 'expiration date';
+            foreach ($allFields as $field => $value) {
+                if (is_null($value) || $value === '') $missingFields[] = $field;
+            }
+            $totalFields = count($allFields);
+            $missingCount = count($missingFields);
+            $accuracy = $totalFields > 0 ? round((($totalFields - $missingCount) / $totalFields) * 100) : 0;
+
+            $hasNoProductCode = in_array('product code', $missingFields, true);
+            $hasNoExpiryDate = in_array('expiry date', $missingFields, true);
+            $hasNoLotNumber = in_array('lot number', $missingFields, true);
+
+            $detailParts = [];
+            $parts = [];
+            if ($hasNoProductCode) $parts[] = 'no product code';
+            if ($hasNoExpiryDate) $parts[] = 'no expiry date';
+            if ($hasNoLotNumber) $parts[] = 'no lot number';
+            if ($parts) {
+                $detailParts[] = count($parts) === 1
+                    ? 'Missing: ' . $parts[0]
+                    : 'Missing: ' . implode(' and ', $parts);
+            }
+            if (!$detailParts) {
+                $detailParts[] = 'All fields complete';
+            }
+            $detailParts[] = "Data accuracy: {$accuracy}%";
 
             $notifications->push([
                 'type' => 'danger',
                 'label' => 'MISSING DATA',
                 'code' => $missing->item_code ?: '—',
                 'name' => $missing->item->name ?? 'Item #'.$missing->item_id,
-                'detail' => count($missingFields) === 1
-                    ? ($missingFields[0] === 'item code' ? 'Item code is missing' : 'Expiration date is missing')
-                    : 'Item code and expiration date are missing',
-                'href' => route('items.show', $missing->item),
+                'detail' => implode(' | ', $detailParts),
+                'href' => $missing->receiving ? route('receivings.view', $missing->receiving) : '#',
             ]);
         }
 
         $pendingApprovals = collect();
         if (! $programScoped) {
             $pendingApprovals = Pas::where('request_status', 'pending_approval')
+                ->where(function ($q) {
+                    $q->where('status', '!=', 'Canceled')->orWhereNull('status');
+                })
                 ->with(['items', 'requester'])
-                ->latest('date_of_pass')
+                ->orderByDesc('date_of_pass')
+                ->orderByDesc('id')
                 ->limit(5)
                 ->get();
         }
@@ -773,13 +805,15 @@ class DashboardController extends Controller
                 ->limit(10)
                 ->get();
 
-            $missingDataItems = ReceivingItem::with('item')
+            $missingDataItems = ReceivingItem::with(['item', 'receiving'])
                 ->whereIn('item_id', $typeItemIds)
                 ->where(function ($q) {
-                    $q->whereNull('item_code')->orWhere('item_code', '')->orWhereNull('expiry_date');
+                    $q->whereNull('item_code')
+                        ->orWhereRaw('TRIM(item_code) = ?', [''])
+                        ->orWhereNull('expiry_date')
+                        ->orWhereNull('lot_number');
                 })
                 ->orderByDesc('created_at')
-                ->limit(10)
                 ->get();
 
             foreach ($upcomingExpiries as $expiry) {
@@ -794,19 +828,45 @@ class DashboardController extends Controller
             }
 
             foreach ($missingDataItems as $missing) {
+                $allFields = [
+                    'product code' => $missing->item_code,
+                    'expiry date'  => $missing->expiry_date,
+                    'lot number'   => $missing->lot_number,
+                ];
                 $missingFields = [];
-                if (empty($missing->item_code)) $missingFields[] = 'item code';
-                if (empty($missing->expiry_date)) $missingFields[] = 'expiration date';
+                foreach ($allFields as $field => $value) {
+                    if (is_null($value) || $value === '') $missingFields[] = $field;
+                }
+                $totalFields = count($allFields);
+                $missingCount = count($missingFields);
+                $accuracy = $totalFields > 0 ? round((($totalFields - $missingCount) / $totalFields) * 100) : 0;
+
+                $hasNoProductCode = in_array('product code', $missingFields, true);
+                $hasNoExpiryDate = in_array('expiry date', $missingFields, true);
+                $hasNoLotNumber = in_array('lot number', $missingFields, true);
+
+                $detailParts = [];
+                $parts = [];
+                if ($hasNoProductCode) $parts[] = 'no product code';
+                if ($hasNoExpiryDate) $parts[] = 'no expiry date';
+                if ($hasNoLotNumber) $parts[] = 'no lot number';
+                if ($parts) {
+                    $detailParts[] = count($parts) === 1
+                        ? 'Missing: ' . $parts[0]
+                        : 'Missing: ' . implode(' and ', $parts);
+                }
+                if (!$detailParts) {
+                    $detailParts[] = 'All fields complete';
+                }
+                $detailParts[] = "Data accuracy: {$accuracy}%";
 
                 $notifications->push([
                     'type' => 'danger',
                     'label' => 'MISSING DATA',
                     'code' => $missing->item_code ?: '—',
                     'name' => $missing->item->name ?? 'Item #'.$missing->item_id,
-                    'detail' => count($missingFields) === 1
-                        ? ($missingFields[0] === 'item code' ? 'Item code is missing' : 'Expiration date is missing')
-                        : 'Item code and expiration date are missing',
-                    'href' => route('items.show', $missing->item),
+                    'detail' => implode(' | ', $detailParts),
+                    'href' => $missing->receiving ? route('receivings.view', $missing->receiving) : '#',
                 ]);
             }
 

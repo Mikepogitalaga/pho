@@ -18,6 +18,7 @@ use App\Http\Controllers\PasController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\BackupController;
+use App\Http\Controllers\LoginSecurityController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
@@ -66,6 +67,8 @@ Route::middleware('web')->group(function () {
         Route::get('receivings/export', [ReceivingController::class, 'export'])->name('receivings.export');
         Route::get('receivings/print', [ReceivingController::class, 'printList'])->name('receivings.print-list');
         Route::get('receivings/create', [ReceivingController::class, 'create'])->name('receivings.create');
+        Route::get('receivings/import-template', [ReceivingController::class, 'importTemplate'])->name('receivings.import-template');
+        Route::post('receivings/import-preview', [ReceivingController::class, 'importPreview'])->name('receivings.import-preview');
         Route::get('receivings/{receiving}/edit', [ReceivingController::class, 'edit'])->name('receivings.edit');
         Route::put('receivings/{receiving}', [ReceivingController::class, 'update'])->name('receivings.update');
         Route::get('receivings/{receiving}', [ReceivingController::class, 'view'])->name('receivings.view');
@@ -121,24 +124,26 @@ Route::middleware('web')->group(function () {
         Route::put('program-management/coordinators/{coordinator}', [ProgramManagementController::class, 'coordinatorsUpdate'])->name('program-management.coordinators.update');
         Route::delete('program-management/coordinators/{coordinator}', [ProgramManagementController::class, 'coordinatorsDestroy'])->name('program-management.coordinators.destroy');
 
-        // User Management (administrators only)
-        Route::middleware(['admin'])->group(function () {
-            Route::get('users', [UserController::class, 'index'])->name('users.index');
-            Route::get('users/create', [UserController::class, 'create'])->name('users.create');
-            Route::post('users', [UserController::class, 'store'])->name('users.store');
-            Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
-            Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
-            Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-            Route::post('users/{user}/unlock', [UserController::class, 'unlock'])->name('users.unlock');
-            Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
+            // User Management (administrators only)
+            Route::middleware(['admin'])->group(function () {
+                Route::get('users', [UserController::class, 'index'])->name('users.index');
+                Route::get('users/create', [UserController::class, 'create'])->name('users.create');
+                Route::post('users', [UserController::class, 'store'])->name('users.store');
+                Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+                Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
+                Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+                Route::post('users/{user}/unlock', [UserController::class, 'unlock'])->name('users.unlock');
+                Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
 
-            // Database Safety Backup & Recovery (administrators only)
-            Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
-            Route::post('backups', [BackupController::class, 'store'])->name('backups.store');
-            Route::get('backups/{filename}/download', [BackupController::class, 'download'])->name('backups.download');
-            Route::post('backups/{filename}/restore', [BackupController::class, 'restore'])->name('backups.restore');
-            Route::post('backups/upload-restore', [BackupController::class, 'uploadRestore'])->name('backups.upload-restore');
-            Route::delete('backups/{filename}', [BackupController::class, 'destroy'])->name('backups.destroy');
-        });
+                Route::get('login-security', [LoginSecurityController::class, 'index'])->name('login-security.index');
+
+                // Database Safety Backup & Recovery (administrators only)
+                Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
+                Route::post('backups', [BackupController::class, 'store'])->name('backups.store');
+                Route::get('backups/{filename}/download', [BackupController::class, 'download'])->name('backups.download');
+                Route::post('backups/{filename}/restore', [BackupController::class, 'restore'])->name('backups.restore');
+                Route::post('backups/upload-restore', [BackupController::class, 'uploadRestore'])->name('backups.upload-restore');
+                Route::delete('backups/{filename}', [BackupController::class, 'destroy'])->name('backups.destroy');
+            });
     });
 });

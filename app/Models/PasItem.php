@@ -14,6 +14,7 @@ class PasItem extends Model
     protected $fillable = [
         'pas_id',
         'item_id',
+        'item_code',
         'item_description',
         'product_code',
         'lot_number',
